@@ -60,18 +60,19 @@ serve(async (req) => {
 
     const keyword = targetKeyword || topic;
 
-    // Format the model ID according to OpenRouter requirements
-    // OpenRouter requires the provider prefix (e.g., "anthropic/", "openai/", etc.)
+    // OpenRouter model ID - according to OpenRouter docs
+    // For example: "openai/gpt-4o" instead of "anthropic/claude-3-5-sonnet"
     let openRouterModelId;
     
-    // Map the simplified model IDs to full OpenRouter model IDs
+    // Map the simplified model IDs to correct OpenRouter model IDs
+    // Based on OpenRouter documentation format
     const modelIdMap = {
-      "claude-3-5-sonnet": "anthropic/claude-3-5-sonnet",
-      "claude-3-opus": "anthropic/claude-3-opus",
-      "claude-3-haiku": "anthropic/claude-3-haiku",
+      "claude-3-5-sonnet": "anthropic/claude-3-5-sonnet-20240307",
+      "claude-3-opus": "anthropic/claude-3-opus-20240229",
+      "claude-3-haiku": "anthropic/claude-3-haiku-20240307",
       "gpt-4o": "openai/gpt-4o",
-      "mistral-large": "mistralai/mistral-large",
-      "gemini-1.5-pro": "google/gemini-1.5-pro"
+      "mistral-large": "mistralai/mistral-large-latest",
+      "gemini-1.5-pro": "google/gemini-1.5-pro-latest"
     };
     
     // Check if we have a model provided
@@ -81,21 +82,15 @@ serve(async (req) => {
         openRouterModelId = modelIdMap[model];
       } else {
         // If it already has a provider prefix, use it as is
-        if (model.includes('/')) {
-          openRouterModelId = model;
-        } else {
-          // Default to anthropic/claude-3-5-sonnet if we can't map it
-          openRouterModelId = "anthropic/claude-3-5-sonnet";
-          console.warn(`Unknown model ID: ${model}, defaulting to anthropic/claude-3-5-sonnet`);
-        }
+        openRouterModelId = model;
       }
     } else {
       // Default model if none provided
-      openRouterModelId = "anthropic/claude-3-5-sonnet";
+      openRouterModelId = "anthropic/claude-3-5-sonnet-20240307";
     }
     
-    console.log("Original model ID:", model);
-    console.log("Mapped to OpenRouter model ID:", openRouterModelId);
+    console.log("Original model requested:", model);
+    console.log("Using OpenRouter model ID:", openRouterModelId);
 
     // Build the prompt for the OpenRouter API
     let systemPrompt = `You are an expert SEO content writer. Write an SEO-optimized in-depth blog post about ${topic}.`;
