@@ -27,14 +27,26 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "@/hooks/use-toast";
-import { ClipboardCopy, AlertCircle } from "lucide-react";
+import { ClipboardCopy, AlertCircle, InfoIcon } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { 
   generateSeoContent, 
   saveGeneratedContent, 
-  type SeoFormValues as SeoServiceFormValues 
+  type SeoFormValues as SeoServiceFormValues,
+  recommendedModels 
 } from "@/services/contentGenerationService";
 import { useAuth } from "@/context/AuthContext";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
 
 // Define the validation schema
 const seoFormSchema = z.object({
@@ -59,9 +71,10 @@ const seoFormSchema = z.object({
   wordCount: z.number().min(500).max(5000),
   includeFirstPerson: z.boolean().default(false),
   includeAnecdotes: z.boolean().default(false),
-  includeHook: z.boolean().default(false),
+  includeHook: z.boolean().default(true),
   includeStories: z.boolean().default(false),
   includeHtmlElement: z.boolean().default(false),
+  model: z.string().optional(),
 });
 
 type SeoFormValues = z.infer<typeof seoFormSchema>;
@@ -75,25 +88,40 @@ const defaultValues: Partial<SeoFormValues> = {
   includeHook: true,
   includeStories: false,
   includeHtmlElement: false,
+  model: "anthropic/claude-3-5-sonnet",
 };
 
 export function SeoGeneratorForm() {
-  const { user } = useAuth();
+  const { user, apiKey } = useAuth();
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [isSaving, setIsSaving] = React.useState(false);
   const [generatedContent, setGeneratedContent] = React.useState("");
   const [activeTab, setActiveTab] = React.useState("content-form");
+  const [apiKeyMissing, setApiKeyMissing] = React.useState(!apiKey);
 
   const form = useForm<SeoFormValues>({
     resolver: zodResolver(seoFormSchema),
     defaultValues,
   });
 
+  React.useEffect(() => {
+    setApiKeyMissing(!apiKey);
+  }, [apiKey]);
+
   const onSubmit = async (data: SeoFormValues) => {
+    if (!apiKey) {
+      toast({
+        variant: "destructive",
+        title: "API Key Required",
+        description: "Please add your OpenRouter API key in the settings page to generate content.",
+      });
+      return;
+    }
+    
     setIsGenerating(true);
     
     try {
-      const content = await generateSeoContent(data as SeoServiceFormValues);
+      const content = await generateSeoContent(data as SeoServiceFormValues, apiKey);
       setGeneratedContent(content);
       setActiveTab("generated-content");
       toast({
@@ -105,7 +133,7 @@ export function SeoGeneratorForm() {
       toast({
         variant: "destructive",
         title: "Generation failed",
-        description: "There was an error generating your content. Please try again.",
+        description: error instanceof Error ? error.message : "There was an error generating your content. Please try again.",
       });
     } finally {
       setIsGenerating(false);
@@ -199,6 +227,71 @@ export function SeoGeneratorForm() {
                           <FormDescription>
                             The primary keyword to optimize for (if empty, we'll use the topic)
                           </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="model"
+                      render={({ field }) => (
+                        <FormItem>
+                          <div className="flex items-center justify-between">
+                            <FormLabel>AI Model</FormLabel>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <InfoIcon className="h-4 w-4 text-muted-foreground" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="max-w-xs">Select the AI model that will generate your content. Different models have different capabilities and costs.</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                          <Select 
+                            onValueChange={field.onChange} 
+                            defaultValue={field.value}
+                            disabled={apiKeyMissing}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select AI model" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <div className="mb-2 px-2 py-1.5 text-sm font-semibold">Recommended</div>
+                              {recommendedModels
+                                .filter(model => model.recommended)
+                                .map(model => (
+                                  <SelectItem key={model.id} value={model.id}>
+                                    <div className="flex flex-col">
+                                      <span>{model.name}</span>
+                                      <span className="text-xs text-muted-foreground">{model.description}</span>
+                                    </div>
+                                  </SelectItem>
+                                ))
+                              }
+                              <div className="mb-2 mt-2 px-2 py-1.5 text-sm font-semibold">Other Models</div>
+                              {recommendedModels
+                                .filter(model => !model.recommended)
+                                .map(model => (
+                                  <SelectItem key={model.id} value={model.id}>
+                                    <div className="flex flex-col">
+                                      <span>{model.name}</span>
+                                      <span className="text-xs text-muted-foreground">{model.description}</span>
+                                    </div>
+                                  </SelectItem>
+                                ))
+                              }
+                            </SelectContent>
+                          </Select>
+                          {apiKeyMissing && (
+                            <FormDescription className="text-destructive">
+                              API key required. Add it in Settings.
+                            </FormDescription>
+                          )}
                           <FormMessage />
                         </FormItem>
                       )}
@@ -456,18 +549,36 @@ export function SeoGeneratorForm() {
               </Card>
             </div>
 
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Note</AlertTitle>
-              <AlertDescription>
-                For best results, this template works optimally with the Claude 3.7 model.
-              </AlertDescription>
-            </Alert>
+            {!apiKey ? (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>API Key Required</AlertTitle>
+                <AlertDescription className="flex flex-col gap-2">
+                  <p>You need to add an OpenRouter API key in Settings to generate content.</p>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-fit"
+                    onClick={() => window.open("https://openrouter.ai/keys", "_blank")}
+                  >
+                    Get an OpenRouter API Key
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Note</AlertTitle>
+                <AlertDescription>
+                  For best results, this template works optimally with the Claude 3.5 Sonnet model.
+                </AlertDescription>
+              </Alert>
+            )}
 
             <Button 
               type="submit" 
               className="w-full"
-              disabled={isGenerating}
+              disabled={isGenerating || (!apiKey)}
             >
               {isGenerating ? "Generating..." : "Generate SEO Content"}
             </Button>
@@ -499,7 +610,7 @@ export function SeoGeneratorForm() {
               </Button>
               <Button 
                 onClick={handleSaveContent} 
-                disabled={isSaving}
+                disabled={isSaving || !user}
               >
                 {isSaving ? "Saving..." : "Save to My Content"}
               </Button>

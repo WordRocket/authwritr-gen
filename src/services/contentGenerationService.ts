@@ -14,12 +14,17 @@ export interface SeoFormValues {
   includeHook: boolean;
   includeStories: boolean;
   includeHtmlElement: boolean;
+  model?: string;
 }
 
-export async function generateSeoContent(formData: SeoFormValues): Promise<string> {
+export async function generateSeoContent(formData: SeoFormValues, apiKey?: string): Promise<string> {
   try {
     const { data, error } = await supabase.functions.invoke("generate-seo-content", {
-      body: formData,
+      body: {
+        ...formData,
+        apiKey,
+        model: formData.model || "anthropic/claude-3-5-sonnet"
+      },
     });
 
     if (error) {
@@ -28,7 +33,8 @@ export async function generateSeoContent(formData: SeoFormValues): Promise<strin
     }
 
     if (!data || !data.success) {
-      throw new Error("Failed to generate content");
+      const errorMessage = data?.error || "Failed to generate content";
+      throw new Error(errorMessage);
     }
 
     return data.content;
@@ -63,3 +69,42 @@ export async function saveGeneratedContent(title: string, content: string, userI
     throw error;
   }
 }
+
+export const recommendedModels = [
+  { 
+    id: "anthropic/claude-3-5-sonnet", 
+    name: "Claude 3.5 Sonnet", 
+    description: "Best overall quality for SEO content",
+    recommended: true
+  },
+  { 
+    id: "anthropic/claude-3-opus", 
+    name: "Claude 3 Opus", 
+    description: "Highest quality for premium content",
+    recommended: true
+  },
+  { 
+    id: "anthropic/claude-3-haiku", 
+    name: "Claude 3 Haiku", 
+    description: "Fast and cost-effective",
+    recommended: true
+  },
+  { 
+    id: "openai/gpt-4o", 
+    name: "GPT-4o", 
+    description: "Excellent for creative content",
+    recommended: true
+  },
+  { 
+    id: "mistralai/mistral-large", 
+    name: "Mistral Large", 
+    description: "Good balance of quality and cost",
+    recommended: false
+  },
+  { 
+    id: "google/gemini-1.5-pro", 
+    name: "Gemini 1.5 Pro", 
+    description: "Strong general knowledge",
+    recommended: false
+  }
+];

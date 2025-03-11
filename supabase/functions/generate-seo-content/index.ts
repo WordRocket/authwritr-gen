@@ -13,68 +13,122 @@ serve(async (req) => {
   }
 
   try {
-    const { topic, targetKeyword, articleType, toneOfArticle, intendedAudience, additionalContext, wordCount, includeFirstPerson, includeAnecdotes, includeHook, includeStories, includeHtmlElement } = await req.json();
-
-    // This is a mock implementation - replace with actual AI service call later
-    console.log("Received request to generate SEO content:", { 
+    const { 
       topic, 
       targetKeyword, 
-      articleType,
-      wordCount
-    });
+      articleType, 
+      toneOfArticle, 
+      intendedAudience, 
+      additionalContext, 
+      wordCount, 
+      includeFirstPerson, 
+      includeAnecdotes, 
+      includeHook, 
+      includeStories, 
+      includeHtmlElement,
+      apiKey,
+      model
+    } = await req.json();
 
-    // Build a mock response based on the input parameters
+    if (!apiKey) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "API key is required" 
+        }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
     const keyword = targetKeyword || topic;
-    
-    let generatedContent = `# ${topic}\n\n`;
-    
-    if (includeHook) {
-      generatedContent += `Did you know that understanding ${keyword} is crucial for success in today's competitive landscape? Let's dive deep into this topic.\n\n`;
-    }
-    
-    generatedContent += `## Introduction to ${topic}\n\n`;
-    generatedContent += `${topic} is an essential aspect of modern business strategy. This comprehensive guide explores everything you need to know about ${keyword}.\n\n`;
-    
-    generatedContent += `## Why ${topic} Matters\n\n`;
-    generatedContent += `Understanding ${keyword} can dramatically improve your results. Here are some key points:\n\n`;
-    generatedContent += `- Point 1 about ${keyword}\n`;
-    generatedContent += `- Point 2 about ${keyword}\n`;
-    generatedContent += `- Point 3 about ${keyword}\n\n`;
-    
-    if (includeAnecdotes || includeStories) {
-      generatedContent += `## Real-World Example\n\n`;
-      generatedContent += `One of our clients implemented a ${keyword} strategy and saw remarkable results. Their engagement increased by 240% in just three months.\n\n`;
-    }
-    
-    generatedContent += `## Best Practices for ${topic}\n\n`;
-    generatedContent += `1. Always research your ${keyword} thoroughly\n`;
-    generatedContent += `2. Implement a structured approach to ${keyword}\n`;
-    generatedContent += `3. Regularly update your ${keyword} strategy\n\n`;
+
+    // Build the prompt for the OpenRouter API
+    let systemPrompt = `You are an expert SEO content writer. Write an SEO-optimized in-depth blog post about ${topic}.`;
+    systemPrompt += ` Include lists, tables, charts, pull quotes, and emojis when it makes sense in the article.`;
+    systemPrompt += ` Aim for approximately ${wordCount} words.`;
     
     if (includeHtmlElement) {
-      generatedContent += `## Interactive Element\n\n`;
-      generatedContent += "```html\n";
-      generatedContent += `<div class="interactive-element" style="border: 1px solid #ddd; padding: 20px; border-radius: 5px;">\n`;
-      generatedContent += `  <h3>${topic} Checklist</h3>\n`;
-      generatedContent += `  <ul class="checklist">\n`;
-      generatedContent += `    <li><input type="checkbox" id="item1"> <label for="item1">Research ${keyword}</label></li>\n`;
-      generatedContent += `    <li><input type="checkbox" id="item2"> <label for="item2">Create ${keyword} strategy</label></li>\n`;
-      generatedContent += `    <li><input type="checkbox" id="item3"> <label for="item3">Implement ${keyword} best practices</label></li>\n`;
-      generatedContent += `    <li><input type="checkbox" id="item4"> <label for="item4">Monitor ${keyword} performance</label></li>\n`;
-      generatedContent += `  </ul>\n`;
-      generatedContent += `</div>\n`;
-      generatedContent += "```\n\n";
+      systemPrompt += ` Also create a simple HTML element that represents the information in this article.`;
+      systemPrompt += ` Write the code in a way that can be embedded on WordPress and most sites.`;
+      systemPrompt += ` Make the code clean and ensure it would not affect the layout of the page or the website.`;
     }
     
-    generatedContent += `## Conclusion\n\n`;
-    generatedContent += `${topic} is a critical component of success in today's marketplace. By following the guidelines outlined in this article, you'll be well on your way to mastering ${keyword}.\n\n`;
+    systemPrompt += ` When writing, follow the best SEO practices and include the target keyword "${keyword}" and variations of the keyword in the title, h1, h2, h3, etc. and the body of the article.`;
+    systemPrompt += ` Always end the article with an SEO title and meta description.`;
+
+    let userPrompt = `Write a comprehensive, ${toneOfArticle || 'professional'} ${articleType || 'informational'} blog post about ${topic}`;
     
-    generatedContent += `## SEO Metadata\n\n`;
-    generatedContent += `**Title:** Complete Guide to ${topic}: Master ${keyword} in ${new Date().getFullYear()}\n`;
-    generatedContent += `**Meta Description:** Learn everything about ${topic} in our comprehensive guide. Includes tips, examples, and best practices for ${keyword}.`;
+    if (targetKeyword) {
+      userPrompt += ` optimized for the keyword "${targetKeyword}"`;
+    }
     
-    // Simulate processing time
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    if (intendedAudience) {
+      userPrompt += ` for an audience of ${intendedAudience}`;
+    }
+    
+    if (additionalContext) {
+      userPrompt += `. Additional context: ${additionalContext}`;
+    }
+    
+    userPrompt += `. Make it approximately ${wordCount} words.`;
+    
+    // Add style preferences
+    const stylePreferences = [];
+    if (includeFirstPerson) stylePreferences.push("first-person perspective");
+    if (includeAnecdotes) stylePreferences.push("include anecdotes");
+    if (includeHook) stylePreferences.push("start with an engaging hook");
+    if (includeStories) stylePreferences.push("incorporate relevant stories");
+    
+    if (stylePreferences.length > 0) {
+      userPrompt += ` Please write in ${stylePreferences.join(", ")} style.`;
+    }
+    
+    if (includeHtmlElement) {
+      userPrompt += ` Also create an interactive HTML element that represents the main information from this article. The code should be clean, responsive, and ready to be embedded in WordPress or other websites without affecting the page layout.`;
+    }
+
+    // Call the OpenRouter API
+    console.log("Calling OpenRouter API with model:", model);
+    
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+        'HTTP-Referer': 'https://contentgenius.app', // Replace with your actual domain
+        'X-Title': 'ContentGenius SEO Generator'
+      },
+      body: JSON.stringify({
+        model: model || "anthropic/claude-3-5-sonnet",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ],
+        temperature: 0.7,
+        max_tokens: Math.min(4000, wordCount * 2), // Estimate tokens needed based on word count
+      }),
+    });
+
+    const data = await response.json();
+    
+    if (!response.ok) {
+      console.error("OpenRouter API error:", data);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: data.error?.message || "Failed to generate content" 
+        }),
+        { 
+          status: response.status, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    const generatedContent = data.choices[0].message.content;
     
     return new Response(
       JSON.stringify({ 
