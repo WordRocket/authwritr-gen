@@ -597,8 +597,51 @@ export function SeoGeneratorForm() {
                     Copy
                   </Button>
                 </div>
-                <div className="prose dark:prose-invert max-w-none border p-4 rounded-md bg-muted/50 min-h-[400px] max-h-[600px] overflow-y-auto">
-                  <ReactMarkdown>{generatedContent}</ReactMarkdown>
+                <div className="content-container prose dark:prose-invert max-w-none border p-4 rounded-md bg-muted/50 min-h-[400px] max-h-[800px] overflow-y-auto">
+                  <ReactMarkdown components={{
+                    p: ({ node, ...props }) => {
+                      const content = props.children;
+                      if (typeof content === 'string' && (content.includes('<') && content.includes('>'))) {
+                        return <div dangerouslySetInnerHTML={{ __html: content }} />;
+                      }
+                      return <p {...props} />;
+                    },
+                    table: ({ node, ...props }) => (
+                      <div className="overflow-x-auto my-4">
+                        <table className="min-w-full divide-y divide-border" {...props} />
+                      </div>
+                    ),
+                    ul: ({ node, ...props }) => (
+                      <ul className="list-disc pl-6 my-4" {...props} />
+                    ),
+                    ol: ({ node, ...props }) => (
+                      <ol className="list-decimal pl-6 my-4" {...props} />
+                    ),
+                    h1: ({ node, ...props }) => (
+                      <h1 className="text-3xl font-bold mt-6 mb-4" {...props} />
+                    ),
+                    h2: ({ node, ...props }) => (
+                      <h2 className="text-2xl font-semibold mt-6 mb-3" {...props} />
+                    ),
+                    h3: ({ node, ...props }) => (
+                      <h3 className="text-xl font-semibold mt-5 mb-2" {...props} />
+                    ),
+                    h4: ({ node, ...props }) => (
+                      <h4 className="text-lg font-medium mt-4 mb-2" {...props} />
+                    ),
+                    code: ({ node, inline, className, children, ...props }) => {
+                      if (inline) {
+                        return <code className="px-1 py-0.5 bg-muted rounded text-sm" {...props}>{children}</code>;
+                      }
+                      return (
+                        <pre className="p-4 bg-muted rounded-md overflow-x-auto">
+                          <code className="text-sm" {...props}>{children}</code>
+                        </pre>
+                      );
+                    },
+                  }}>
+                    {generatedContent}
+                  </ReactMarkdown>
                 </div>
               </CardContent>
             </Card>

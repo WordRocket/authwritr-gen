@@ -130,7 +130,7 @@ serve(async (req) => {
             { role: "user", content: userPrompt }
           ],
           temperature: 0.7,
-          max_tokens: Math.min(4000, wordCount * 2), // Estimate tokens needed based on word count
+          max_tokens: 16000, // Increased to the maximum to prevent content cutoff
         }),
       });
 
