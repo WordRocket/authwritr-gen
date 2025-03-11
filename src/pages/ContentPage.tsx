@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -140,58 +141,62 @@ export default function ContentPage() {
                   </DialogHeader>
                   <div className="content-container prose dark:prose-invert max-w-none">
                     <ReactMarkdown components={{
-              // Allow HTML to be rendered within markdown
-              p: ({ node, ...props }) => {
-                const content = props.children;
-                // Check if content contains HTML elements
-                if (typeof content === 'string' && (content.includes('<') && content.includes('>'))) {
-                  return <div dangerouslySetInnerHTML={{ __html: content }} />;
-                }
-                return <p {...props} />;
-              },
-              // Handle tables properly
-              table: ({ node, ...props }) => (
-                <div className="overflow-x-auto my-4">
-                  <table className="min-w-full divide-y divide-border" {...props} />
-                </div>
-              ),
-              // Handle lists properly
-              ul: ({ node, ...props }) => (
-                <ul className="list-disc pl-6 my-4" {...props} />
-              ),
-              ol: ({ node, ...props }) => (
-                <ol className="list-decimal pl-6 my-4" {...props} />
-              ),
-              // Properly style headings
-              h1: ({ node, ...props }) => (
-                <h1 className="text-3xl font-bold mt-6 mb-4" {...props} />
-              ),
-              h2: ({ node, ...props }) => (
-                <h2 className="text-2xl font-semibold mt-6 mb-3" {...props} />
-              ),
-              h3: ({ node, ...props }) => (
-                <h3 className="text-xl font-semibold mt-5 mb-2" {...props} />
-              ),
-              h4: ({ node, ...props }) => (
-                <h4 className="text-lg font-medium mt-4 mb-2" {...props} />
-              ),
-              // Handle code blocks properly
-              code: ({ node, inline, className, children, ...props }) => {
-                if (inline) {
-                  return <code className="px-1 py-0.5 bg-muted rounded text-sm" {...props}>{children}</code>;
-                }
-                return (
-                  <pre className="p-4 bg-muted rounded-md overflow-x-auto">
-                    <code className="text-sm" {...props}>{children}</code>
-                  </pre>
-                );
-              },
-            }}>
-              {selectedContent?.content || ""}
-            </ReactMarkdown>
-          </div>
-        </DialogContent>
-      </Dialog>
+                      // Allow HTML to be rendered within markdown
+                      p: ({ node, ...props }) => {
+                        const content = props.children;
+                        // Check if content contains HTML elements
+                        if (typeof content === 'string' && (content.includes('<') && content.includes('>'))) {
+                          return <div dangerouslySetInnerHTML={{ __html: content }} />;
+                        }
+                        return <p {...props} />;
+                      },
+                      // Handle tables properly
+                      table: ({ node, ...props }) => (
+                        <div className="overflow-x-auto my-4">
+                          <table className="min-w-full divide-y divide-border" {...props} />
+                        </div>
+                      ),
+                      // Handle lists properly
+                      ul: ({ node, ...props }) => (
+                        <ul className="list-disc pl-6 my-4" {...props} />
+                      ),
+                      ol: ({ node, ...props }) => (
+                        <ol className="list-decimal pl-6 my-4" {...props} />
+                      ),
+                      // Properly style headings
+                      h1: ({ node, ...props }) => (
+                        <h1 className="text-3xl font-bold mt-6 mb-4" {...props} />
+                      ),
+                      h2: ({ node, ...props }) => (
+                        <h2 className="text-2xl font-semibold mt-6 mb-3" {...props} />
+                      ),
+                      h3: ({ node, ...props }) => (
+                        <h3 className="text-xl font-semibold mt-5 mb-2" {...props} />
+                      ),
+                      h4: ({ node, ...props }) => (
+                        <h4 className="text-lg font-medium mt-4 mb-2" {...props} />
+                      ),
+                      // Handle code blocks properly
+                      code: ({ className, children, ...props }) => {
+                        const match = /language-(\w+)/.exec(className || '');
+                        const isInline = !match && (className || '').indexOf('language-') !== 0;
+                        
+                        if (isInline) {
+                          return <code className="px-1 py-0.5 bg-muted rounded text-sm" {...props}>{children}</code>;
+                        }
+                        
+                        return (
+                          <pre className="p-4 bg-muted rounded-md overflow-x-auto">
+                            <code className="text-sm" {...props}>{children}</code>
+                          </pre>
+                        );
+                      },
+                    }}>
+                      {selectedContent?.content || ""}
+                    </ReactMarkdown>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </CardContent>
           </Card>
         ))}

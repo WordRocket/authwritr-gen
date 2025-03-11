@@ -1,3 +1,4 @@
+
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -629,10 +630,14 @@ export function SeoGeneratorForm() {
                     h4: ({ node, ...props }) => (
                       <h4 className="text-lg font-medium mt-4 mb-2" {...props} />
                     ),
-                    code: ({ node, inline, className, children, ...props }) => {
-                      if (inline) {
+                    code: ({ className, children, ...props }) => {
+                      const match = /language-(\w+)/.exec(className || '');
+                      const isInline = !match && (className || '').indexOf('language-') !== 0;
+                      
+                      if (isInline) {
                         return <code className="px-1 py-0.5 bg-muted rounded text-sm" {...props}>{children}</code>;
                       }
+                      
                       return (
                         <pre className="p-4 bg-muted rounded-md overflow-x-auto">
                           <code className="text-sm" {...props}>{children}</code>
