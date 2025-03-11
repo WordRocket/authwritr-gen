@@ -60,9 +60,9 @@ serve(async (req) => {
 
     const keyword = targetKeyword || topic;
 
-    // Model handling - simplified approach based on OpenRouter documentation
-    // Use the model directly as provided from the frontend
-    const requestedModel = model || "anthropic/claude-3-5-sonnet";
+    // Use the model as provided from the frontend
+    // Default to Claude 3.7 Sonnet if no model specified
+    const requestedModel = model || "anthropic/claude-3.7-sonnet";
     
     console.log("Using model:", requestedModel);
 

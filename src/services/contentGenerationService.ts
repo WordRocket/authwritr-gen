@@ -20,12 +20,12 @@ export interface SeoFormValues {
 export async function generateSeoContent(formData: SeoFormValues, apiKey?: string): Promise<string> {
   try {
     // Map the simplified model IDs to the OpenRouter format
-    let modelId = formData.model || "anthropic/claude-3-5-sonnet";
+    let modelId = formData.model || "anthropic/claude-3.7-sonnet";
     
     // For models that need provider prefix, add it if missing
     if (modelId && !modelId.includes('/')) {
       const modelMap: Record<string, string> = {
-        "claude-3-5-sonnet": "anthropic/claude-3-5-sonnet",
+        "claude-3.7-sonnet": "anthropic/claude-3.7-sonnet",
         "claude-3-opus": "anthropic/claude-3-opus",
         "claude-3-haiku": "anthropic/claude-3-haiku",
         "gpt-4o": "openai/gpt-4o",
@@ -91,8 +91,8 @@ export async function saveGeneratedContent(title: string, content: string, userI
 
 export const recommendedModels = [
   { 
-    id: "anthropic/claude-3-5-sonnet", 
-    name: "Claude 3.5 Sonnet", 
+    id: "anthropic/claude-3.7-sonnet", 
+    name: "Claude 3.7 Sonnet", 
     description: "Best overall quality for SEO content",
     recommended: true
   },
