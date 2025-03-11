@@ -70,7 +70,11 @@ serve(async (req) => {
       "gemini-1.5-pro": "google/gemini-1.5-pro"
     };
 
-    const openRouterModelId = modelIdMap[model] || "anthropic/claude-3-5-sonnet";
+    // Ensure we get a valid OpenRouter model ID
+    const openRouterModelId = model ? modelIdMap[model] || model : "anthropic/claude-3-5-sonnet";
+    
+    console.log("Original model ID:", model);
+    console.log("Mapped to OpenRouter model ID:", openRouterModelId);
 
     // Build the prompt for the OpenRouter API
     let systemPrompt = `You are an expert SEO content writer. Write an SEO-optimized in-depth blog post about ${topic}.`;
@@ -120,52 +124,66 @@ serve(async (req) => {
     // Call the OpenRouter API
     console.log("Calling OpenRouter API with model:", openRouterModelId);
     
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-        'HTTP-Referer': 'https://contentgenius.app', // Replace with your actual domain
-        'X-Title': 'ContentGenius SEO Generator'
-      },
-      body: JSON.stringify({
-        model: openRouterModelId,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt }
-        ],
-        temperature: 0.7,
-        max_tokens: Math.min(4000, wordCount * 2), // Estimate tokens needed based on word count
-      }),
-    });
+    try {
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+          'HTTP-Referer': 'https://contentgenius.app', // Replace with your actual domain
+          'X-Title': 'ContentGenius SEO Generator'
+        },
+        body: JSON.stringify({
+          model: openRouterModelId,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt }
+          ],
+          temperature: 0.7,
+          max_tokens: Math.min(4000, wordCount * 2), // Estimate tokens needed based on word count
+        }),
+      });
 
-    const data = await response.json();
-    
-    if (!response.ok) {
-      console.error("OpenRouter API error:", data);
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("OpenRouter API error response:", errorData);
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: errorData.error?.message || `Failed to generate content: ${response.status} ${response.statusText}` 
+          }),
+          { 
+            status: response.status, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+
+      const data = await response.json();
+      const generatedContent = data.choices[0].message.content;
+      
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          content: generatedContent 
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    } catch (fetchError) {
+      console.error("Fetch error:", fetchError);
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: data.error?.message || "Failed to generate content" 
+          error: `Error calling OpenRouter API: ${fetchError.message}` 
         }),
         { 
-          status: response.status, 
+          status: 500, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       );
     }
-
-    const generatedContent = data.choices[0].message.content;
-    
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        content: generatedContent 
-      }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
-    );
   } catch (error) {
     console.error("Error in generate-seo-content function:", error);
     
