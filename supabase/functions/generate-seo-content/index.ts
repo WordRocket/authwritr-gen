@@ -60,8 +60,12 @@ serve(async (req) => {
 
     const keyword = targetKeyword || topic;
 
+    // Format the model ID according to OpenRouter requirements
+    // OpenRouter requires the provider prefix (e.g., "anthropic/", "openai/", etc.)
+    let openRouterModelId;
+    
     // Map the simplified model IDs to full OpenRouter model IDs
-    const modelIdMap: Record<string, string> = {
+    const modelIdMap = {
       "claude-3-5-sonnet": "anthropic/claude-3-5-sonnet",
       "claude-3-opus": "anthropic/claude-3-opus",
       "claude-3-haiku": "anthropic/claude-3-haiku",
@@ -69,9 +73,26 @@ serve(async (req) => {
       "mistral-large": "mistralai/mistral-large",
       "gemini-1.5-pro": "google/gemini-1.5-pro"
     };
-
-    // Ensure we get a valid OpenRouter model ID
-    const openRouterModelId = model ? modelIdMap[model] || model : "anthropic/claude-3-5-sonnet";
+    
+    // Check if we have a model provided
+    if (model) {
+      // Check if it's a simplified model ID that needs mapping
+      if (modelIdMap[model]) {
+        openRouterModelId = modelIdMap[model];
+      } else {
+        // If it already has a provider prefix, use it as is
+        if (model.includes('/')) {
+          openRouterModelId = model;
+        } else {
+          // Default to anthropic/claude-3-5-sonnet if we can't map it
+          openRouterModelId = "anthropic/claude-3-5-sonnet";
+          console.warn(`Unknown model ID: ${model}, defaulting to anthropic/claude-3-5-sonnet`);
+        }
+      }
+    } else {
+      // Default model if none provided
+      openRouterModelId = "anthropic/claude-3-5-sonnet";
+    }
     
     console.log("Original model ID:", model);
     console.log("Mapped to OpenRouter model ID:", openRouterModelId);
