@@ -5,16 +5,10 @@ import { Button } from "@/components/ui/button";
 import { 
   FileText, 
   Search, 
-  ShoppingBag, 
-  MessageCircle, 
-  Mail, 
-  Instagram,
-  CheckCircle, 
-  TrendingUp, 
-  BookOpen, 
-  Newspaper,
-  Users,
-  BriefcaseBusiness,
+  ShoppingBag,
+  BookOpen,
+  FileEdit,
+  FileStack,
   PanelLeft
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -35,98 +29,33 @@ export default function TemplatesPage() {
   // Template categories
   const categories = [
     { value: "all", label: "All Templates" },
+    { value: "seo", label: "SEO Content" },
     { value: "blog", label: "Blog Content" },
-    { value: "social", label: "Social Media" },
-    { value: "marketing", label: "Marketing" },
-    { value: "email", label: "Email" },
-    { value: "seo", label: "SEO" },
+    { value: "article", label: "Article Content" },
   ];
 
-  // Templates data
+  // Templates data - updated to only include long-form generators
   const templatesData = [
     {
-      id: "blog-post",
-      title: "Blog Post",
-      description: "Create a full blog post with intro, sections, and conclusion",
-      icon: FileText,
-      category: "blog",
-    },
-    {
-      id: "seo-article",
-      title: "SEO Article",
-      description: "SEO-optimized article with targeted keywords",
+      id: "all-in-one-seo",
+      title: "All In One SEO Generator",
+      description: "Complete SEO-optimized content with keywords, meta descriptions, and structured sections",
       icon: Search,
       category: "seo",
     },
     {
-      id: "product-description",
-      title: "Product Description",
-      description: "Compelling product descriptions for e-commerce",
-      icon: ShoppingBag,
-      category: "marketing",
-    },
-    {
-      id: "social-post",
-      title: "Social Media Post",
-      description: "Engaging content for social media platforms",
-      icon: MessageCircle,
-      category: "social",
-    },
-    {
-      id: "email-newsletter",
-      title: "Email Newsletter",
-      description: "Professional email newsletter with sections",
-      icon: Mail,
-      category: "email",
-    },
-    {
-      id: "instagram-caption",
-      title: "Instagram Caption",
-      description: "Catchy captions for Instagram posts",
-      icon: Instagram,
-      category: "social",
-    },
-    {
-      id: "landing-page",
-      title: "Landing Page Copy",
-      description: "Persuasive copy for landing pages that convert",
-      icon: CheckCircle,
-      category: "marketing",
-    },
-    {
-      id: "meta-description",
-      title: "Meta Description",
-      description: "SEO-friendly meta descriptions for your web pages",
-      icon: TrendingUp,
-      category: "seo",
-    },
-    {
-      id: "ebook-outline",
-      title: "Ebook Outline",
-      description: "Structured outline for an ebook or guide",
-      icon: BookOpen,
+      id: "bulk-blog-post",
+      title: "Bulk Blog Post Generator",
+      description: "Generate multiple blog posts with consistent formatting and structure",
+      icon: FileStack,
       category: "blog",
     },
     {
-      id: "press-release",
-      title: "Press Release",
-      description: "Professional press release for announcements",
-      icon: Newspaper,
-      category: "marketing",
-    },
-    {
-      id: "about-us-page",
-      title: "About Us Page",
-      description: "Compelling about us page content",
-      icon: Users,
-      category: "marketing",
-    },
-    {
-      id: "case-study",
-      title: "Case Study",
-      description: "Structured case study with problem, solution, results",
-      icon: BriefcaseBusiness,
-      category: "blog",
+      id: "article-generator",
+      title: "Up To Date Article Generator",
+      description: "Create current, well-researched articles with product comparisons and analytics",
+      icon: FileEdit,
+      category: "article",
     },
   ];
 
@@ -141,9 +70,9 @@ export default function TemplatesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1>Content Templates</h1>
+        <h1>Long-Form Content Templates</h1>
         <p className="text-muted-foreground">
-          Choose a template to start creating your content
+          Choose a template to start creating professional long-form content
         </p>
       </div>
 
@@ -179,7 +108,7 @@ export default function TemplatesPage() {
         {filteredTemplates.map((template) => (
           <Card
             key={template.id}
-            className="template-card"
+            className="template-card cursor-pointer hover:shadow-md transition-shadow"
             onClick={() => navigate(`/create/${template.id}`)}
           >
             <CardHeader className="flex flex-row items-center space-y-0 pb-2">

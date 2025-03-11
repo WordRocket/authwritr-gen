@@ -97,7 +97,8 @@ export default function MainLayout({ children }: MainLayoutProps) {
                     <SidebarMenuItem key={item.path}>
                       <SidebarMenuButton 
                         asChild
-                        active={location.pathname === item.path}
+                        // Fix: replaced `active` with a className based on location
+                        className={location.pathname === item.path ? "bg-accent text-accent-foreground" : ""}
                       >
                         <Link to={item.path} className="flex items-center">
                           <item.icon className="h-5 w-5 mr-3" />
@@ -117,7 +118,8 @@ export default function MainLayout({ children }: MainLayoutProps) {
                     <SidebarMenuItem key={item.path}>
                       <SidebarMenuButton 
                         asChild
-                        active={location.pathname === item.path}
+                        // Fix: replaced `active` with a className based on location
+                        className={location.pathname === item.path ? "bg-accent text-accent-foreground" : ""}
                       >
                         <Link to={item.path} className="flex items-center">
                           <item.icon className="h-5 w-5 mr-3" />
