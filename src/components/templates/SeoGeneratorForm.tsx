@@ -48,7 +48,6 @@ import {
 } from "@/components/ui/hover-card";
 import ReactMarkdown from "react-markdown";
 
-// Define the validation schema
 const seoFormSchema = z.object({
   topic: z.string().min(3, { message: "Topic must be at least 3 characters" }),
   targetKeyword: z.string().optional(),
@@ -598,7 +597,7 @@ export function SeoGeneratorForm() {
                     Copy
                   </Button>
                 </div>
-                <div className="prose prose-sm md:prose-base dark:prose-invert max-w-none border p-4 rounded-md bg-muted/50 min-h-[400px] max-h-[600px] overflow-y-auto">
+                <div className="prose dark:prose-invert max-w-none border p-4 rounded-md bg-muted/50 min-h-[400px] max-h-[600px] overflow-y-auto">
                   <ReactMarkdown>{generatedContent}</ReactMarkdown>
                 </div>
               </CardContent>

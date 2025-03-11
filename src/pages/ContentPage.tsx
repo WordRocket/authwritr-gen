@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -139,7 +138,7 @@ export default function ContentPage() {
                   <DialogHeader>
                     <DialogTitle>{item.title}</DialogTitle>
                   </DialogHeader>
-                  <div className="markdown-content prose prose-sm md:prose-base dark:prose-invert max-w-none">
+                  <div className="prose dark:prose-invert max-w-none">
                     <ReactMarkdown>{item.content}</ReactMarkdown>
                   </div>
                 </DialogContent>
