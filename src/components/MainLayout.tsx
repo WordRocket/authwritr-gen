@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import {
@@ -24,8 +24,8 @@ import {
   Settings, 
   LogOut, 
   PenTool, 
-  BookOpen,
-  BookTemplate
+  BookTemplate,
+  User
 } from "lucide-react";
 
 interface MainLayoutProps {
@@ -33,12 +33,12 @@ interface MainLayoutProps {
 }
 
 export default function MainLayout({ children }: MainLayoutProps) {
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, logout, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   // Redirect to login if not authenticated
-  React.useEffect(() => {
+  useEffect(() => {
     if (!isAuthenticated) {
       navigate("/auth");
     }
@@ -97,7 +97,6 @@ export default function MainLayout({ children }: MainLayoutProps) {
                     <SidebarMenuItem key={item.path}>
                       <SidebarMenuButton 
                         asChild
-                        // Fix: replaced `active` with a className based on location
                         className={location.pathname === item.path ? "bg-accent text-accent-foreground" : ""}
                       >
                         <Link to={item.path} className="flex items-center">
@@ -118,7 +117,6 @@ export default function MainLayout({ children }: MainLayoutProps) {
                     <SidebarMenuItem key={item.path}>
                       <SidebarMenuButton 
                         asChild
-                        // Fix: replaced `active` with a className based on location
                         className={location.pathname === item.path ? "bg-accent text-accent-foreground" : ""}
                       >
                         <Link to={item.path} className="flex items-center">
@@ -132,7 +130,13 @@ export default function MainLayout({ children }: MainLayoutProps) {
               </SidebarGroupContent>
             </SidebarGroup>
           </SidebarContent>
-          <SidebarFooter className="p-4">
+          <SidebarFooter className="p-4 space-y-2">
+            {user && (
+              <div className="flex items-center px-3 py-2 rounded-md bg-accent/50 mb-2">
+                <User className="h-4 w-4 mr-2 text-muted-foreground" />
+                <span className="text-sm truncate">{user.email}</span>
+              </div>
+            )}
             <Button 
               variant="outline" 
               onClick={logout}
