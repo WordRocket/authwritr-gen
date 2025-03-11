@@ -60,37 +60,11 @@ serve(async (req) => {
 
     const keyword = targetKeyword || topic;
 
-    // OpenRouter model ID - according to OpenRouter docs
-    // For example: "openai/gpt-4o" instead of "anthropic/claude-3-5-sonnet"
-    let openRouterModelId;
+    // Model handling - simplified approach based on OpenRouter documentation
+    // Use the model directly as provided from the frontend
+    const requestedModel = model || "anthropic/claude-3-5-sonnet";
     
-    // Map the simplified model IDs to correct OpenRouter model IDs
-    // Based on OpenRouter documentation format
-    const modelIdMap = {
-      "claude-3-5-sonnet": "anthropic/claude-3-5-sonnet-20240307",
-      "claude-3-opus": "anthropic/claude-3-opus-20240229",
-      "claude-3-haiku": "anthropic/claude-3-haiku-20240307",
-      "gpt-4o": "openai/gpt-4o",
-      "mistral-large": "mistralai/mistral-large-latest",
-      "gemini-1.5-pro": "google/gemini-1.5-pro-latest"
-    };
-    
-    // Check if we have a model provided
-    if (model) {
-      // Check if it's a simplified model ID that needs mapping
-      if (modelIdMap[model]) {
-        openRouterModelId = modelIdMap[model];
-      } else {
-        // If it already has a provider prefix, use it as is
-        openRouterModelId = model;
-      }
-    } else {
-      // Default model if none provided
-      openRouterModelId = "anthropic/claude-3-5-sonnet-20240307";
-    }
-    
-    console.log("Original model requested:", model);
-    console.log("Using OpenRouter model ID:", openRouterModelId);
+    console.log("Using model:", requestedModel);
 
     // Build the prompt for the OpenRouter API
     let systemPrompt = `You are an expert SEO content writer. Write an SEO-optimized in-depth blog post about ${topic}.`;
@@ -137,8 +111,8 @@ serve(async (req) => {
       userPrompt += ` Also create an interactive HTML element that represents the main information from this article. The code should be clean, responsive, and ready to be embedded in WordPress or other websites without affecting the page layout.`;
     }
 
-    // Call the OpenRouter API
-    console.log("Calling OpenRouter API with model:", openRouterModelId);
+    // Call the OpenRouter API - using the example pattern from the provided code
+    console.log("Calling OpenRouter API...");
     
     try {
       const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -150,7 +124,7 @@ serve(async (req) => {
           'X-Title': 'ContentGenius SEO Generator'
         },
         body: JSON.stringify({
-          model: openRouterModelId,
+          model: requestedModel,
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt }
@@ -161,12 +135,24 @@ serve(async (req) => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error("OpenRouter API error response:", errorData);
+        const errorText = await response.text();
+        let errorMessage = `API Error (${response.status}): `;
+        
+        try {
+          // Try to parse error as JSON
+          const errorData = JSON.parse(errorText);
+          errorMessage += errorData.error?.message || errorData.error || errorText;
+          console.error("OpenRouter API error:", errorData);
+        } catch (e) {
+          // If not JSON, use the text directly
+          errorMessage += errorText;
+          console.error("OpenRouter API error (raw):", errorText);
+        }
+        
         return new Response(
           JSON.stringify({ 
             success: false, 
-            error: errorData.error?.message || `Failed to generate content: ${response.status} ${response.statusText}` 
+            error: errorMessage
           }),
           { 
             status: response.status, 
@@ -176,6 +162,8 @@ serve(async (req) => {
       }
 
       const data = await response.json();
+      console.log("OpenRouter API response received successfully");
+      
       const generatedContent = data.choices[0].message.content;
       
       return new Response(

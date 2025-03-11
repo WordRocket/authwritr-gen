@@ -19,11 +19,30 @@ export interface SeoFormValues {
 
 export async function generateSeoContent(formData: SeoFormValues, apiKey?: string): Promise<string> {
   try {
+    // Map the simplified model IDs to the OpenRouter format
+    let modelId = formData.model || "anthropic/claude-3-5-sonnet";
+    
+    // For models that need provider prefix, add it if missing
+    if (modelId && !modelId.includes('/')) {
+      const modelMap: Record<string, string> = {
+        "claude-3-5-sonnet": "anthropic/claude-3-5-sonnet",
+        "claude-3-opus": "anthropic/claude-3-opus",
+        "claude-3-haiku": "anthropic/claude-3-haiku",
+        "gpt-4o": "openai/gpt-4o",
+        "mistral-large": "mistralai/mistral-large",
+        "gemini-1.5-pro": "google/gemini-1.5-pro"
+      };
+      
+      modelId = modelMap[modelId] || modelId;
+    }
+    
+    console.log("Using model ID:", modelId);
+    
     const { data, error } = await supabase.functions.invoke("generate-seo-content", {
       body: {
         ...formData,
         apiKey,
-        model: formData.model || "claude-3-5-sonnet"
+        model: modelId
       },
     });
 
@@ -72,37 +91,37 @@ export async function saveGeneratedContent(title: string, content: string, userI
 
 export const recommendedModels = [
   { 
-    id: "claude-3-5-sonnet", 
+    id: "anthropic/claude-3-5-sonnet", 
     name: "Claude 3.5 Sonnet", 
     description: "Best overall quality for SEO content",
     recommended: true
   },
   { 
-    id: "claude-3-opus", 
+    id: "anthropic/claude-3-opus", 
     name: "Claude 3 Opus", 
     description: "Highest quality for premium content",
     recommended: true
   },
   { 
-    id: "claude-3-haiku", 
+    id: "anthropic/claude-3-haiku", 
     name: "Claude 3 Haiku", 
     description: "Fast and cost-effective",
     recommended: true
   },
   { 
-    id: "gpt-4o", 
+    id: "openai/gpt-4o", 
     name: "GPT-4o", 
     description: "Excellent for creative content",
     recommended: true
   },
   { 
-    id: "mistral-large", 
+    id: "mistralai/mistral-large", 
     name: "Mistral Large", 
     description: "Good balance of quality and cost",
     recommended: false
   },
   { 
-    id: "gemini-1.5-pro", 
+    id: "google/gemini-1.5-pro", 
     name: "Gemini 1.5 Pro", 
     description: "Strong general knowledge",
     recommended: false
