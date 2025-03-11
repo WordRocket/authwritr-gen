@@ -105,6 +105,11 @@
   p {
     @apply leading-7;
   }
+  
+  /* Scoping typography styles to content containers only */
+  .content-container > * {
+    @apply max-w-none;
+  }
 }
 
 @layer components {

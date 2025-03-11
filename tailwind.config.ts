@@ -23,18 +23,18 @@ const config = {
         DEFAULT: {
           css: {
             maxWidth: 'none',
-            fontFamily: null, // Don't override the font family
+            fontFamily: null,
             h1: {
               fontWeight: '700',
-              fontFamily: 'inherit', // Use the inherited font family
+              fontFamily: 'inherit',
             },
             h2: {
               fontWeight: '600',
-              fontFamily: 'inherit', // Use the inherited font family
+              fontFamily: 'inherit',
             },
             h3: {
               fontWeight: '600',
-              fontFamily: 'inherit', // Use the inherited font family
+              fontFamily: 'inherit',
             },
             'ul, ol': {
               paddingLeft: '1.5rem',
