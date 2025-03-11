@@ -30,11 +30,26 @@ serve(async (req) => {
       model
     } = await req.json();
 
+    // Validate API key
     if (!apiKey) {
       return new Response(
         JSON.stringify({ 
           success: false, 
           error: "API key is required" 
+        }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    // Check if apiKey contains HTML content (which would be invalid)
+    if (apiKey.includes('<') || apiKey.includes('>')) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "Invalid API key format" 
         }),
         { 
           status: 400, 

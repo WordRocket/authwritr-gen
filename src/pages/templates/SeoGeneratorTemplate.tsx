@@ -2,7 +2,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { SeoGeneratorForm } from "@/components/templates/SeoGeneratorForm";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ExternalLink } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -35,8 +35,27 @@ export default function SeoGeneratorTemplate() {
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>API Key Required</AlertTitle>
-          <AlertDescription>
-            To generate content, you'll need to add your OpenRouter API key in the Settings page. You can still explore the template form below.
+          <AlertDescription className="flex flex-col gap-2">
+            <p>To generate content, you'll need to add your OpenRouter API key in the Settings page. You can still explore the template form below.</p>
+            <div className="flex gap-2 mt-1">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="w-fit"
+                onClick={() => navigate("/settings")}
+              >
+                Go to Settings
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="w-fit"
+                onClick={() => window.open("https://openrouter.ai/keys", "_blank")}
+              >
+                <ExternalLink className="h-3 w-3 mr-1" />
+                Get an OpenRouter API Key
+              </Button>
+            </div>
           </AlertDescription>
         </Alert>
       )}
