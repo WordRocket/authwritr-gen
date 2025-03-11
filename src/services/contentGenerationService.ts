@@ -23,7 +23,7 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
       body: {
         ...formData,
         apiKey,
-        model: formData.model || "anthropic/claude-3-5-sonnet"
+        model: formData.model || "claude-3-5-sonnet"
       },
     });
 
@@ -72,37 +72,37 @@ export async function saveGeneratedContent(title: string, content: string, userI
 
 export const recommendedModels = [
   { 
-    id: "anthropic/claude-3-5-sonnet", 
+    id: "claude-3-5-sonnet", 
     name: "Claude 3.5 Sonnet", 
     description: "Best overall quality for SEO content",
     recommended: true
   },
   { 
-    id: "anthropic/claude-3-opus", 
+    id: "claude-3-opus", 
     name: "Claude 3 Opus", 
     description: "Highest quality for premium content",
     recommended: true
   },
   { 
-    id: "anthropic/claude-3-haiku", 
+    id: "claude-3-haiku", 
     name: "Claude 3 Haiku", 
     description: "Fast and cost-effective",
     recommended: true
   },
   { 
-    id: "openai/gpt-4o", 
+    id: "gpt-4o", 
     name: "GPT-4o", 
     description: "Excellent for creative content",
     recommended: true
   },
   { 
-    id: "mistralai/mistral-large", 
+    id: "mistral-large", 
     name: "Mistral Large", 
     description: "Good balance of quality and cost",
     recommended: false
   },
   { 
-    id: "google/gemini-1.5-pro", 
+    id: "gemini-1.5-pro", 
     name: "Gemini 1.5 Pro", 
     description: "Strong general knowledge",
     recommended: false

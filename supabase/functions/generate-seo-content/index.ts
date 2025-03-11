@@ -60,6 +60,18 @@ serve(async (req) => {
 
     const keyword = targetKeyword || topic;
 
+    // Map the simplified model IDs to full OpenRouter model IDs
+    const modelIdMap: Record<string, string> = {
+      "claude-3-5-sonnet": "anthropic/claude-3-5-sonnet",
+      "claude-3-opus": "anthropic/claude-3-opus",
+      "claude-3-haiku": "anthropic/claude-3-haiku",
+      "gpt-4o": "openai/gpt-4o",
+      "mistral-large": "mistralai/mistral-large",
+      "gemini-1.5-pro": "google/gemini-1.5-pro"
+    };
+
+    const openRouterModelId = modelIdMap[model] || "anthropic/claude-3-5-sonnet";
+
     // Build the prompt for the OpenRouter API
     let systemPrompt = `You are an expert SEO content writer. Write an SEO-optimized in-depth blog post about ${topic}.`;
     systemPrompt += ` Include lists, tables, charts, pull quotes, and emojis when it makes sense in the article.`;
@@ -106,7 +118,7 @@ serve(async (req) => {
     }
 
     // Call the OpenRouter API
-    console.log("Calling OpenRouter API with model:", model);
+    console.log("Calling OpenRouter API with model:", openRouterModelId);
     
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
@@ -117,7 +129,7 @@ serve(async (req) => {
         'X-Title': 'ContentGenius SEO Generator'
       },
       body: JSON.stringify({
-        model: model || "anthropic/claude-3-5-sonnet",
+        model: openRouterModelId,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
