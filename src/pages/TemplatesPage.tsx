@@ -42,6 +42,7 @@ export default function TemplatesPage() {
       description: "Complete SEO-optimized content with keywords, meta descriptions, and structured sections",
       icon: Search,
       category: "seo",
+      route: "/templates/all-in-one-seo"
     },
     {
       id: "bulk-blog-post",
@@ -49,6 +50,7 @@ export default function TemplatesPage() {
       description: "Generate multiple blog posts with consistent formatting and structure",
       icon: FileStack,
       category: "blog",
+      route: "/templates/bulk-blog-post"
     },
     {
       id: "article-generator",
@@ -56,6 +58,7 @@ export default function TemplatesPage() {
       description: "Create current, well-researched articles with product comparisons and analytics",
       icon: FileEdit,
       category: "article",
+      route: "/templates/article-generator"
     },
   ];
 
@@ -109,7 +112,7 @@ export default function TemplatesPage() {
           <Card
             key={template.id}
             className="template-card cursor-pointer hover:shadow-md transition-shadow"
-            onClick={() => navigate(`/create/${template.id}`)}
+            onClick={() => navigate(template.route)}
           >
             <CardHeader className="flex flex-row items-center space-y-0 pb-2">
               <div className="mr-4 rounded-full bg-primary/10 p-2">

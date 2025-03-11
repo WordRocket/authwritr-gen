@@ -13,6 +13,7 @@ import ContentPage from "@/pages/ContentPage";
 import HistoryPage from "@/pages/HistoryPage";
 import SettingsPage from "@/pages/SettingsPage";
 import NotFound from "./pages/NotFound";
+import SeoGeneratorTemplate from "./pages/templates/SeoGeneratorTemplate";
 
 const queryClient = new QueryClient();
 
@@ -31,6 +32,9 @@ const App = () => (
             <Route path="/content" element={<MainLayout><ContentPage /></MainLayout>} />
             <Route path="/history" element={<MainLayout><HistoryPage /></MainLayout>} />
             <Route path="/settings" element={<MainLayout><SettingsPage /></MainLayout>} />
+            
+            {/* Template Routes */}
+            <Route path="/templates/all-in-one-seo" element={<MainLayout><SeoGeneratorTemplate /></MainLayout>} />
             
             <Route path="*" element={<NotFound />} />
           </Routes>
