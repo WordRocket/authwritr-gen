@@ -7,6 +7,8 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import ReactMarkdown from "react-markdown";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 interface ContentItem {
   id: string;
@@ -20,6 +22,7 @@ export default function ContentPage() {
   const { user, isAuthenticated } = useAuth();
   const [contentItems, setContentItems] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedContent, setSelectedContent] = useState<ContentItem | null>(null);
 
   useEffect(() => {
     if (isAuthenticated && user) {
@@ -59,9 +62,8 @@ export default function ContentPage() {
     }
   };
 
-  const handleViewContent = (id: string) => {
-    // Implement viewing content in detail (future enhancement)
-    console.log(`View content with ID: ${id}`);
+  const handleViewContent = (item: ContentItem) => {
+    setSelectedContent(item);
   };
 
   const renderContent = () => {
@@ -123,13 +125,25 @@ export default function ContentPage() {
               <p className="text-sm text-muted-foreground line-clamp-3 mb-4">
                 {item.content.replace(/[#*`]/g, '').substring(0, 150)}...
               </p>
-              <Button 
-                variant="outline" 
-                className="w-full" 
-                onClick={() => handleViewContent(item.id)}
-              >
-                <FileText className="mr-2 h-4 w-4" /> View Content
-              </Button>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    className="w-full" 
+                    onClick={() => handleViewContent(item)}
+                  >
+                    <FileText className="mr-2 h-4 w-4" /> View Content
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>{item.title}</DialogTitle>
+                  </DialogHeader>
+                  <div className="markdown-content prose prose-sm md:prose-base dark:prose-invert max-w-none">
+                    <ReactMarkdown>{item.content}</ReactMarkdown>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </CardContent>
           </Card>
         ))}

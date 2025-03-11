@@ -1,4 +1,3 @@
-
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -47,6 +46,7 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
+import ReactMarkdown from "react-markdown";
 
 // Define the validation schema
 const seoFormSchema = z.object({
@@ -598,8 +598,8 @@ export function SeoGeneratorForm() {
                     Copy
                   </Button>
                 </div>
-                <div className="whitespace-pre-wrap border p-4 rounded-md bg-muted/50 min-h-[400px] max-h-[600px] overflow-y-auto">
-                  {generatedContent}
+                <div className="prose prose-sm md:prose-base dark:prose-invert max-w-none border p-4 rounded-md bg-muted/50 min-h-[400px] max-h-[600px] overflow-y-auto">
+                  <ReactMarkdown>{generatedContent}</ReactMarkdown>
                 </div>
               </CardContent>
             </Card>
