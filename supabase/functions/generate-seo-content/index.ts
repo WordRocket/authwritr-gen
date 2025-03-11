@@ -130,7 +130,7 @@ serve(async (req) => {
             { role: "user", content: userPrompt }
           ],
           temperature: 0.7,
-          max_tokens: 16000, // Increased to the maximum to prevent content cutoff
+          max_tokens: 200000, // Increased from 16000 to 200000 as requested
         }),
       });
 
@@ -199,7 +199,7 @@ serve(async (req) => {
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
+        }
     );
   }
 });
