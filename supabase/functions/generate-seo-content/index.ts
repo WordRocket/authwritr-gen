@@ -67,12 +67,13 @@ serve(async (req) => {
     console.log("Using model:", requestedModel);
 
     // Build the prompt for the OpenRouter API
+    // System prompt
     let systemPrompt = `You are an expert SEO content writer. Write an SEO-optimized in-depth blog post about ${topic}.`;
     systemPrompt += ` Include lists, tables, charts, pull quotes, and emojis when it makes sense in the article.`;
     systemPrompt += ` Aim for approximately ${wordCount} words.`;
     
     if (includeHtmlElement) {
-      systemPrompt += ` Also create a simple HTML element that represents the information in this article.`;
+      systemPrompt += ` Also create a simple HTML element that represents the information in this article, when creating the html element create it in a way that is simple clean html code and can be embedded on wordpress sites easily and does not mess up the page formatting like this <!DOCTYPE html> format .`;
       systemPrompt += ` Write the code in a way that can be embedded on WordPress and most sites.`;
       systemPrompt += ` Make the code clean and ensure it would not affect the layout of the page or the website.`;
     }
@@ -80,6 +81,7 @@ serve(async (req) => {
     systemPrompt += ` When writing, follow the best SEO practices and include the target keyword "${keyword}" and variations of the keyword in the title, h1, h2, h3, etc. and the body of the article.`;
     systemPrompt += ` Always end the article with an SEO title and meta description.`;
 
+    // User prompt
     let userPrompt = `Write a comprehensive, ${toneOfArticle || 'professional'} ${articleType || 'informational'} blog post about ${topic}`;
     
     if (targetKeyword) {
@@ -108,7 +110,7 @@ serve(async (req) => {
     }
     
     if (includeHtmlElement) {
-      userPrompt += ` Also create an interactive HTML element that represents the main information from this article. The code should be clean, responsive, and ready to be embedded in WordPress or other websites without affecting the page layout.`;
+      userPrompt += ` Also create an interactive HTML element that represents the main information from this article. The code should be clean, responsive, and ready to be embedded in WordPress or other websites without affecting the page layout. It should be simple like this format<!DOCTYPE html> `;
     }
 
     // Call the OpenRouter API - using the example pattern from the provided code
@@ -163,6 +165,20 @@ serve(async (req) => {
 
       const data = await response.json();
       console.log("OpenRouter API response received successfully");
+      
+      if (!data || !data.choices || !data.choices[0] || !data.choices[0].message) {
+        console.error("Invalid response structure from OpenRouter API:", data);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: "Invalid response structure from OpenRouter API"
+          }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
+      }
       
       const generatedContent = data.choices[0].message.content;
       
