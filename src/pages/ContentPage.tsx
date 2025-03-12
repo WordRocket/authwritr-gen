@@ -2,13 +2,15 @@
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, FileText, Loader2 } from "lucide-react";
+import { Plus, FileText, Loader2, Code, Eye } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import ReactMarkdown from "react-markdown";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 
 interface ContentItem {
   id: string;
@@ -23,6 +25,7 @@ export default function ContentPage() {
   const [contentItems, setContentItems] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedContent, setSelectedContent] = useState<ContentItem | null>(null);
+  const [viewMode, setViewMode] = useState<"rendered" | "markdown">("rendered");
 
   useEffect(() => {
     if (isAuthenticated && user) {
@@ -64,6 +67,17 @@ export default function ContentPage() {
 
   const handleViewContent = (item: ContentItem) => {
     setSelectedContent(item);
+    setViewMode("rendered");
+  };
+
+  const copyToClipboard = () => {
+    if (selectedContent) {
+      navigator.clipboard.writeText(selectedContent.content);
+      toast({
+        title: "Copied to clipboard",
+        description: "Content has been copied to your clipboard",
+      });
+    }
   };
 
   const renderContent = () => {
@@ -135,66 +149,131 @@ export default function ContentPage() {
                     <FileText className="mr-2 h-4 w-4" /> View Content
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
                   <DialogHeader>
-                    <DialogTitle>{item.title}</DialogTitle>
-                  </DialogHeader>
-                  <div className="content-container prose dark:prose-invert max-w-none">
-                    <ReactMarkdown components={{
-                      // Allow HTML to be rendered within markdown
-                      p: ({ node, ...props }) => {
-                        const content = props.children;
-                        // Check if content contains HTML elements
-                        if (typeof content === 'string' && (content.includes('<') && content.includes('>'))) {
-                          return <div dangerouslySetInnerHTML={{ __html: content }} />;
-                        }
-                        return <p {...props} />;
-                      },
-                      // Handle tables properly
-                      table: ({ node, ...props }) => (
-                        <div className="overflow-x-auto my-4">
-                          <table className="min-w-full divide-y divide-border" {...props} />
+                    <div className="flex items-center justify-between">
+                      <DialogTitle>{item.title}</DialogTitle>
+                      <div className="flex items-center gap-2">
+                        <div className="border rounded-md overflow-hidden flex">
+                          <Button 
+                            variant={viewMode === "rendered" ? "default" : "ghost"} 
+                            size="sm"
+                            onClick={() => setViewMode("rendered")}
+                            className="rounded-none px-3"
+                          >
+                            <Eye className="h-4 w-4 mr-2" />
+                            Preview
+                          </Button>
+                          <Button 
+                            variant={viewMode === "markdown" ? "default" : "ghost"} 
+                            size="sm"
+                            onClick={() => setViewMode("markdown")}
+                            className="rounded-none px-3"
+                          >
+                            <Code className="h-4 w-4 mr-2" />
+                            Markdown
+                          </Button>
                         </div>
-                      ),
-                      // Handle lists properly
-                      ul: ({ node, ...props }) => (
-                        <ul className="list-disc pl-6 my-4" {...props} />
-                      ),
-                      ol: ({ node, ...props }) => (
-                        <ol className="list-decimal pl-6 my-4" {...props} />
-                      ),
-                      // Properly style headings
-                      h1: ({ node, ...props }) => (
-                        <h1 className="text-3xl font-bold mt-6 mb-4" {...props} />
-                      ),
-                      h2: ({ node, ...props }) => (
-                        <h2 className="text-2xl font-semibold mt-6 mb-3" {...props} />
-                      ),
-                      h3: ({ node, ...props }) => (
-                        <h3 className="text-xl font-semibold mt-5 mb-2" {...props} />
-                      ),
-                      h4: ({ node, ...props }) => (
-                        <h4 className="text-lg font-medium mt-4 mb-2" {...props} />
-                      ),
-                      // Handle code blocks properly
-                      code: ({ className, children, ...props }) => {
-                        const match = /language-(\w+)/.exec(className || '');
-                        const isInline = !match && (className || '').indexOf('language-') !== 0;
-                        
-                        if (isInline) {
-                          return <code className="px-1 py-0.5 bg-muted rounded text-sm" {...props}>{children}</code>;
-                        }
-                        
-                        return (
-                          <pre className="p-4 bg-muted rounded-md overflow-x-auto">
-                            <code className="text-sm" {...props}>{children}</code>
-                          </pre>
-                        );
-                      },
-                    }}>
-                      {selectedContent?.content || ""}
-                    </ReactMarkdown>
-                  </div>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={copyToClipboard}
+                        >
+                          Copy {viewMode === "markdown" ? "Markdown" : "Content"}
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogHeader>
+                  
+                  <Tabs value={viewMode} className="mt-2" onValueChange={(value) => setViewMode(value as "rendered" | "markdown")}>
+                    <TabsContent value="rendered" className="h-[calc(80vh-120px)] overflow-y-auto">
+                      <div className="content-container prose dark:prose-invert max-w-none">
+                        <ReactMarkdown components={{
+                          p: ({ node, ...props }) => {
+                            const content = props.children;
+                            // Check if content contains HTML elements
+                            if (typeof content === 'string' && (content.includes('<') && content.includes('>'))) {
+                              return <div dangerouslySetInnerHTML={{ __html: content }} />;
+                            }
+                            return <p {...props} />;
+                          },
+                          // Handle tables properly
+                          table: ({ node, ...props }) => (
+                            <div className="overflow-x-auto my-6">
+                              <table className="w-full border-collapse border border-border" {...props} />
+                            </div>
+                          ),
+                          thead: ({ node, ...props }) => (
+                            <thead className="bg-muted" {...props} />
+                          ),
+                          tbody: ({ node, ...props }) => (
+                            <tbody className="divide-y divide-border" {...props} />
+                          ),
+                          tr: ({ node, ...props }) => (
+                            <tr className="hover:bg-muted/50" {...props} />
+                          ),
+                          th: ({ node, ...props }) => (
+                            <th className="border border-border px-4 py-2 text-left font-semibold" {...props} />
+                          ),
+                          td: ({ node, ...props }) => (
+                            <td className="border border-border px-4 py-2" {...props} />
+                          ),
+                          // Handle lists properly
+                          ul: ({ node, ...props }) => (
+                            <ul className="list-disc pl-6 my-4 space-y-2" {...props} />
+                          ),
+                          ol: ({ node, ...props }) => (
+                            <ol className="list-decimal pl-6 my-4 space-y-2" {...props} />
+                          ),
+                          li: ({ node, ...props }) => (
+                            <li className="pl-1" {...props} />
+                          ),
+                          // Properly style headings
+                          h1: ({ node, ...props }) => (
+                            <h1 className="text-3xl font-bold mt-8 mb-4" {...props} />
+                          ),
+                          h2: ({ node, ...props }) => (
+                            <h2 className="text-2xl font-semibold mt-8 mb-3" {...props} />
+                          ),
+                          h3: ({ node, ...props }) => (
+                            <h3 className="text-xl font-semibold mt-6 mb-2" {...props} />
+                          ),
+                          h4: ({ node, ...props }) => (
+                            <h4 className="text-lg font-medium mt-4 mb-2" {...props} />
+                          ),
+                          // Handle blockquotes
+                          blockquote: ({ node, ...props }) => (
+                            <blockquote className="border-l-4 border-primary/50 pl-4 italic my-4" {...props} />
+                          ),
+                          // Handle code blocks properly
+                          code: ({ className, children, ...props }) => {
+                            const match = /language-(\w+)/.exec(className || '');
+                            const isInline = !match && (className || '').indexOf('language-') !== 0;
+                            
+                            if (isInline) {
+                              return <code className="px-1 py-0.5 bg-muted rounded text-sm" {...props}>{children}</code>;
+                            }
+                            
+                            return (
+                              <pre className="p-4 bg-muted rounded-md overflow-x-auto">
+                                <code className="text-sm" {...props}>{children}</code>
+                              </pre>
+                            );
+                          },
+                        }}>
+                          {selectedContent?.content || ""}
+                        </ReactMarkdown>
+                      </div>
+                    </TabsContent>
+                    
+                    <TabsContent value="markdown" className="h-[calc(80vh-120px)]">
+                      <Textarea 
+                        value={selectedContent?.content || ""} 
+                        readOnly 
+                        className="w-full h-full min-h-[400px] font-mono text-sm"
+                      />
+                    </TabsContent>
+                  </Tabs>
                 </DialogContent>
               </Dialog>
             </CardContent>

@@ -1,7 +1,6 @@
-
 import * as React from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { 
   Form, 
   FormControl, 
@@ -27,7 +26,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "@/hooks/use-toast";
-import { ClipboardCopy, AlertCircle, InfoIcon } from "lucide-react";
+import { ClipboardCopy, AlertCircle, InfoIcon, Code, Eye } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { 
   generateSeoContent, 
@@ -88,7 +87,7 @@ const defaultValues: Partial<SeoFormValues> = {
   includeHook: true,
   includeStories: false,
   includeHtmlElement: false,
-  model: "anthropic/claude-3-5-sonnet",
+  model: "anthropic/claude-3-7-sonnet",
 };
 
 export function SeoGeneratorForm() {
@@ -98,6 +97,7 @@ export function SeoGeneratorForm() {
   const [generatedContent, setGeneratedContent] = React.useState("");
   const [activeTab, setActiveTab] = React.useState("content-form");
   const [apiKeyMissing, setApiKeyMissing] = React.useState(!apiKey);
+  const [viewMode, setViewMode] = React.useState<"rendered" | "markdown">("rendered");
 
   const form = useForm<SeoFormValues>({
     resolver: zodResolver(seoFormSchema),
@@ -570,7 +570,7 @@ export function SeoGeneratorForm() {
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Note</AlertTitle>
                 <AlertDescription>
-                  For best results, this template works optimally with the Claude 3.5 Sonnet model.
+                  For best results, this template works optimally with the Claude 3.7 Sonnet model.
                 </AlertDescription>
               </Alert>
             )}
@@ -593,61 +593,115 @@ export function SeoGeneratorForm() {
               <CardContent className="pt-6">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-medium">Generated Content</h3>
-                  <Button variant="outline" size="sm" onClick={copyToClipboard}>
-                    <ClipboardCopy className="h-4 w-4 mr-2" />
-                    Copy
-                  </Button>
+                  <div className="flex gap-2">
+                    <div className="border rounded-md overflow-hidden flex">
+                      <Button 
+                        variant={viewMode === "rendered" ? "default" : "ghost"} 
+                        size="sm"
+                        onClick={() => setViewMode("rendered")}
+                        className="rounded-none"
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        Preview
+                      </Button>
+                      <Button 
+                        variant={viewMode === "markdown" ? "default" : "ghost"} 
+                        size="sm"
+                        onClick={() => setViewMode("markdown")}
+                        className="rounded-none"
+                      >
+                        <Code className="h-4 w-4 mr-2" />
+                        Markdown
+                      </Button>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={copyToClipboard}>
+                      <ClipboardCopy className="h-4 w-4 mr-2" />
+                      Copy {viewMode === "markdown" ? "Markdown" : "Content"}
+                    </Button>
+                  </div>
                 </div>
-                <div className="content-container prose dark:prose-invert max-w-none border p-4 rounded-md bg-muted/50 min-h-[400px] max-h-[800px] overflow-y-auto">
-                  <ReactMarkdown components={{
-                    p: ({ node, ...props }) => {
-                      const content = props.children;
-                      if (typeof content === 'string' && (content.includes('<') && content.includes('>'))) {
-                        return <div dangerouslySetInnerHTML={{ __html: content }} />;
-                      }
-                      return <p {...props} />;
-                    },
-                    table: ({ node, ...props }) => (
-                      <div className="overflow-x-auto my-4">
-                        <table className="min-w-full divide-y divide-border" {...props} />
-                      </div>
-                    ),
-                    ul: ({ node, ...props }) => (
-                      <ul className="list-disc pl-6 my-4" {...props} />
-                    ),
-                    ol: ({ node, ...props }) => (
-                      <ol className="list-decimal pl-6 my-4" {...props} />
-                    ),
-                    h1: ({ node, ...props }) => (
-                      <h1 className="text-3xl font-bold mt-6 mb-4" {...props} />
-                    ),
-                    h2: ({ node, ...props }) => (
-                      <h2 className="text-2xl font-semibold mt-6 mb-3" {...props} />
-                    ),
-                    h3: ({ node, ...props }) => (
-                      <h3 className="text-xl font-semibold mt-5 mb-2" {...props} />
-                    ),
-                    h4: ({ node, ...props }) => (
-                      <h4 className="text-lg font-medium mt-4 mb-2" {...props} />
-                    ),
-                    code: ({ className, children, ...props }) => {
-                      const match = /language-(\w+)/.exec(className || '');
-                      const isInline = !match && (className || '').indexOf('language-') !== 0;
-                      
-                      if (isInline) {
-                        return <code className="px-1 py-0.5 bg-muted rounded text-sm" {...props}>{children}</code>;
-                      }
-                      
-                      return (
-                        <pre className="p-4 bg-muted rounded-md overflow-x-auto">
-                          <code className="text-sm" {...props}>{children}</code>
-                        </pre>
-                      );
-                    },
-                  }}>
-                    {generatedContent}
-                  </ReactMarkdown>
-                </div>
+                
+                {viewMode === "rendered" ? (
+                  <div className="content-container prose dark:prose-invert max-w-none border p-4 rounded-md bg-muted/50 min-h-[400px] max-h-[800px] overflow-y-auto">
+                    <ReactMarkdown components={{
+                      p: ({ node, ...props }) => {
+                        const content = props.children;
+                        if (typeof content === 'string' && (content.includes('<') && content.includes('>'))) {
+                          return <div dangerouslySetInnerHTML={{ __html: content }} />;
+                        }
+                        return <p {...props} />;
+                      },
+                      table: ({ node, ...props }) => (
+                        <div className="overflow-x-auto my-6">
+                          <table className="w-full border-collapse border border-border" {...props} />
+                        </div>
+                      ),
+                      thead: ({ node, ...props }) => (
+                        <thead className="bg-muted" {...props} />
+                      ),
+                      tbody: ({ node, ...props }) => (
+                        <tbody className="divide-y divide-border" {...props} />
+                      ),
+                      tr: ({ node, ...props }) => (
+                        <tr className="hover:bg-muted/50" {...props} />
+                      ),
+                      th: ({ node, ...props }) => (
+                        <th className="border border-border px-4 py-2 text-left font-semibold" {...props} />
+                      ),
+                      td: ({ node, ...props }) => (
+                        <td className="border border-border px-4 py-2" {...props} />
+                      ),
+                      ul: ({ node, ...props }) => (
+                        <ul className="list-disc pl-6 my-4 space-y-2" {...props} />
+                      ),
+                      ol: ({ node, ...props }) => (
+                        <ol className="list-decimal pl-6 my-4 space-y-2" {...props} />
+                      ),
+                      li: ({ node, ...props }) => (
+                        <li className="pl-1" {...props} />
+                      ),
+                      h1: ({ node, ...props }) => (
+                        <h1 className="text-3xl font-bold mt-8 mb-4 scroll-m-20" {...props} />
+                      ),
+                      h2: ({ node, ...props }) => (
+                        <h2 className="text-2xl font-semibold mt-8 mb-3 scroll-m-20" {...props} />
+                      ),
+                      h3: ({ node, ...props }) => (
+                        <h3 className="text-xl font-semibold mt-6 mb-2 scroll-m-20" {...props} />
+                      ),
+                      h4: ({ node, ...props }) => (
+                        <h4 className="text-lg font-medium mt-4 mb-2 scroll-m-20" {...props} />
+                      ),
+                      blockquote: ({ node, ...props }) => (
+                        <blockquote className="border-l-4 border-primary/50 pl-4 italic my-4" {...props} />
+                      ),
+                      code: ({ className, children, ...props }) => {
+                        const match = /language-(\w+)/.exec(className || '');
+                        const isInline = !match && (className || '').indexOf('language-') !== 0;
+                        
+                        if (isInline) {
+                          return <code className="px-1 py-0.5 bg-muted rounded text-sm" {...props}>{children}</code>;
+                        }
+                        
+                        return (
+                          <pre className="p-4 bg-muted rounded-md overflow-x-auto">
+                            <code className="text-sm" {...props}>{children}</code>
+                          </pre>
+                        );
+                      },
+                    }}>
+                      {generatedContent}
+                    </ReactMarkdown>
+                  </div>
+                ) : (
+                  <div className="min-h-[400px] max-h-[800px] overflow-y-auto">
+                    <Textarea 
+                      value={generatedContent} 
+                      readOnly 
+                      className="w-full h-full min-h-[400px] font-mono text-sm"
+                    />
+                  </div>
+                )}
               </CardContent>
             </Card>
             
