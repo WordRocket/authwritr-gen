@@ -164,6 +164,39 @@ serve(async (req) => {
       const data = await response.json();
       console.log("OpenRouter API response received successfully");
       
+      // Add more detailed logging about the response structure
+      console.log("Response data structure:", JSON.stringify(data, null, 2));
+      
+      // Check if response has the expected structure
+      if (!data || !data.choices || !Array.isArray(data.choices) || data.choices.length === 0) {
+        console.error("Unexpected API response structure:", data);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: "Invalid API response structure. Missing 'choices' array."
+          }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
+      }
+      
+      // Check if the first choice exists and has a message with content
+      if (!data.choices[0] || !data.choices[0].message || !data.choices[0].message.content) {
+        console.error("Unexpected API response structure - missing content:", data.choices[0]);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: "Invalid API response structure. Missing content in response."
+          }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
+      }
+      
       const generatedContent = data.choices[0].message.content;
       
       return new Response(
@@ -199,7 +232,7 @@ serve(async (req) => {
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
+      }
     );
   }
 });
