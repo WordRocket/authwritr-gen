@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -130,7 +129,7 @@ serve(async (req) => {
             { role: "user", content: userPrompt }
           ],
           temperature: 0.7,
-          max_tokens: 200000, // Increased from 16000 to 200000 as requested
+          max_tokens: 200000,
         }),
       });
 

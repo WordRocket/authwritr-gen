@@ -88,7 +88,7 @@ const defaultValues: Partial<SeoFormValues> = {
   includeHook: true,
   includeStories: false,
   includeHtmlElement: false,
-  model: "anthropic/claude-3-5-sonnet",
+  model: "anthropic/claude-3.7-sonnet",
 };
 
 export function SeoGeneratorForm() {
