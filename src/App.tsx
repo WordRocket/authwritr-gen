@@ -35,6 +35,8 @@ const App = () => (
             
             {/* Template Routes */}
             <Route path="/templates/all-in-one-seo" element={<MainLayout><SeoGeneratorTemplate /></MainLayout>} />
+            <Route path="/templates/article-generator" element={<MainLayout><SeoGeneratorTemplate /></MainLayout>} />
+            <Route path="/templates/bulk-blog-post" element={<MainLayout><SeoGeneratorTemplate /></MainLayout>} />
             
             <Route path="*" element={<NotFound />} />
           </Routes>
