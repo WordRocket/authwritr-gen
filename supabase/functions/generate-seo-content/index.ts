@@ -61,7 +61,7 @@ serve(async (req) => {
 
     const keyword = targetKeyword || topic;
     
-    // For the search phase, use the search-capable model
+    // Initialize model variables - using 'let' instead of 'const' since they might change
     let requestedModel = "openai/gpt-4o-mini-search-preview";
     
     // If no search term is provided, use the model specified or default to claude
@@ -86,13 +86,8 @@ serve(async (req) => {
       Include tables, charts, up-to-date statistics, pricing if relevant, new techniques, recent findings, and as much relevant 
       information as possible that relates to the blog topic "${topic}". Focus on information from the last 1-2 years when possible.
       
-      PART 2: Organize this research into structured sections with key insights highlighted. Create a comprehensive outline 
-      with main sections and subsections based on the gathered information. Identify patterns, trends, and relationships 
-      in the data. Highlight contradictions or gaps in information if any exist. Prepare the information in a way that will 
-      make it easy to transform into a cohesive, well-structured article.
-      
-      PART 3: Use this organized research to craft a comprehensive, SEO-optimized, human-sounding article with a readability 
-      of grade 8 on "${topic}" optimized for the keyword "${keyword}". The article should follow best SEO practices while 
+      PART 3: Use this research to craft a comprehensive, SEO-optimized, human-sounding article with a readability 
+      level of grade 8 on "${topic}" optimized for the keyword "${keyword}". The article should follow best SEO practices while 
       maintaining a natural, engaging flow. Write in the ${toneOfArticle || 'professional'} ${articleType || 'informational'} 
       style, aiming for approximately ${wordCount} words for the intended audience of ${intendedAudience || 'general readers'}.`;
     } else {
@@ -127,7 +122,7 @@ serve(async (req) => {
       - Statistical data and trends
       - Comparative analyses
       
-      Once you've gathered this comprehensive research, organize it into a structured outline and use it to write a ${wordCount}-word 
+      Once you've gathered this comprehensive research, use it to write a ${wordCount}-word 
       SEO-optimized article about "${topic}" that's optimized for the keyword "${keyword}". 
       
       Make sure the article:
@@ -244,44 +239,51 @@ serve(async (req) => {
           The code should be clean, responsive, and ready to be embedded in WordPress or other websites without affecting the page layout.`;
         }
         
-        // Call the o1-mini model
-        const o1Response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`,
-            'HTTP-Referer': 'https://contentgenius.app', 
-            'X-Title': 'ContentGenius SEO Generator'
-          },
-          body: JSON.stringify({
-            model: "openai/o1-mini-2024-09-12",
-            messages: [
-              { role: "system", content: o1SystemPrompt },
-              { role: "user", content: o1UserPrompt }
-            ],
-            temperature: 0.7,
-            max_tokens: 16000,
-          }),
-        });
+        try {
+          // Call the o1-mini model
+          const o1Response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${apiKey}`,
+              'HTTP-Referer': 'https://contentgenius.app', 
+              'X-Title': 'ContentGenius SEO Generator'
+            },
+            body: JSON.stringify({
+              model: "openai/o1-mini-2024-09-12",
+              messages: [
+                { role: "system", content: o1SystemPrompt },
+                { role: "user", content: o1UserPrompt }
+              ],
+              temperature: 0.7,
+              max_tokens: 16000,
+            }),
+          });
 
-        if (!o1Response.ok) {
-          const errorText = await o1Response.text();
-          console.error("Error from o1-mini:", errorText);
-          // Fall back to using the search results if o1-mini fails
-          generatedContent = searchResults;
-          console.log("Falling back to search results due to o1-mini failure");
-        } else {
-          const o1Data = await o1Response.json();
-          
-          if (!o1Data || !o1Data.choices || !o1Data.choices[0] || !o1Data.choices[0].message) {
-            console.error("Invalid response structure from o1-mini:", o1Data);
-            // Fall back to using the search results
+          if (!o1Response.ok) {
+            const errorText = await o1Response.text();
+            console.error("Error from o1-mini:", errorText);
+            // Fall back to using the search results if o1-mini fails
             generatedContent = searchResults;
-            console.log("Falling back to search results due to invalid o1-mini response");
+            console.log("Falling back to search results due to o1-mini failure");
           } else {
-            generatedContent = o1Data.choices[0].message.content;
-            console.log("Successfully generated content with o1-mini");
+            const o1Data = await o1Response.json();
+            
+            if (!o1Data || !o1Data.choices || !o1Data.choices[0] || !o1Data.choices[0].message) {
+              console.error("Invalid response structure from o1-mini:", o1Data);
+              // Fall back to using the search results
+              generatedContent = searchResults;
+              console.log("Falling back to search results due to invalid o1-mini response");
+            } else {
+              generatedContent = o1Data.choices[0].message.content;
+              console.log("Successfully generated content with o1-mini");
+            }
           }
+        } catch (o1Error) {
+          console.error("Error during o1-mini call:", o1Error);
+          // Fall back to using the search results if o1-mini call fails
+          generatedContent = searchResults;
+          console.log("Falling back to search results due to o1-mini call error:", o1Error.message);
         }
       } else {
         // For non-search requests, use the specified or default model directly
