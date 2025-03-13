@@ -67,11 +67,27 @@ serve(async (req) => {
     console.log("Using model:", requestedModel);
     console.log("Search term (if applicable):", searchTerm);
 
-    // Build the prompt for the OpenRouter API
+    // Build the prompts for the OpenRouter API with the 3-part approach
+    
     // System prompt
-    let systemPrompt = searchTerm 
-      ? `You are an expert SEO content writer with access to real-time web search. Search for "${searchTerm}" to gather current, accurate information related to "${topic}".`
-      : `You are an expert SEO content writer. Write an SEO-optimized in-depth blog post about ${topic}.`;
+    let systemPrompt = "";
+    
+    if (searchTerm) {
+      // Part 1: Deep research & information gathering focus
+      systemPrompt = `You are an in-depth and extremely detailed researcher with access to real-time web search. 
+      Your task has three parts:
+      
+      PART 1: Conduct deep research on "${searchTerm}" using web search. Gather at least 1000+ words of detailed information.
+      Include tables, charts, up-to-date statistics, pricing if relevant, new techniques, recent findings, and as much relevant 
+      information as possible that relates to the blog topic "${topic}". Focus on information from the last 1-2 years when possible.
+      
+      PART 2: Organize this research into structured sections with key insights highlighted.
+      
+      PART 3: Use this research to craft a comprehensive, ${toneOfArticle || 'professional'} ${articleType || 'informational'} 
+      blog post on "${topic}" optimized for the keyword "${keyword}".`;
+    } else {
+      systemPrompt = `You are an expert SEO content writer. Write an SEO-optimized in-depth blog post about ${topic}.`;
+    }
     
     systemPrompt += ` Include lists, tables, charts, pull quotes, and emojis when it makes sense in the article.`;
     systemPrompt += ` Aim for approximately ${wordCount} words.`;
@@ -86,9 +102,26 @@ serve(async (req) => {
     systemPrompt += ` Always end the article with an SEO title and meta description.`;
 
     // User prompt
-    let userPrompt = searchTerm
-      ? `I want you to do a web search on "${searchTerm}" and extract current, up-to-date information that would be relevant to the topic "${topic}". Then, write a comprehensive, ${toneOfArticle || 'professional'} ${articleType || 'informational'} blog post about ${topic} using the information you found.`
-      : `Write a comprehensive, ${toneOfArticle || 'professional'} ${articleType || 'informational'} blog post about ${topic}`;
+    let userPrompt = "";
+    
+    if (searchTerm) {
+      userPrompt = `I need you to do deep, detailed research on "${searchTerm}" and provide me with at least 1000+ words of information on this topic.
+      
+      In your research, please include:
+      - Tables and charts where relevant
+      - Up-to-date and cutting-edge information (focus on the last 1-2 years)
+      - Pricing information if relevant
+      - New techniques and methodologies
+      - Recent findings and studies
+      - Expert opinions and quotes
+      - Statistical data and trends
+      - Comparative analyses
+      
+      Once you've gathered this comprehensive research, organize it and use it to write a ${wordCount}-word ${toneOfArticle || 'professional'} 
+      ${articleType || 'informational'} blog post about "${topic}" that's optimized for the keyword "${keyword}".`;
+    } else {
+      userPrompt = `Write a comprehensive, ${toneOfArticle || 'professional'} ${articleType || 'informational'} blog post about ${topic}`;
+    }
     
     if (targetKeyword) {
       userPrompt += ` optimized for the keyword "${targetKeyword}"`;
