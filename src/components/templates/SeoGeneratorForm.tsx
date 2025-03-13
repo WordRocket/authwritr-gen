@@ -47,6 +47,7 @@ import {
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
 import ReactMarkdown from "react-markdown";
+import { HtmlPreviewComponent } from "./HtmlPreviewComponent";
 
 const seoFormSchema = z.object({
   topic: z.string().min(3, { message: "Topic must be at least 3 characters" }),
@@ -98,6 +99,7 @@ export function SeoGeneratorForm() {
   const [activeTab, setActiveTab] = React.useState("content-form");
   const [apiKeyMissing, setApiKeyMissing] = React.useState(!apiKey);
   const [viewMode, setViewMode] = React.useState<"rendered" | "markdown">("rendered");
+  const [extractedHtmlCode, setExtractedHtmlCode] = React.useState<string>("");
 
   const form = useForm<SeoFormValues>({
     resolver: zodResolver(seoFormSchema),
@@ -107,6 +109,39 @@ export function SeoGeneratorForm() {
   React.useEffect(() => {
     setApiKeyMissing(!apiKey);
   }, [apiKey]);
+
+  React.useEffect(() => {
+    if (generatedContent) {
+      const htmlCodeBlockRegex = /```(?:html)?\s*(<[\s\S]*?>[\s\S]*?<\/[\s\S]*?>)```/g;
+      const htmlInlineRegex = /<(!DOCTYPE|html|div|section|article|header|footer|table|form|button|input|iframe)[\s\S]*?<\/\1>/g;
+      
+      let matches = [];
+      let match;
+      
+      while ((match = htmlCodeBlockRegex.exec(generatedContent)) !== null) {
+        if (match[1] && match[1].trim()) {
+          matches.push(match[1].trim());
+        }
+      }
+      
+      if (matches.length === 0) {
+        while ((match = htmlInlineRegex.exec(generatedContent)) !== null) {
+          if (match[0] && match[0].trim()) {
+            matches.push(match[0].trim());
+          }
+        }
+      }
+      
+      if (matches.length > 0) {
+        matches.sort((a, b) => b.length - a.length);
+        setExtractedHtmlCode(matches[0]);
+      } else {
+        setExtractedHtmlCode("");
+      }
+    } else {
+      setExtractedHtmlCode("");
+    }
+  }, [generatedContent]);
 
   const onSubmit = async (data: SeoFormValues) => {
     if (!apiKey) {
@@ -704,6 +739,10 @@ export function SeoGeneratorForm() {
                 )}
               </CardContent>
             </Card>
+            
+            {extractedHtmlCode && form.getValues("includeHtmlElement") && (
+              <HtmlPreviewComponent htmlCode={extractedHtmlCode} />
+            )}
             
             <div className="flex justify-between">
               <Button variant="outline" onClick={() => setActiveTab("content-form")}>

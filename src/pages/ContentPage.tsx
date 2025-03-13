@@ -11,6 +11,7 @@ import ReactMarkdown from "react-markdown";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { HtmlPreviewComponent } from "@/components/templates/HtmlPreviewComponent";
 
 interface ContentItem {
   id: string;
@@ -26,6 +27,7 @@ export default function ContentPage() {
   const [loading, setLoading] = useState(true);
   const [selectedContent, setSelectedContent] = useState<ContentItem | null>(null);
   const [viewMode, setViewMode] = useState<"rendered" | "markdown">("rendered");
+  const [extractedHtmlCode, setExtractedHtmlCode] = useState<string>("");
 
   useEffect(() => {
     if (isAuthenticated && user) {
@@ -34,6 +36,44 @@ export default function ContentPage() {
       setLoading(false);
     }
   }, [isAuthenticated, user]);
+
+  // Extract HTML when content is selected
+  useEffect(() => {
+    if (selectedContent?.content) {
+      // Look for code blocks that appear to contain HTML
+      const htmlCodeBlockRegex = /```(?:html)?\s*(<[\s\S]*?>[\s\S]*?<\/[\s\S]*?>)```/g;
+      const htmlInlineRegex = /<(!DOCTYPE|html|div|section|article|header|footer|table|form|button|input|iframe)[\s\S]*?<\/\1>/g;
+      
+      let matches = [];
+      let match;
+      
+      // First try to find code blocks with HTML
+      while ((match = htmlCodeBlockRegex.exec(selectedContent.content)) !== null) {
+        if (match[1] && match[1].trim()) {
+          matches.push(match[1].trim());
+        }
+      }
+      
+      // If no code blocks found, try to find inline HTML
+      if (matches.length === 0) {
+        while ((match = htmlInlineRegex.exec(selectedContent.content)) !== null) {
+          if (match[0] && match[0].trim()) {
+            matches.push(match[0].trim());
+          }
+        }
+      }
+      
+      // Use the longest match as it's likely the most complete HTML
+      if (matches.length > 0) {
+        matches.sort((a, b) => b.length - a.length);
+        setExtractedHtmlCode(matches[0]);
+      } else {
+        setExtractedHtmlCode("");
+      }
+    } else {
+      setExtractedHtmlCode("");
+    }
+  }, [selectedContent]);
 
   const fetchUserContent = async () => {
     try {
@@ -186,7 +226,7 @@ export default function ContentPage() {
                   </DialogHeader>
                   
                   <Tabs value={viewMode} className="mt-2" onValueChange={(value) => setViewMode(value as "rendered" | "markdown")}>
-                    <TabsContent value="rendered" className="h-[calc(80vh-120px)] overflow-y-auto">
+                    <TabsContent value="rendered" className="h-[calc(80vh-180px)] overflow-y-auto">
                       <div className="content-container prose dark:prose-invert max-w-none">
                         <ReactMarkdown components={{
                           p: ({ node, ...props }) => {
@@ -263,10 +303,18 @@ export default function ContentPage() {
                         }}>
                           {selectedContent?.content || ""}
                         </ReactMarkdown>
+                        
+                        {/* Add HTML Preview below content if HTML is found */}
+                        {extractedHtmlCode && (
+                          <HtmlPreviewComponent 
+                            htmlCode={extractedHtmlCode} 
+                            className="mt-8 border-t pt-8" 
+                          />
+                        )}
                       </div>
                     </TabsContent>
                     
-                    <TabsContent value="markdown" className="h-[calc(80vh-120px)]">
+                    <TabsContent value="markdown" className="h-[calc(80vh-180px)]">
                       <Textarea 
                         value={selectedContent?.content || ""} 
                         readOnly 
