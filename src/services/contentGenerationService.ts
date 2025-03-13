@@ -23,7 +23,7 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
     // Map the simplified model IDs to the OpenRouter format
     let modelId = formData.model || "anthropic/claude-3.7-sonnet";
     
-    // If search term is provided, models don't matter as we use gpt-4o-mini-search-preview for search and o1-mini for content generation
+    // If search term is provided, models don't matter as we use gpt-4o-mini-search-preview for search and o1-mini for final content
     if (formData.searchTerm) {
       // We'll handle the search model in the edge function automatically
       console.log("Using search workflow with search model and o1-mini for final content");

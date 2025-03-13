@@ -80,13 +80,13 @@ serve(async (req) => {
     if (searchTerm) {
       // Part 1: Deep research & information gathering focus
       systemPrompt = `You are an in-depth and extremely detailed researcher with access to real-time web search. 
-      Your task has three parts:
+      Your task has two parts:
       
       PART 1: Conduct deep research on "${searchTerm}" using web search. Gather at least 1000+ words of detailed information.
       Include tables, charts, up-to-date statistics, pricing if relevant, new techniques, recent findings, and as much relevant 
       information as possible that relates to the blog topic "${topic}". Focus on information from the last 1-2 years when possible.
       
-      PART 3: Use this research to craft a comprehensive, SEO-optimized, human-sounding article with a readability 
+      PART 2: Use this research to craft a comprehensive, SEO-optimized, human-sounding article with a readability 
       level of grade 8 on "${topic}" optimized for the keyword "${keyword}". The article should follow best SEO practices while 
       maintaining a natural, engaging flow. Write in the ${toneOfArticle || 'professional'} ${articleType || 'informational'} 
       style, aiming for approximately ${wordCount} words for the intended audience of ${intendedAudience || 'general readers'}.`;
@@ -174,7 +174,7 @@ serve(async (req) => {
     try {
       if (searchTerm) {
         // STEP 1: Use search-capable model to gather information
-        const searchResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        let searchResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -198,13 +198,13 @@ serve(async (req) => {
           throw new Error(`Search API Error (${searchResponse.status}): ${errorText}`);
         }
 
-        const searchData = await searchResponse.json();
+        let searchData = await searchResponse.json();
         
         if (!searchData || !searchData.choices || !searchData.choices[0] || !searchData.choices[0].message) {
           throw new Error("Invalid response structure from search API");
         }
         
-        const searchResults = searchData.choices[0].message.content;
+        let searchResults = searchData.choices[0].message.content;
         console.log("Search completed. Now processing with o1-mini...");
         
         // STEP 2: Use o1-mini to create the final content
@@ -231,17 +231,17 @@ serve(async (req) => {
         - Is written in a ${toneOfArticle || 'professional'} ${articleType || 'informational'} style`;
         
         if (stylePreferences.length > 0) {
-          o1UserPrompt += `\n- Uses ${stylePreferences.join(", ")} style`;
+          userPrompt += `\n- Uses ${stylePreferences.join(", ")} style`;
         }
         
         if (includeHtmlElement) {
-          o1UserPrompt += `\n\nAlso create an interactive HTML element that represents the main information from this article. 
+          userPrompt += `\n\nAlso create an interactive HTML element that represents the main information from this article. 
           The code should be clean, responsive, and ready to be embedded in WordPress or other websites without affecting the page layout.`;
         }
         
         try {
           // Call the o1-mini model
-          const o1Response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          let o1Response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -267,7 +267,7 @@ serve(async (req) => {
             generatedContent = searchResults;
             console.log("Falling back to search results due to o1-mini failure");
           } else {
-            const o1Data = await o1Response.json();
+            let o1Data = await o1Response.json();
             
             if (!o1Data || !o1Data.choices || !o1Data.choices[0] || !o1Data.choices[0].message) {
               console.error("Invalid response structure from o1-mini:", o1Data);
