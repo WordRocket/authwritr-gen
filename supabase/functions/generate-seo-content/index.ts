@@ -61,10 +61,15 @@ serve(async (req) => {
 
     const keyword = targetKeyword || topic;
     
-    // Default to search model if searchTerm is provided, otherwise use the specified model
-    const requestedModel = searchTerm ? "openai/gpt-4o-mini-search-preview" : (model || "anthropic/claude-3.7-sonnet");
+    // For the search phase, use the search-capable model
+    let requestedModel = "openai/gpt-4o-mini-search-preview";
     
-    console.log("Using model:", requestedModel);
+    // If no search term is provided, use the model specified or default to claude
+    if (!searchTerm) {
+      requestedModel = model || "anthropic/claude-3.7-sonnet";
+    }
+    
+    console.log("Using model for initial phase:", requestedModel);
     console.log("Search term (if applicable):", searchTerm);
 
     // Build the prompts for the OpenRouter API with the 3-part approach
@@ -81,12 +86,17 @@ serve(async (req) => {
       Include tables, charts, up-to-date statistics, pricing if relevant, new techniques, recent findings, and as much relevant 
       information as possible that relates to the blog topic "${topic}". Focus on information from the last 1-2 years when possible.
       
-      PART 2: Organize this research into structured sections with key insights highlighted.
+      PART 2: Organize this research into structured sections with key insights highlighted. Create a comprehensive outline 
+      with main sections and subsections based on the gathered information. Identify patterns, trends, and relationships 
+      in the data. Highlight contradictions or gaps in information if any exist. Prepare the information in a way that will 
+      make it easy to transform into a cohesive, well-structured article.
       
-      PART 3: Use this research to craft a comprehensive, ${toneOfArticle || 'professional'} ${articleType || 'informational'} 
-      blog post on "${topic}" optimized for the keyword "${keyword}".`;
+      PART 3: Use this organized research to craft a comprehensive, SEO-optimized, human-sounding article with a readability 
+      of grade 8 on "${topic}" optimized for the keyword "${keyword}". The article should follow best SEO practices while 
+      maintaining a natural, engaging flow. Write in the ${toneOfArticle || 'professional'} ${articleType || 'informational'} 
+      style, aiming for approximately ${wordCount} words for the intended audience of ${intendedAudience || 'general readers'}.`;
     } else {
-      systemPrompt = `You are an expert SEO content writer. Write an SEO-optimized in-depth blog post about ${topic}.`;
+      systemPrompt = `You are an expert SEO content writer. Write an SEO-optimized in-depth blog post about ${topic} with a readability of grade 8.`;
     }
     
     systemPrompt += ` Include lists, tables, charts, pull quotes, and emojis when it makes sense in the article.`;
@@ -117,8 +127,14 @@ serve(async (req) => {
       - Statistical data and trends
       - Comparative analyses
       
-      Once you've gathered this comprehensive research, organize it and use it to write a ${wordCount}-word ${toneOfArticle || 'professional'} 
-      ${articleType || 'informational'} blog post about "${topic}" that's optimized for the keyword "${keyword}".`;
+      Once you've gathered this comprehensive research, organize it into a structured outline and use it to write a ${wordCount}-word 
+      SEO-optimized article about "${topic}" that's optimized for the keyword "${keyword}". 
+      
+      Make sure the article:
+      - Has a readability level of grade 8
+      - Sounds natural and human-written
+      - Follows best SEO practices
+      - Is written in a ${toneOfArticle || 'professional'} ${articleType || 'informational'} style`;
     } else {
       userPrompt = `Write a comprehensive, ${toneOfArticle || 'professional'} ${articleType || 'informational'} blog post about ${topic}`;
     }
@@ -152,74 +168,155 @@ serve(async (req) => {
       userPrompt += ` Also create an interactive HTML element that represents the main information from this article. The code should be clean, responsive, and ready to be embedded in WordPress or other websites without affecting the page layout.`;
     }
 
-    // Call the OpenRouter API
-    console.log("Calling OpenRouter API...");
+    // If search term is provided, we use a two-step process:
+    // 1. First call: Use search model to gather information
+    // 2. Second call: Use o1-mini model to create the final content
+    let generatedContent = "";
+    
+    // Call the OpenRouter API with the search model if search term is provided
+    console.log("Calling OpenRouter API with initial model...");
     
     try {
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-          'HTTP-Referer': 'https://contentgenius.app', // Replace with your actual domain
-          'X-Title': 'ContentGenius SEO Generator'
-        },
-        body: JSON.stringify({
-          model: requestedModel,
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt }
-          ],
-          temperature: 0.7,
-          max_tokens: 16000, // Increased to the maximum to prevent content cutoff
-        }),
-      });
+      if (searchTerm) {
+        // STEP 1: Use search-capable model to gather information
+        const searchResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+            'HTTP-Referer': 'https://contentgenius.app', 
+            'X-Title': 'ContentGenius SEO Generator'
+          },
+          body: JSON.stringify({
+            model: "openai/gpt-4o-mini-search-preview",
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userPrompt }
+            ],
+            temperature: 0.7,
+            max_tokens: 16000,
+          }),
+        });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        let errorMessage = `API Error (${response.status}): `;
+        if (!searchResponse.ok) {
+          const errorText = await searchResponse.text();
+          throw new Error(`Search API Error (${searchResponse.status}): ${errorText}`);
+        }
+
+        const searchData = await searchResponse.json();
         
-        try {
-          // Try to parse error as JSON
-          const errorData = JSON.parse(errorText);
-          errorMessage += errorData.error?.message || errorData.error || errorText;
-          console.error("OpenRouter API error:", errorData);
-        } catch (e) {
-          // If not JSON, use the text directly
-          errorMessage += errorText;
-          console.error("OpenRouter API error (raw):", errorText);
+        if (!searchData || !searchData.choices || !searchData.choices[0] || !searchData.choices[0].message) {
+          throw new Error("Invalid response structure from search API");
         }
         
-        return new Response(
-          JSON.stringify({ 
-            success: false, 
-            error: errorMessage
+        const searchResults = searchData.choices[0].message.content;
+        console.log("Search completed. Now processing with o1-mini...");
+        
+        // STEP 2: Use o1-mini to create the final content
+        const o1SystemPrompt = `You are an expert SEO content writer. Your task is to create a high-quality, 
+        SEO-optimized blog post based on the research information provided. The content should have a readability 
+        level of grade 8, sound human-written, and follow best SEO practices to optimize for the keyword "${keyword}".
+        
+        The blog post should be written in a ${toneOfArticle || 'professional'} ${articleType || 'informational'} style, 
+        aiming for approximately ${wordCount} words for ${intendedAudience || 'general readers'}.
+        
+        Include lists, tables, charts, pull quotes, and emojis when it makes sense. Always end with an SEO title and meta description.`;
+        
+        const o1UserPrompt = `I have conducted extensive research on the topic "${topic}" optimized for the keyword "${keyword}". 
+        Here is the research data:
+        
+        ${searchResults}
+        
+        Using this research, write a comprehensive ${wordCount}-word SEO-optimized blog post about "${topic}" that's optimized 
+        for the keyword "${keyword}". Ensure the content:
+        
+        - Has a readability level of grade 8
+        - Sounds natural and human-written
+        - Follows best SEO practices
+        - Is written in a ${toneOfArticle || 'professional'} ${articleType || 'informational'} style`;
+        
+        if (stylePreferences.length > 0) {
+          o1UserPrompt += `\n- Uses ${stylePreferences.join(", ")} style`;
+        }
+        
+        if (includeHtmlElement) {
+          o1UserPrompt += `\n\nAlso create an interactive HTML element that represents the main information from this article. 
+          The code should be clean, responsive, and ready to be embedded in WordPress or other websites without affecting the page layout.`;
+        }
+        
+        // Call the o1-mini model
+        const o1Response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+            'HTTP-Referer': 'https://contentgenius.app', 
+            'X-Title': 'ContentGenius SEO Generator'
+          },
+          body: JSON.stringify({
+            model: "openai/o1-mini-2024-09-12",
+            messages: [
+              { role: "system", content: o1SystemPrompt },
+              { role: "user", content: o1UserPrompt }
+            ],
+            temperature: 0.7,
+            max_tokens: 16000,
           }),
-          { 
-            status: response.status, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
-        );
-      }
+        });
 
-      const data = await response.json();
-      console.log("OpenRouter API response received successfully");
-      
-      if (!data || !data.choices || !data.choices[0] || !data.choices[0].message) {
-        console.error("Invalid response structure from OpenRouter API:", data);
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error: "Invalid response structure from OpenRouter API"
-          }),
-          {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        if (!o1Response.ok) {
+          const errorText = await o1Response.text();
+          console.error("Error from o1-mini:", errorText);
+          // Fall back to using the search results if o1-mini fails
+          generatedContent = searchResults;
+          console.log("Falling back to search results due to o1-mini failure");
+        } else {
+          const o1Data = await o1Response.json();
+          
+          if (!o1Data || !o1Data.choices || !o1Data.choices[0] || !o1Data.choices[0].message) {
+            console.error("Invalid response structure from o1-mini:", o1Data);
+            // Fall back to using the search results
+            generatedContent = searchResults;
+            console.log("Falling back to search results due to invalid o1-mini response");
+          } else {
+            generatedContent = o1Data.choices[0].message.content;
+            console.log("Successfully generated content with o1-mini");
           }
-        );
+        }
+      } else {
+        // For non-search requests, use the specified or default model directly
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+            'HTTP-Referer': 'https://contentgenius.app', 
+            'X-Title': 'ContentGenius SEO Generator'
+          },
+          body: JSON.stringify({
+            model: requestedModel,
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userPrompt }
+            ],
+            temperature: 0.7,
+            max_tokens: 16000,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`API Error (${response.status}): ${errorText}`);
+        }
+
+        const data = await response.json();
+        
+        if (!data || !data.choices || !data.choices[0] || !data.choices[0].message) {
+          throw new Error("Invalid response structure from API");
+        }
+        
+        generatedContent = data.choices[0].message.content;
       }
-      
-      const generatedContent = data.choices[0].message.content;
       
       return new Response(
         JSON.stringify({ 

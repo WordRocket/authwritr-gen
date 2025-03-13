@@ -23,9 +23,10 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
     // Map the simplified model IDs to the OpenRouter format
     let modelId = formData.model || "anthropic/claude-3.7-sonnet";
     
-    // If search term is provided, always use the search model
+    // If search term is provided, models don't matter as we use gpt-4o-mini-search-preview for search and o1-mini for content generation
     if (formData.searchTerm) {
-      modelId = "openai/gpt-4o-mini-search-preview";
+      // We'll handle the search model in the edge function automatically
+      console.log("Using search workflow with search model and o1-mini for final content");
     }
     // For models that need provider prefix, add it if missing
     else if (modelId && !modelId.includes('/')) {
@@ -36,7 +37,8 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
         "gpt-4o": "openai/gpt-4o",
         "gpt-4o-mini-search-preview": "openai/gpt-4o-mini-search-preview",
         "mistral-large": "mistralai/mistral-large",
-        "gemini-1.5-pro": "google/gemini-1.5-pro"
+        "gemini-1.5-pro": "google/gemini-1.5-pro",
+        "o1-mini-2024-09-12": "openai/o1-mini-2024-09-12"
       };
       
       modelId = modelMap[modelId] || modelId;
@@ -97,6 +99,12 @@ export async function saveGeneratedContent(title: string, content: string, userI
 
 export const recommendedModels = [
   { 
+    id: "openai/o1-mini-2024-09-12", 
+    name: "O1 Mini", 
+    description: "Best for high-quality content generation",
+    recommended: true
+  },
+  { 
     id: "openai/gpt-4o-mini-search-preview", 
     name: "GPT-4o mini Search Preview", 
     description: "Best for real-time web search integration",
@@ -105,7 +113,7 @@ export const recommendedModels = [
   { 
     id: "anthropic/claude-3.7-sonnet", 
     name: "Claude 3.7 Sonnet", 
-    description: "Best overall quality for SEO content",
+    description: "High quality for SEO content",
     recommended: true
   },
   { 
@@ -118,13 +126,13 @@ export const recommendedModels = [
     id: "anthropic/claude-3-haiku", 
     name: "Claude 3 Haiku", 
     description: "Fast and cost-effective",
-    recommended: true
+    recommended: false
   },
   { 
     id: "openai/gpt-4o", 
     name: "GPT-4o", 
     description: "Excellent for creative content",
-    recommended: true
+    recommended: false
   },
   { 
     id: "mistralai/mistral-large", 
