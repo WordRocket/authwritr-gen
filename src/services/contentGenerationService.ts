@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export interface SeoFormValues {
   topic: string;
+  searchTerm?: string;
   targetKeyword?: string;
   articleType?: "informational" | "listicle" | "how-to" | "anecdote" | "story";
   toneOfArticle?: "professional" | "conversational" | "friendly" | "authoritative" | "casual";
@@ -22,13 +23,18 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
     // Map the simplified model IDs to the OpenRouter format
     let modelId = formData.model || "anthropic/claude-3.7-sonnet";
     
+    // If search term is provided, always use the search model
+    if (formData.searchTerm) {
+      modelId = "openai/gpt-4o-mini-search-preview";
+    }
     // For models that need provider prefix, add it if missing
-    if (modelId && !modelId.includes('/')) {
+    else if (modelId && !modelId.includes('/')) {
       const modelMap: Record<string, string> = {
         "claude-3.7-sonnet": "anthropic/claude-3.7-sonnet",
         "claude-3-opus": "anthropic/claude-3-opus",
         "claude-3-haiku": "anthropic/claude-3-haiku",
         "gpt-4o": "openai/gpt-4o",
+        "gpt-4o-mini-search-preview": "openai/gpt-4o-mini-search-preview",
         "mistral-large": "mistralai/mistral-large",
         "gemini-1.5-pro": "google/gemini-1.5-pro"
       };
@@ -90,6 +96,12 @@ export async function saveGeneratedContent(title: string, content: string, userI
 }
 
 export const recommendedModels = [
+  { 
+    id: "openai/gpt-4o-mini-search-preview", 
+    name: "GPT-4o mini Search Preview", 
+    description: "Best for real-time web search integration",
+    recommended: true
+  },
   { 
     id: "anthropic/claude-3.7-sonnet", 
     name: "Claude 3.7 Sonnet", 

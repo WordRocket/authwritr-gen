@@ -54,8 +54,8 @@ export default function TemplatesPage() {
     },
     {
       id: "article-generator",
-      title: "Up To Date Article Generator",
-      description: "Create current, well-researched articles with product comparisons and analytics",
+      title: "Real-Time Blog Generator With Web Search",
+      description: "Create current, well-researched articles with live web search integration",
       icon: FileEdit,
       category: "article",
       route: "/templates/article-generator"

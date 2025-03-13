@@ -15,6 +15,7 @@ serve(async (req) => {
   try {
     const { 
       topic, 
+      searchTerm,
       targetKeyword, 
       articleType, 
       toneOfArticle, 
@@ -59,21 +60,24 @@ serve(async (req) => {
     }
 
     const keyword = targetKeyword || topic;
-
-    // Use the model as provided from the frontend
-    // Default to Claude 3.7 Sonnet if no model specified
-    const requestedModel = model || "anthropic/claude-3.7-sonnet";
+    
+    // Default to search model if searchTerm is provided, otherwise use the specified model
+    const requestedModel = searchTerm ? "openai/gpt-4o-mini-search-preview" : (model || "anthropic/claude-3.7-sonnet");
     
     console.log("Using model:", requestedModel);
+    console.log("Search term (if applicable):", searchTerm);
 
     // Build the prompt for the OpenRouter API
     // System prompt
-    let systemPrompt = `You are an expert SEO content writer. Write an SEO-optimized in-depth blog post about ${topic}.`;
+    let systemPrompt = searchTerm 
+      ? `You are an expert SEO content writer with access to real-time web search. Search for "${searchTerm}" to gather current, accurate information related to "${topic}".`
+      : `You are an expert SEO content writer. Write an SEO-optimized in-depth blog post about ${topic}.`;
+    
     systemPrompt += ` Include lists, tables, charts, pull quotes, and emojis when it makes sense in the article.`;
     systemPrompt += ` Aim for approximately ${wordCount} words.`;
     
     if (includeHtmlElement) {
-      systemPrompt += ` Also create a simple HTML element that represents the information in this article, when creating the html element create it in a way that is simple clean html code and can be embedded on wordpress sites easily and does not mess up the page formatting like this <!DOCTYPE html> format .`;
+      systemPrompt += ` Also create a simple HTML element that represents the information in this article, when creating the html element create it in a way that is simple clean html code and can be embedded on wordpress sites easily and does not mess up the page formatting.`;
       systemPrompt += ` Write the code in a way that can be embedded on WordPress and most sites.`;
       systemPrompt += ` Make the code clean and ensure it would not affect the layout of the page or the website.`;
     }
@@ -82,7 +86,9 @@ serve(async (req) => {
     systemPrompt += ` Always end the article with an SEO title and meta description.`;
 
     // User prompt
-    let userPrompt = `Write a comprehensive, ${toneOfArticle || 'professional'} ${articleType || 'informational'} blog post about ${topic}`;
+    let userPrompt = searchTerm
+      ? `I want you to do a web search on "${searchTerm}" and extract current, up-to-date information that would be relevant to the topic "${topic}". Then, write a comprehensive, ${toneOfArticle || 'professional'} ${articleType || 'informational'} blog post about ${topic} using the information you found.`
+      : `Write a comprehensive, ${toneOfArticle || 'professional'} ${articleType || 'informational'} blog post about ${topic}`;
     
     if (targetKeyword) {
       userPrompt += ` optimized for the keyword "${targetKeyword}"`;
@@ -110,10 +116,10 @@ serve(async (req) => {
     }
     
     if (includeHtmlElement) {
-      userPrompt += ` Also create an interactive HTML element that represents the main information from this article. The code should be clean, responsive, and ready to be embedded in WordPress or other websites without affecting the page layout. It should be simple like this format<!DOCTYPE html> `;
+      userPrompt += ` Also create an interactive HTML element that represents the main information from this article. The code should be clean, responsive, and ready to be embedded in WordPress or other websites without affecting the page layout.`;
     }
 
-    // Call the OpenRouter API - using the example pattern from the provided code
+    // Call the OpenRouter API
     console.log("Calling OpenRouter API...");
     
     try {
