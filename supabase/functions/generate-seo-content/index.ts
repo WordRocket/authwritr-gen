@@ -98,9 +98,12 @@ serve(async (req) => {
     systemPrompt += ` Aim for approximately ${wordCount} words.`;
     
     if (includeHtmlElement) {
-      systemPrompt += ` Also create a simple HTML element that represents the information in this article, when creating the html element create it in a way that is simple clean html code and can be embedded on wordpress sites easily and does not mess up the page formatting.`;
-      systemPrompt += ` Write the code in a way that can be embedded on WordPress and most sites.`;
-      systemPrompt += ` Make the code clean and ensure it would not affect the layout of the page or the website.`;
+      systemPrompt += ` Also create an interactive HTML element that will be useful and relevant to the blog post content.`;
+      systemPrompt += ` The HTML element should be one of the following: interactive table, data visualization, comparison chart, timeline, infographic, calculator, quiz, or selector.`;
+      systemPrompt += ` Start the HTML code with <!DOCTYPE HTML> and ensure it's completely self-contained and compatible with WordPress.`;
+      systemPrompt += ` The HTML should include all necessary CSS within a <style> tag and JavaScript within a <script> tag.`;
+      systemPrompt += ` Make sure all IDs, classes, and selectors in the HTML are unique and prefixed with a specific namespace to avoid conflicts with the WordPress theme.`;
+      systemPrompt += ` The element should be responsive and not break the page layout when embedded in a WordPress post.`;
     }
     
     systemPrompt += ` When writing, follow the best SEO practices and include the target keyword "${keyword}" and variations of the keyword in the title, h1, h2, h3, etc. and the body of the article.`;
@@ -160,7 +163,28 @@ serve(async (req) => {
     }
     
     if (includeHtmlElement) {
-      userPrompt += ` Also create an interactive HTML element that represents the main information from this article. The code should be clean, responsive, and ready to be embedded in WordPress or other websites without affecting the page layout.`;
+      userPrompt += ` 
+      
+      Additionally, create ONE highly relevant interactive HTML element that would significantly help readers understand or use the information in this article. The HTML element must:
+      
+      1. Start with <!DOCTYPE HTML> and be structured as a complete, self-contained document
+      2. Choose the most appropriate format based on the article content:
+         - Interactive table (for comparing options/data)
+         - Data visualization (for statistics/trends)
+         - Calculator (for financial/numeric concepts)
+         - Quiz (for educational content)
+         - Timeline (for historical/sequential information)
+         - Selector/filtering tool (for decision-making assistance)
+         - Infographic (for visual representation of complex concepts)
+      
+      3. Include all CSS within a <style> tag and all JavaScript within a <script> tag
+      4. Use prefixed class names (like "cg-element-") to avoid conflicts with WordPress themes
+      5. Be responsive and mobile-friendly
+      6. Not rely on external libraries or dependencies
+      7. Not affect the page layout or styling when embedded in a WordPress post
+      8. Be actually useful to the reader, not just decorative
+      
+      Ensure the HTML is valid, clean, and follows best practices for embedding in WordPress without breaking the layout.`;
     }
 
     // If search term is provided, we use a two-step process:
@@ -235,8 +259,28 @@ serve(async (req) => {
         }
         
         if (includeHtmlElement) {
-          userPrompt += `\n\nAlso create an interactive HTML element that represents the main information from this article. 
-          The code should be clean, responsive, and ready to be embedded in WordPress or other websites without affecting the page layout.`;
+          userPrompt += `
+          
+          Additionally, create ONE highly relevant interactive HTML element that would significantly help readers understand or use the information in this article. The HTML element must:
+          
+          1. Start with <!DOCTYPE HTML> and be structured as a complete, self-contained document
+          2. Choose the most appropriate format based on the article content:
+             - Interactive table (for comparing options/data)
+             - Data visualization (for statistics/trends)
+             - Calculator (for financial/numeric concepts)
+             - Quiz (for educational content)
+             - Timeline (for historical/sequential information)
+             - Selector/filtering tool (for decision-making assistance)
+             - Infographic (for visual representation of complex concepts)
+          
+          3. Include all CSS within a <style> tag and all JavaScript within a <script> tag
+          4. Use prefixed class names (like "cg-element-") to avoid conflicts with WordPress themes
+          5. Be responsive and mobile-friendly
+          6. Not rely on external libraries or dependencies
+          7. Not affect the page layout or styling when embedded in a WordPress post
+          8. Be actually useful to the reader, not just decorative
+          
+          Ensure the HTML is valid, clean, and follows best practices for embedding in WordPress without breaking the layout.`;
         }
         
         try {
