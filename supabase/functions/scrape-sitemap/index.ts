@@ -31,8 +31,13 @@ serve(async (req) => {
 
     console.log(`Fetching sitemap from: ${sitemapUrl}`);
     
+    // Normalize URL - ensure it has a protocol
+    const normalizedUrl = sitemapUrl.startsWith('http') 
+      ? sitemapUrl 
+      : `https://${sitemapUrl}`;
+    
     // Fetch the sitemap XML
-    const response = await fetch(sitemapUrl);
+    const response = await fetch(normalizedUrl);
     
     if (!response.ok) {
       const errorMessage = `Failed to fetch sitemap: ${response.status} ${response.statusText}`;
@@ -53,7 +58,7 @@ serve(async (req) => {
     
     // Check if the response is XML or a valid sitemap format
     if (!contentType || (!contentType.includes('xml') && !contentType.includes('text/plain'))) {
-      const errorMessage = `Invalid sitemap format. Expected XML, got: ${contentType}`;
+      const errorMessage = `Invalid sitemap format. Expected XML, got: ${contentType}. Make sure you're using a sitemap URL (typically ends with sitemap.xml)`;
       console.error(errorMessage);
       return new Response(
         JSON.stringify({ 
