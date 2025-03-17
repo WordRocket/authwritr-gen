@@ -1,264 +1,61 @@
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Trash2, RefreshCw, Info } from "lucide-react";
-import { scrapeSitemap, saveUrlsToLocalStorage, getUrlsFromLocalStorage, clearStoredUrls } from "@/services/sitemapService";
-import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { useToast } from "@/hooks/use-toast";
+import { useSitemapScraper } from "@/hooks/useSitemapScraper";
+import { SitemapInfoHeader } from "./sitemap/SitemapInfoHeader";
+import { SitemapUrlForm } from "./sitemap/SitemapUrlForm";
+import { SitemapStatusAlerts } from "./sitemap/SitemapStatusAlerts";
+import { SitemapActionButtons } from "./sitemap/SitemapActionButtons";
 
 interface SitemapUrlInputProps {
   onUrlsScraped?: (count: number) => void;
 }
 
 export function SitemapUrlInput({ onUrlsScraped }: SitemapUrlInputProps) {
-  const [sitemapUrl, setSitemapUrl] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  
-  const { urls, lastUpdated } = getUrlsFromLocalStorage();
-  const [storedUrls, setStoredUrls] = useState(urls);
-  const [lastUpdatedDate, setLastUpdatedDate] = useState<string | null>(lastUpdated);
-  const { toast } = useToast();
+  const {
+    sitemapUrl,
+    setSitemapUrl,
+    isLoading,
+    error,
+    success,
+    storedUrls,
+    lastUpdatedDate,
+    handleSitemapSubmit,
+    handleClearUrls,
+    guessAndSetSitemapUrl,
+    trySitemapIndex
+  } = useSitemapScraper(onUrlsScraped);
 
-  const handleSitemapSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!sitemapUrl) {
-      setError("Please enter a sitemap URL");
-      return;
+  const handleUrlBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    if (e.target.value && !e.target.value.includes("sitemap") && !e.target.value.includes(".xml")) {
+      guessAndSetSitemapUrl(e.target.value);
     }
-    
-    // Check if URL contains sitemap.xml or sitemap_index.xml, if not, suggest adding it
-    if (!sitemapUrl.includes("sitemap") && !sitemapUrl.includes(".xml")) {
-      // Add trailing slash if needed
-      const baseUrl = sitemapUrl.endsWith("/") ? sitemapUrl : `${sitemapUrl}/`;
-      const newUrl = `${baseUrl}sitemap.xml`;
-      setSitemapUrl(newUrl);
-      toast({
-        title: "URL Updated",
-        description: "We've updated your URL to include sitemap.xml. Please try again if this looks correct.",
-      });
-      return;
-    }
-    
-    setIsLoading(true);
-    setError(null);
-    setSuccess(null);
-    
-    try {
-      toast({
-        title: "Processing",
-        description: "Scanning sitemap, please wait...",
-      });
-      
-      const result = await scrapeSitemap(sitemapUrl);
-      
-      if (result.success && result.urls && result.urls.length > 0) {
-        saveUrlsToLocalStorage(result.urls);
-        setStoredUrls(result.urls);
-        setLastUpdatedDate(new Date().toISOString());
-        
-        const successMessage = result.message 
-          ? `${result.message}: Found ${result.urls.length} URLs` 
-          : `Successfully scraped ${result.urls.length} URLs from sitemap`;
-        
-        setSuccess(successMessage);
-        toast({
-          title: "Sitemap Scraped",
-          description: `Successfully retrieved ${result.urls.length} URLs from the sitemap.`,
-        });
-        
-        if (onUrlsScraped) {
-          onUrlsScraped(result.urls.length);
-        }
-      } else {
-        setError(result.error || "No URLs found in the sitemap");
-        toast({
-          variant: "destructive",
-          title: "Scraping Failed",
-          description: result.error || "No URLs found in the sitemap",
-        });
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to scrape sitemap";
-      setError(errorMessage);
-      toast({
-        variant: "destructive",
-        title: "Scraping Failed",
-        description: errorMessage,
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  const handleClearUrls = () => {
-    clearStoredUrls();
-    setStoredUrls([]);
-    setLastUpdatedDate(null);
-    setSuccess("Stored URLs have been cleared");
-    toast({
-      title: "URLs Cleared",
-      description: "All stored URLs have been removed.",
-    });
-    
-    if (onUrlsScraped) {
-      onUrlsScraped(0);
-    }
-  };
-  
-  const formatLastUpdated = () => {
-    if (!lastUpdatedDate) return null;
-    
-    try {
-      const date = new Date(lastUpdatedDate);
-      return date.toLocaleString();
-    } catch (e) {
-      return lastUpdatedDate;
-    }
-  };
-
-  const guessAndSetSitemapUrl = (url: string) => {
-    // Try to guess the sitemap URL from the website URL
-    if (!url) return;
-    
-    // Remove trailing slash if exists
-    const baseUrl = url.endsWith("/") ? url.slice(0, -1) : url;
-    
-    // If URL already has protocol, use as is, otherwise add https://
-    const normalizedUrl = baseUrl.startsWith("http") ? baseUrl : `https://${baseUrl}`;
-    
-    // Set the sitemap URL
-    setSitemapUrl(`${normalizedUrl}/sitemap.xml`);
-    toast({
-      title: "URL Updated",
-      description: "We've updated the URL to include sitemap.xml",
-    });
-  };
-  
-  const trySitemapIndex = () => {
-    if (!sitemapUrl) return;
-    
-    // Replace sitemap.xml with sitemap_index.xml or vice versa
-    let newUrl = sitemapUrl;
-    if (sitemapUrl.includes('sitemap.xml')) {
-      newUrl = sitemapUrl.replace('sitemap.xml', 'sitemap_index.xml');
-    } else if (sitemapUrl.includes('sitemap_index.xml')) {
-      newUrl = sitemapUrl.replace('sitemap_index.xml', 'sitemap.xml');
-    } else if (sitemapUrl.endsWith('/')) {
-      newUrl = `${sitemapUrl}sitemap_index.xml`;
-    } else {
-      newUrl = `${sitemapUrl}/sitemap_index.xml`;
-    }
-    
-    setSitemapUrl(newUrl);
-    toast({
-      title: "Try Different Format",
-      description: "Updated to try a different sitemap format",
-    });
   };
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-2">
-          <h3 className="text-lg font-medium">Internal Links from Sitemap</h3>
-          {storedUrls.length > 0 && (
-            <Badge variant="outline" className="ml-2">
-              {storedUrls.length} URLs
-            </Badge>
-          )}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="size-6">
-                  <Info className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent className="max-w-80">
-                <p>Enter your sitemap URL (typically ends with sitemap.xml). Example: https://example.com/sitemap.xml</p>
-                <p className="mt-2">Common sitemap locations:</p>
-                <ul className="list-disc ml-5 mt-1">
-                  <li>https://example.com/sitemap.xml</li>
-                  <li>https://example.com/sitemap_index.xml</li>
-                  <li>https://example.com/wp-sitemap.xml (WordPress)</li>
-                </ul>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
-        {lastUpdatedDate && (
-          <p className="text-sm text-muted-foreground">
-            Last updated: {formatLastUpdated()}
-          </p>
-        )}
-      </div>
+      <SitemapInfoHeader 
+        storedUrls={storedUrls} 
+        lastUpdatedDate={lastUpdatedDate} 
+      />
 
-      <form onSubmit={handleSitemapSubmit} className="flex gap-2">
-        <Input
-          type="url"
-          placeholder="Enter sitemap URL (e.g., https://example.com/sitemap.xml)"
-          value={sitemapUrl}
-          onChange={(e) => setSitemapUrl(e.target.value)}
-          onBlur={(e) => {
-            if (e.target.value && !e.target.value.includes("sitemap") && !e.target.value.includes(".xml")) {
-              guessAndSetSitemapUrl(e.target.value);
-            }
-          }}
-          className="flex-1"
-          disabled={isLoading}
-        />
-        <Button type="submit" disabled={isLoading}>
-          {isLoading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Scanning
-            </>
-          ) : (
-            "Scan Sitemap"
-          )}
-        </Button>
-      </form>
+      <SitemapUrlForm
+        sitemapUrl={sitemapUrl}
+        onSitemapUrlChange={setSitemapUrl}
+        onSubmit={handleSitemapSubmit}
+        onUrlBlur={handleUrlBlur}
+        isLoading={isLoading}
+      />
 
-      {error && (
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
+      <SitemapStatusAlerts 
+        error={error} 
+        success={success} 
+      />
 
-      {success && (
-        <Alert>
-          <AlertDescription>{success}</AlertDescription>
-        </Alert>
-      )}
-
-      <div className="flex justify-end gap-2">
-        {sitemapUrl && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={trySitemapIndex}
-          >
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Try Different Format
-          </Button>
-        )}
-        
-        {storedUrls.length > 0 && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleClearUrls}
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            Clear URLs
-          </Button>
-        )}
-      </div>
+      <SitemapActionButtons
+        sitemapUrl={sitemapUrl}
+        storedUrlsCount={storedUrls.length}
+        onTryDifferentFormat={trySitemapIndex}
+        onClearUrls={handleClearUrls}
+      />
     </div>
   );
 }
