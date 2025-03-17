@@ -55,11 +55,20 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
         if (storedUrls) {
           internalLinks = JSON.parse(storedUrls);
           console.log(`Including ${internalLinks.length} internal links in content generation`);
+        } else {
+          console.warn("includeInternalLinks is true but no URLs found in localStorage");
         }
       } catch (error) {
         console.error("Error getting internal links:", error);
       }
     }
+    
+    // Log the full request body for debugging
+    console.log("Content generation request:", {
+      includeInternalLinks: formData.includeInternalLinks,
+      internalLinksCount: internalLinks.length,
+      topic: formData.topic
+    });
     
     const { data, error } = await supabase.functions.invoke("generate-seo-content", {
       body: {

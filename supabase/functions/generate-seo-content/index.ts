@@ -32,6 +32,17 @@ serve(async (req) => {
       model
     } = await req.json();
 
+    // Log for debugging
+    console.log("Function received params:", {
+      topic,
+      includeInternalLinks,
+      internalLinksCount: internalLinks?.length || 0
+    });
+
+    if (includeInternalLinks && (!internalLinks || internalLinks.length === 0)) {
+      console.warn("includeInternalLinks is true but no URLs were provided");
+    }
+
     // Validate API key
     if (!apiKey) {
       return new Response(
@@ -72,6 +83,10 @@ serve(async (req) => {
     
     console.log("Using model for initial phase:", requestedModel);
     console.log("Search term (if applicable):", searchTerm);
+    console.log("Internal links:", includeInternalLinks ? "Enabled" : "Disabled");
+    if (includeInternalLinks && internalLinks) {
+      console.log(`${internalLinks.length} internal links provided`);
+    }
 
     // Build the prompts for the OpenRouter API with the 3-part approach
     
@@ -100,6 +115,7 @@ serve(async (req) => {
     
     // Add internal links instruction if requested
     if (includeInternalLinks && internalLinks && internalLinks.length > 0) {
+      console.log("Adding internal links instructions to system prompt");
       systemPrompt += ` Include relevant internal links from the provided list of URLs. Select 3-7 of the most relevant URLs based on the content and link to them naturally within the text using anchor text that is relevant to both the linked page and the context of your article. Distribute the links evenly throughout the article.`;
     }
     
@@ -159,6 +175,7 @@ serve(async (req) => {
     
     // Add internal links if requested
     if (includeInternalLinks && internalLinks && internalLinks.length > 0) {
+      console.log("Adding internal links to user prompt");
       userPrompt += `
       
       Include 3-7 relevant internal links from this list of URLs. Choose the most appropriate URLs that relate to the content and incorporate them naturally in the article:
