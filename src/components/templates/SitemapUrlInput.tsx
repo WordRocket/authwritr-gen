@@ -1,4 +1,5 @@
 
+import { useState } from "react";
 import { useSitemapScraper } from "@/hooks/useSitemapScraper";
 import { SitemapInfoHeader } from "./sitemap/SitemapInfoHeader";
 import { SitemapUrlForm } from "./sitemap/SitemapUrlForm";
@@ -7,9 +8,15 @@ import { SitemapActionButtons } from "./sitemap/SitemapActionButtons";
 
 interface SitemapUrlInputProps {
   onUrlsScraped?: (count: number) => void;
+  onInternalLinksToggle?: (enabled: boolean) => void;
+  includeInternalLinks?: boolean;
 }
 
-export function SitemapUrlInput({ onUrlsScraped }: SitemapUrlInputProps) {
+export function SitemapUrlInput({ 
+  onUrlsScraped,
+  onInternalLinksToggle,
+  includeInternalLinks = false
+}: SitemapUrlInputProps) {
   const {
     sitemapUrl,
     setSitemapUrl,
@@ -49,6 +56,9 @@ export function SitemapUrlInput({ onUrlsScraped }: SitemapUrlInputProps) {
         error={error} 
         success={success} 
         lastUpdatedDate={lastUpdatedDate}
+        storedUrls={storedUrls}
+        onInternalLinksToggle={onInternalLinksToggle}
+        includeInternalLinks={includeInternalLinks}
       />
 
       <SitemapActionButtons

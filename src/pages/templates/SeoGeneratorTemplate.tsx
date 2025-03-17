@@ -1,5 +1,5 @@
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { SeoGeneratorForm } from "@/components/templates/SeoGeneratorForm";
 import { RealTimeBlogGeneratorForm } from "@/components/templates/RealTimeBlogGeneratorForm";
 import { useLocation } from "react-router-dom";
@@ -9,6 +9,7 @@ export default function SeoGeneratorTemplate() {
   const location = useLocation();
   const isArticleGenerator = location.pathname.includes("article-generator");
   const isBulkBlogPost = location.pathname.includes("bulk-blog-post");
+  const [includeInternalLinks, setIncludeInternalLinks] = useState(false);
   
   useEffect(() => {
     if (isArticleGenerator) {
@@ -23,6 +24,22 @@ export default function SeoGeneratorTemplate() {
   const handleUrlsScraped = (count: number) => {
     console.log(`Successfully scraped ${count} URLs`);
   };
+
+  const handleInternalLinksToggle = (enabled: boolean) => {
+    setIncludeInternalLinks(enabled);
+    console.log(`Internal links ${enabled ? 'enabled' : 'disabled'}`);
+    
+    // Store the preference in localStorage
+    localStorage.setItem('includeInternalLinks', enabled.toString());
+  };
+
+  // Load the preference from localStorage on component mount
+  useEffect(() => {
+    const savedPreference = localStorage.getItem('includeInternalLinks');
+    if (savedPreference !== null) {
+      setIncludeInternalLinks(savedPreference === 'true');
+    }
+  }, []);
 
   return (
     <div className="mx-auto container py-8">
@@ -42,12 +59,16 @@ export default function SeoGeneratorTemplate() {
       </p>
       
       <div className="mt-6 mb-8">
-        <SitemapUrlInput onUrlsScraped={handleUrlsScraped} />
+        <SitemapUrlInput 
+          onUrlsScraped={handleUrlsScraped} 
+          onInternalLinksToggle={handleInternalLinksToggle}
+          includeInternalLinks={includeInternalLinks}
+        />
       </div>
       
       {isArticleGenerator 
-        ? <RealTimeBlogGeneratorForm /> 
-        : <SeoGeneratorForm />}
+        ? <RealTimeBlogGeneratorForm includeInternalLinks={includeInternalLinks} /> 
+        : <SeoGeneratorForm includeInternalLinks={includeInternalLinks} />}
     </div>
   );
 }
