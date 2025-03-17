@@ -91,7 +91,11 @@ const defaultValues: Partial<SeoFormValues> = {
   model: "anthropic/claude-3-7-sonnet",
 };
 
-export function SeoGeneratorForm() {
+interface SeoGeneratorFormProps {
+  includeInternalLinks?: boolean;
+}
+
+export function SeoGeneratorForm({ includeInternalLinks = false }: SeoGeneratorFormProps) {
   const { user, apiKey } = useAuth();
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [isSaving, setIsSaving] = React.useState(false);
@@ -156,7 +160,12 @@ export function SeoGeneratorForm() {
     setIsGenerating(true);
     
     try {
-      const content = await generateSeoContent(data as SeoServiceFormValues, apiKey);
+      const formDataWithInternalLinks = {
+        ...data,
+        includeInternalLinks,
+      };
+      
+      const content = await generateSeoContent(formDataWithInternalLinks as SeoServiceFormValues, apiKey);
       setGeneratedContent(content);
       setActiveTab("generated-content");
       toast({

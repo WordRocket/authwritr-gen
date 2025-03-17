@@ -1,4 +1,3 @@
-
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -93,7 +92,11 @@ const defaultValues: Partial<BlogGeneratorFormValues> = {
   model: "openai/gpt-4o-mini-search-preview",
 };
 
-export function RealTimeBlogGeneratorForm() {
+interface RealTimeBlogGeneratorFormProps {
+  includeInternalLinks?: boolean;
+}
+
+export function RealTimeBlogGeneratorForm({ includeInternalLinks = false }: RealTimeBlogGeneratorFormProps) {
   const { user, apiKey } = useAuth();
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [isSaving, setIsSaving] = React.useState(false);
@@ -158,7 +161,12 @@ export function RealTimeBlogGeneratorForm() {
     setIsGenerating(true);
     
     try {
-      const content = await generateSeoContent(data as SeoServiceFormValues, apiKey);
+      const formDataWithInternalLinks = {
+        ...data,
+        includeInternalLinks,
+      };
+      
+      const content = await generateSeoContent(formDataWithInternalLinks as SeoServiceFormValues, apiKey);
       setGeneratedContent(content);
       setActiveTab("generated-content");
       toast({
@@ -775,3 +783,4 @@ export function RealTimeBlogGeneratorForm() {
     </Tabs>
   );
 }
+
