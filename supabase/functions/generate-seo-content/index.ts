@@ -27,6 +27,8 @@ serve(async (req) => {
       includeHook, 
       includeStories, 
       includeHtmlElement,
+      includeInternalLinks,
+      internalLinks,
       apiKey,
       model
     } = await req.json();
@@ -97,6 +99,11 @@ serve(async (req) => {
     systemPrompt += ` Include lists, tables, charts, pull quotes, and emojis when it makes sense in the article.`;
     systemPrompt += ` Aim for approximately ${wordCount} words.`;
     
+    // Add internal links instruction if requested
+    if (includeInternalLinks && internalLinks && internalLinks.length > 0) {
+      systemPrompt += ` Include relevant internal links from the provided list of URLs. Select 3-7 of the most relevant URLs based on the content and link to them naturally within the text using anchor text that is relevant to both the linked page and the context of your article. Distribute the links evenly throughout the article.`;
+    }
+    
     if (includeHtmlElement) {
       systemPrompt += ` Also create an interactive HTML element that will be useful and relevant to the blog post content.`;
       systemPrompt += ` The HTML element should be one of the following: interactive table, data visualization, comparison chart, timeline, infographic, calculator, quiz, or selector.`;
@@ -150,6 +157,17 @@ serve(async (req) => {
     }
     
     userPrompt += `. Make it approximately ${wordCount} words.`;
+    
+    // Add internal links if requested
+    if (includeInternalLinks && internalLinks && internalLinks.length > 0) {
+      userPrompt += `
+      
+      Include 3-7 relevant internal links from this list of URLs. Choose the most appropriate URLs that relate to the content and incorporate them naturally in the article:
+      
+      ${internalLinks.join('\n')}
+      
+      For each link, use descriptive and contextually relevant anchor text that helps both users and search engines understand what the linked page is about. Distribute the links evenly throughout the article.`;
+    }
     
     // Add style preferences
     const stylePreferences = [];
@@ -241,6 +259,11 @@ serve(async (req) => {
         
         Include lists, tables, charts, pull quotes, and emojis when it makes sense. Always end with an SEO title and meta description.`;
         
+        // Add internal links instruction if requested
+        if (includeInternalLinks && internalLinks && internalLinks.length > 0) {
+          o1SystemPrompt += ` Include relevant internal links from the provided list of URLs. Select 3-7 of the most relevant URLs based on the content and link to them naturally within the text using anchor text that is relevant to both the linked page and the context of your article.`;
+        }
+        
         const o1UserPrompt = `I have conducted extensive research on the topic "${topic}" optimized for the keyword "${keyword}". 
         Here is the research data:
         
@@ -255,11 +278,22 @@ serve(async (req) => {
         - Is written in a ${toneOfArticle || 'professional'} ${articleType || 'informational'} style`;
         
         if (stylePreferences.length > 0) {
-          userPrompt += `\n- Uses ${stylePreferences.join(", ")} style`;
+          o1UserPrompt += `\n- Uses ${stylePreferences.join(", ")} style`;
+        }
+        
+        // Add internal links if requested
+        if (includeInternalLinks && internalLinks && internalLinks.length > 0) {
+          o1UserPrompt += `
+          
+          Include 3-7 relevant internal links from this list of URLs. Choose the most appropriate URLs that relate to the content and incorporate them naturally in the article:
+          
+          ${internalLinks.join('\n')}
+          
+          For each link, use descriptive and contextually relevant anchor text that helps both users and search engines understand what the linked page is about. Distribute the links evenly throughout the article.`;
         }
         
         if (includeHtmlElement) {
-          userPrompt += `
+          o1UserPrompt += `
           
           Additionally, create ONE highly relevant interactive HTML element that would significantly help readers understand or use the information in this article. The HTML element must:
           

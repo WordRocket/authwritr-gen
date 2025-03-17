@@ -15,6 +15,7 @@ export interface SeoFormValues {
   includeHook: boolean;
   includeStories: boolean;
   includeHtmlElement: boolean;
+  includeInternalLinks: boolean;
   model?: string;
 }
 
@@ -46,11 +47,26 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
     
     console.log("Using model ID:", modelId);
     
+    // Get internal links if needed
+    let internalLinks: string[] = [];
+    if (formData.includeInternalLinks) {
+      try {
+        const storedUrls = localStorage.getItem('sitemapUrls');
+        if (storedUrls) {
+          internalLinks = JSON.parse(storedUrls);
+          console.log(`Including ${internalLinks.length} internal links in content generation`);
+        }
+      } catch (error) {
+        console.error("Error getting internal links:", error);
+      }
+    }
+    
     const { data, error } = await supabase.functions.invoke("generate-seo-content", {
       body: {
         ...formData,
         apiKey,
-        model: modelId
+        model: modelId,
+        internalLinks: formData.includeInternalLinks ? internalLinks : []
       },
     });
 

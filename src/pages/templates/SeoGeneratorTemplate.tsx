@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { SeoGeneratorForm } from "@/components/templates/SeoGeneratorForm";
 import { RealTimeBlogGeneratorForm } from "@/components/templates/RealTimeBlogGeneratorForm";
 import { useLocation } from "react-router-dom";
+import { SitemapUrlInput } from "@/components/templates/SitemapUrlInput";
 
 export default function SeoGeneratorTemplate() {
   const location = useLocation();
@@ -18,6 +19,10 @@ export default function SeoGeneratorTemplate() {
       document.title = "All In One SEO Generator | Content Genius";
     }
   }, [isArticleGenerator, isBulkBlogPost]);
+
+  const handleUrlsScraped = (count: number) => {
+    console.log(`Successfully scraped ${count} URLs`);
+  };
 
   return (
     <div className="mx-auto container py-8">
@@ -35,6 +40,10 @@ export default function SeoGeneratorTemplate() {
             ? "Generate multiple blog posts with consistent formatting and structure"
             : "Generate SEO-optimized content using AI with perfect formatting and structure"}
       </p>
+      
+      <div className="mt-6 mb-8">
+        <SitemapUrlInput onUrlsScraped={handleUrlsScraped} />
+      </div>
       
       {isArticleGenerator 
         ? <RealTimeBlogGeneratorForm /> 
