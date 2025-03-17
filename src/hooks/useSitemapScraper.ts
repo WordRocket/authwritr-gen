@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { scrapeSitemap, saveUrlsToLocalStorage, getUrlsFromLocalStorage, clearStoredUrls } from "@/services/sitemapService";
 import { useToast } from "@/hooks/use-toast";
 
@@ -23,10 +23,17 @@ export function useSitemapScraper(onUrlsScraped?: (count: number) => void): UseS
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   
-  const { urls, lastUpdated } = getUrlsFromLocalStorage();
-  const [storedUrls, setStoredUrls] = useState(urls);
+  const { urls: initialUrls, lastUpdated } = getUrlsFromLocalStorage();
+  const [storedUrls, setStoredUrls] = useState(initialUrls);
   const [lastUpdatedDate, setLastUpdatedDate] = useState<string | null>(lastUpdated);
   const { toast } = useToast();
+
+  // Notify parent component of initial URL count on mount
+  useEffect(() => {
+    if (onUrlsScraped && initialUrls.length > 0) {
+      onUrlsScraped(initialUrls.length);
+    }
+  }, []);
 
   const handleSitemapSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

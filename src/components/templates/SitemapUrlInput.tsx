@@ -48,6 +48,7 @@ export function SitemapUrlInput({ onUrlsScraped }: SitemapUrlInputProps) {
       <SitemapStatusAlerts 
         error={error} 
         success={success} 
+        lastUpdatedDate={lastUpdatedDate}
       />
 
       <SitemapActionButtons
