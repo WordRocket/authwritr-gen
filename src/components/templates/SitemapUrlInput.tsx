@@ -7,6 +7,7 @@ import { Loader2, Trash2, RefreshCw, Info } from "lucide-react";
 import { scrapeSitemap, saveUrlsToLocalStorage, getUrlsFromLocalStorage, clearStoredUrls } from "@/services/sitemapService";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useToast } from "@/hooks/use-toast";
 
 interface SitemapUrlInputProps {
   onUrlsScraped?: (count: number) => void;
@@ -21,6 +22,7 @@ export function SitemapUrlInput({ onUrlsScraped }: SitemapUrlInputProps) {
   const { urls, lastUpdated } = getUrlsFromLocalStorage();
   const [storedUrls, setStoredUrls] = useState(urls);
   const [lastUpdatedDate, setLastUpdatedDate] = useState<string | null>(lastUpdated);
+  const { toast } = useToast();
 
   const handleSitemapSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,8 +36,12 @@ export function SitemapUrlInput({ onUrlsScraped }: SitemapUrlInputProps) {
     if (!sitemapUrl.includes("sitemap") && !sitemapUrl.includes(".xml")) {
       // Add trailing slash if needed
       const baseUrl = sitemapUrl.endsWith("/") ? sitemapUrl : `${sitemapUrl}/`;
-      setSitemapUrl(`${baseUrl}sitemap.xml`);
-      setError("We've updated the URL to include sitemap.xml. Please try again if this seems correct for your site.");
+      const newUrl = `${baseUrl}sitemap.xml`;
+      setSitemapUrl(newUrl);
+      toast({
+        title: "URL Updated",
+        description: "We've updated your URL to include sitemap.xml. Please try again if this looks correct.",
+      });
       return;
     }
     
@@ -51,15 +57,30 @@ export function SitemapUrlInput({ onUrlsScraped }: SitemapUrlInputProps) {
         setStoredUrls(result.urls);
         setLastUpdatedDate(new Date().toISOString());
         setSuccess(`Successfully scraped ${result.urls.length} URLs from sitemap`);
+        toast({
+          title: "Sitemap Scraped",
+          description: `Successfully retrieved ${result.urls.length} URLs from the sitemap.`,
+        });
         
         if (onUrlsScraped) {
           onUrlsScraped(result.urls.length);
         }
       } else {
         setError(result.error || "No URLs found in the sitemap");
+        toast({
+          variant: "destructive",
+          title: "Scraping Failed",
+          description: result.error || "No URLs found in the sitemap",
+        });
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to scrape sitemap");
+      const errorMessage = err instanceof Error ? err.message : "Failed to scrape sitemap";
+      setError(errorMessage);
+      toast({
+        variant: "destructive",
+        title: "Scraping Failed",
+        description: errorMessage,
+      });
     } finally {
       setIsLoading(false);
     }
@@ -70,6 +91,10 @@ export function SitemapUrlInput({ onUrlsScraped }: SitemapUrlInputProps) {
     setStoredUrls([]);
     setLastUpdatedDate(null);
     setSuccess("Stored URLs have been cleared");
+    toast({
+      title: "URLs Cleared",
+      description: "All stored URLs have been removed.",
+    });
     
     if (onUrlsScraped) {
       onUrlsScraped(0);
@@ -99,6 +124,10 @@ export function SitemapUrlInput({ onUrlsScraped }: SitemapUrlInputProps) {
     
     // Set the sitemap URL
     setSitemapUrl(`${normalizedUrl}/sitemap.xml`);
+    toast({
+      title: "URL Updated",
+      description: "We've updated the URL to include sitemap.xml",
+    });
   };
 
   return (

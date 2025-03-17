@@ -1,6 +1,5 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { DOMParser } from "https://deno.land/x/deno_dom@v0.1.38/deno-dom-wasm.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -75,36 +74,29 @@ serve(async (req) => {
     const xmlContent = await response.text();
     console.log(`Received XML content of length: ${xmlContent.length}`);
     
-    // Parse the XML content
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(xmlContent, "text/xml");
-    
-    if (!doc) {
-      const errorMessage = "Failed to parse XML content";
-      console.error(errorMessage);
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: errorMessage 
-        }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
-
-    // Extract URLs from the sitemap
+    // Simple regex-based XML parsing instead of using DOMParser
+    // Look for URLs within <loc> tags
     const urls = [];
-    const locationNodes = doc.getElementsByTagName("loc");
+    const locRegex = /<loc>(.*?)<\/loc>/g;
+    let match;
     
-    console.log(`Found ${locationNodes.length} URL nodes in the sitemap`);
-    
-    for (let i = 0; i < locationNodes.length; i++) {
-      const url = locationNodes[i].textContent;
-      if (url) {
-        urls.push(url.trim());
+    while ((match = locRegex.exec(xmlContent)) !== null) {
+      if (match[1]) {
+        urls.push(match[1].trim());
       }
+    }
+    
+    console.log(`Found ${urls.length} URL nodes in the sitemap`);
+    
+    if (urls.length === 0) {
+      // If no URLs found with regex, try backup method for differently formatted sitemaps
+      const urlRegex = /<url>[\s\S]*?<loc>(.*?)<\/loc>[\s\S]*?<\/url>/g;
+      while ((match = urlRegex.exec(xmlContent)) !== null) {
+        if (match[1]) {
+          urls.push(match[1].trim());
+        }
+      }
+      console.log(`After backup parsing: Found ${urls.length} URL nodes in the sitemap`);
     }
 
     return new Response(
