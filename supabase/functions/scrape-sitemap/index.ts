@@ -36,7 +36,11 @@ serve(async (req) => {
       : `https://${sitemapUrl}`;
     
     // Fetch the sitemap XML
-    const response = await fetch(normalizedUrl);
+    const response = await fetch(normalizedUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; ContentGeniusBot/1.0; +https://contentgenius.com)'
+      }
+    });
     
     if (!response.ok) {
       const errorMessage = `Failed to fetch sitemap: ${response.status} ${response.statusText}`;
@@ -54,10 +58,16 @@ serve(async (req) => {
     }
 
     const contentType = response.headers.get('content-type');
+    console.log(`Content-Type: ${contentType}`);
     
-    // Check if the response is XML or a valid sitemap format
-    if (!contentType || (!contentType.includes('xml') && !contentType.includes('text/plain'))) {
-      const errorMessage = `Invalid sitemap format. Expected XML, got: ${contentType}. Make sure you're using a sitemap URL (typically ends with sitemap.xml)`;
+    // More lenient content type checking
+    if (!contentType || 
+        (!contentType.includes('xml') && 
+         !contentType.includes('text/plain') && 
+         !contentType.includes('text/html') && 
+         !contentType.includes('application/xml') &&
+         !contentType.includes('application/xhtml+xml'))) {
+      const errorMessage = `Invalid sitemap format. Got: ${contentType}. Make sure you're using a sitemap URL (typically ends with sitemap.xml)`;
       console.error(errorMessage);
       return new Response(
         JSON.stringify({ 
@@ -72,43 +82,70 @@ serve(async (req) => {
     }
 
     const xmlContent = await response.text();
-    console.log(`Received XML content of length: ${xmlContent.length}`);
+    console.log(`Received content of length: ${xmlContent.length}`);
     
-    // Simple regex-based XML parsing instead of using DOMParser
-    // Look for URLs within <loc> tags
-    const urls = [];
-    const locRegex = /<loc>(.*?)<\/loc>/g;
-    let match;
-    
-    while ((match = locRegex.exec(xmlContent)) !== null) {
-      if (match[1]) {
-        urls.push(match[1].trim());
-      }
-    }
-    
-    console.log(`Found ${urls.length} URL nodes in the sitemap`);
-    
-    if (urls.length === 0) {
-      // If no URLs found with regex, try backup method for differently formatted sitemaps
-      const urlRegex = /<url>[\s\S]*?<loc>(.*?)<\/loc>[\s\S]*?<\/url>/g;
-      while ((match = urlRegex.exec(xmlContent)) !== null) {
+    // First, check if it's a sitemap index (contains other sitemaps)
+    if (xmlContent.includes('<sitemapindex') || xmlContent.includes('<sitemap>')) {
+      console.log("Detected sitemap index, extracting sitemap URLs");
+      const sitemapUrls = [];
+      
+      // Extract sitemap URLs
+      const sitemapLocRegex = /<sitemap>[\s\S]*?<loc>(.*?)<\/loc>[\s\S]*?<\/sitemap>/g;
+      let match;
+      
+      while ((match = sitemapLocRegex.exec(xmlContent)) !== null) {
         if (match[1]) {
-          urls.push(match[1].trim());
+          sitemapUrls.push(match[1].trim());
         }
       }
-      console.log(`After backup parsing: Found ${urls.length} URL nodes in the sitemap`);
-    }
-
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        urls: urls,
-        count: urls.length
-      }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      
+      // If no sitemaps found with the complex pattern, try a simpler one
+      if (sitemapUrls.length === 0) {
+        const simpleSitemapLocRegex = /<loc>(.*?)<\/loc>/g;
+        while ((match = simpleSitemapLocRegex.exec(xmlContent)) !== null) {
+          if (match[1] && match[1].includes('.xml')) {
+            sitemapUrls.push(match[1].trim());
+          }
+        }
       }
-    );
+      
+      console.log(`Found ${sitemapUrls.length} sitemaps in the index`);
+      
+      if (sitemapUrls.length > 0) {
+        // Fetch first sitemap from the index
+        const firstSitemapUrl = sitemapUrls[0];
+        console.log(`Fetching first sitemap from index: ${firstSitemapUrl}`);
+        
+        const sitemapResponse = await fetch(firstSitemapUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (compatible; ContentGeniusBot/1.0; +https://contentgenius.com)'
+          }
+        });
+        
+        if (!sitemapResponse.ok) {
+          console.log(`Failed to fetch sitemap from index: ${sitemapResponse.status}`);
+          // Return the original sitemap index URLs instead
+          return new Response(
+            JSON.stringify({ 
+              success: true, 
+              urls: sitemapUrls,
+              count: sitemapUrls.length,
+              message: "Retrieved URLs from sitemap index"
+            }),
+            { 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+            }
+          );
+        }
+        
+        const sitemapContent = await sitemapResponse.text();
+        return extractUrlsFromSitemap(sitemapContent, corsHeaders);
+      }
+    }
+    
+    // Regular sitemap processing
+    return extractUrlsFromSitemap(xmlContent, corsHeaders);
+    
   } catch (error) {
     console.error("Error processing sitemap:", error);
     
@@ -124,3 +161,102 @@ serve(async (req) => {
     );
   }
 });
+
+function extractUrlsFromSitemap(xmlContent, corsHeaders) {
+  // Try multiple regex patterns to extract URLs
+  let urls = [];
+  
+  // Pattern 1: Standard <url><loc> format
+  const urlLocRegex = /<url>[\s\S]*?<loc>(.*?)<\/loc>[\s\S]*?<\/url>/g;
+  let match;
+  
+  while ((match = urlLocRegex.exec(xmlContent)) !== null) {
+    if (match[1]) {
+      urls.push(match[1].trim());
+    }
+  }
+  
+  console.log(`Pattern 1 found ${urls.length} URLs`);
+  
+  // Pattern 2: Simple <loc> tags (if Pattern 1 fails)
+  if (urls.length === 0) {
+    const simpleLocRegex = /<loc>(.*?)<\/loc>/g;
+    while ((match = simpleLocRegex.exec(xmlContent)) !== null) {
+      if (match[1]) {
+        // Filter out sitemap.xml URLs to avoid confusion
+        if (!match[1].endsWith('sitemap.xml') && !match[1].includes('sitemap_')) {
+          urls.push(match[1].trim());
+        }
+      }
+    }
+    console.log(`Pattern 2 found ${urls.length} URLs`);
+  }
+  
+  // Pattern 3: HTML links (for non-standard sitemaps)
+  if (urls.length === 0 && xmlContent.includes('<a href=')) {
+    const hrefRegex = /<a\s+(?:[^>]*?\s+)?href="([^"]*)"[^>]*>/g;
+    while ((match = hrefRegex.exec(xmlContent)) !== null) {
+      if (match[1] && !match[1].startsWith('#') && !match[1].includes('javascript:')) {
+        urls.push(match[1].trim());
+      }
+    }
+    console.log(`Pattern 3 found ${urls.length} URLs`);
+  }
+  
+  // If we still have no URLs, try looking for any http/https links in the content
+  if (urls.length === 0) {
+    const rawUrlRegex = /(https?:\/\/[^\s"'<>()]+)/g;
+    while ((match = rawUrlRegex.exec(xmlContent)) !== null) {
+      if (match[1]) {
+        urls.push(match[1].trim());
+      }
+    }
+    console.log(`Pattern 4 found ${urls.length} URLs`);
+  }
+  
+  // Filter out any duplicate URLs
+  urls = [...new Set(urls)];
+  
+  // Filter out non-webpage URLs (common resource files)
+  urls = urls.filter(url => {
+    const lowerUrl = url.toLowerCase();
+    return !lowerUrl.endsWith('.css') && 
+           !lowerUrl.endsWith('.js') && 
+           !lowerUrl.endsWith('.png') && 
+           !lowerUrl.endsWith('.jpg') && 
+           !lowerUrl.endsWith('.jpeg') && 
+           !lowerUrl.endsWith('.gif') && 
+           !lowerUrl.endsWith('.svg') && 
+           !lowerUrl.endsWith('.ico') && 
+           !lowerUrl.endsWith('.woff') && 
+           !lowerUrl.endsWith('.woff2') && 
+           !lowerUrl.endsWith('.ttf') && 
+           !lowerUrl.endsWith('.pdf');
+  });
+  
+  console.log(`After filtering, found ${urls.length} valid URLs`);
+  
+  if (urls.length === 0) {
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: "No valid URLs found in the sitemap. The sitemap may be empty or in an unsupported format."
+      }),
+      { 
+        status: 400, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+  }
+  
+  return new Response(
+    JSON.stringify({ 
+      success: true, 
+      urls: urls,
+      count: urls.length
+    }),
+    { 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    }
+  );
+}

@@ -32,7 +32,7 @@ export function SitemapUrlInput({ onUrlsScraped }: SitemapUrlInputProps) {
       return;
     }
     
-    // Check if URL contains sitemap.xml, if not, suggest adding it
+    // Check if URL contains sitemap.xml or sitemap_index.xml, if not, suggest adding it
     if (!sitemapUrl.includes("sitemap") && !sitemapUrl.includes(".xml")) {
       // Add trailing slash if needed
       const baseUrl = sitemapUrl.endsWith("/") ? sitemapUrl : `${sitemapUrl}/`;
@@ -50,13 +50,23 @@ export function SitemapUrlInput({ onUrlsScraped }: SitemapUrlInputProps) {
     setSuccess(null);
     
     try {
+      toast({
+        title: "Processing",
+        description: "Scanning sitemap, please wait...",
+      });
+      
       const result = await scrapeSitemap(sitemapUrl);
       
       if (result.success && result.urls && result.urls.length > 0) {
         saveUrlsToLocalStorage(result.urls);
         setStoredUrls(result.urls);
         setLastUpdatedDate(new Date().toISOString());
-        setSuccess(`Successfully scraped ${result.urls.length} URLs from sitemap`);
+        
+        const successMessage = result.message 
+          ? `${result.message}: Found ${result.urls.length} URLs` 
+          : `Successfully scraped ${result.urls.length} URLs from sitemap`;
+        
+        setSuccess(successMessage);
         toast({
           title: "Sitemap Scraped",
           description: `Successfully retrieved ${result.urls.length} URLs from the sitemap.`,
@@ -129,6 +139,28 @@ export function SitemapUrlInput({ onUrlsScraped }: SitemapUrlInputProps) {
       description: "We've updated the URL to include sitemap.xml",
     });
   };
+  
+  const trySitemapIndex = () => {
+    if (!sitemapUrl) return;
+    
+    // Replace sitemap.xml with sitemap_index.xml or vice versa
+    let newUrl = sitemapUrl;
+    if (sitemapUrl.includes('sitemap.xml')) {
+      newUrl = sitemapUrl.replace('sitemap.xml', 'sitemap_index.xml');
+    } else if (sitemapUrl.includes('sitemap_index.xml')) {
+      newUrl = sitemapUrl.replace('sitemap_index.xml', 'sitemap.xml');
+    } else if (sitemapUrl.endsWith('/')) {
+      newUrl = `${sitemapUrl}sitemap_index.xml`;
+    } else {
+      newUrl = `${sitemapUrl}/sitemap_index.xml`;
+    }
+    
+    setSitemapUrl(newUrl);
+    toast({
+      title: "Try Different Format",
+      description: "Updated to try a different sitemap format",
+    });
+  };
 
   return (
     <div className="space-y-4">
@@ -149,6 +181,12 @@ export function SitemapUrlInput({ onUrlsScraped }: SitemapUrlInputProps) {
               </TooltipTrigger>
               <TooltipContent className="max-w-80">
                 <p>Enter your sitemap URL (typically ends with sitemap.xml). Example: https://example.com/sitemap.xml</p>
+                <p className="mt-2">Common sitemap locations:</p>
+                <ul className="list-disc ml-5 mt-1">
+                  <li>https://example.com/sitemap.xml</li>
+                  <li>https://example.com/sitemap_index.xml</li>
+                  <li>https://example.com/wp-sitemap.xml (WordPress)</li>
+                </ul>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -198,16 +236,19 @@ export function SitemapUrlInput({ onUrlsScraped }: SitemapUrlInputProps) {
         </Alert>
       )}
 
-      {storedUrls.length > 0 && (
-        <div className="flex justify-end gap-2">
+      <div className="flex justify-end gap-2">
+        {sitemapUrl && (
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setSitemapUrl(storedUrls[0].replace("/sitemap.xml", "/sitemap_index.xml").replace("/sitemap_index.xml", "/sitemap.xml"))}
+            onClick={trySitemapIndex}
           >
             <RefreshCw className="mr-2 h-4 w-4" />
-            Rescan
+            Try Different Format
           </Button>
+        )}
+        
+        {storedUrls.length > 0 && (
           <Button
             variant="outline"
             size="sm"
@@ -216,8 +257,8 @@ export function SitemapUrlInput({ onUrlsScraped }: SitemapUrlInputProps) {
             <Trash2 className="mr-2 h-4 w-4" />
             Clear URLs
           </Button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

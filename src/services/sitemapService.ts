@@ -6,6 +6,7 @@ export interface SitemapResult {
   urls?: string[];
   count?: number;
   error?: string;
+  message?: string;
 }
 
 export const scrapeSitemap = async (sitemapUrl: string): Promise<SitemapResult> => {
