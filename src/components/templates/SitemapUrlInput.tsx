@@ -133,7 +133,7 @@ export function SitemapUrlInput({ onUrlsScraped }: SitemapUrlInputProps) {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setSitemapUrl(storedUrls[0].replace("/sitemap.xml", "/sitemap_index.xml").replace("/sitemap_index.xml", "/sitemap.xml")}
+            onClick={() => setSitemapUrl(storedUrls[0].replace("/sitemap.xml", "/sitemap_index.xml").replace("/sitemap_index.xml", "/sitemap.xml"))}
           >
             <RefreshCw className="mr-2 h-4 w-4" />
             Rescan
