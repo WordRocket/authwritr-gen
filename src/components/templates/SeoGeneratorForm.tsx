@@ -1,133 +1,110 @@
-import * as React from "react";
+
+import React, { useState } from "react";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { 
-  Form, 
-  FormControl, 
-  FormField, 
-  FormItem, 
-  FormLabel, 
-  FormDescription,
-  FormMessage
-} from "@/components/ui/form";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { toast } from "@/hooks/use-toast";
-import { ClipboardCopy, AlertCircle, InfoIcon, Code, Eye } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { 
-  generateSeoContent, 
-  saveGeneratedContent, 
-  type SeoFormValues as SeoServiceFormValues,
-  recommendedModels 
-} from "@/services/contentGenerationService";
-import { useAuth } from "@/context/AuthContext";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "@/components/ui/hover-card";
+import { CircleHelp } from "lucide-react";
+import { recommendedModels, generateSeoContent, saveGeneratedContent } from "@/services/contentGenerationService";
+import { useToast } from "@/hooks/use-toast";
 import ReactMarkdown from "react-markdown";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { useAuth } from "@/context/AuthContext";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useNavigate } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 import { HtmlPreviewComponent } from "./HtmlPreviewComponent";
 
-const seoFormSchema = z.object({
-  topic: z.string().min(3, { message: "Topic must be at least 3 characters" }),
+// Define the form schema
+const formSchema = z.object({
+  topic: z.string().min(2, { message: "Topic must be at least 2 characters" }),
+  searchTerm: z.string().optional(),
   targetKeyword: z.string().optional(),
-  articleType: z.enum([
-    "informational", 
-    "listicle", 
-    "how-to", 
-    "anecdote", 
-    "story"
-  ]).optional(),
-  toneOfArticle: z.enum([
-    "professional", 
-    "conversational", 
-    "friendly", 
-    "authoritative", 
-    "casual"
-  ]).optional(),
+  articleType: z.string().optional(),
+  toneOfArticle: z.string().optional(),
   intendedAudience: z.string().optional(),
   additionalContext: z.string().optional(),
-  wordCount: z.number().min(500).max(5000),
+  wordCount: z.number().min(300).max(10000),
+  model: z.string().optional(),
   includeFirstPerson: z.boolean().default(false),
   includeAnecdotes: z.boolean().default(false),
-  includeHook: z.boolean().default(true),
+  includeHook: z.boolean().default(false),
   includeStories: z.boolean().default(false),
   includeHtmlElement: z.boolean().default(false),
-  model: z.string().optional(),
+  includeInternalLinks: z.boolean().default(false),
 });
 
-type SeoFormValues = z.infer<typeof seoFormSchema>;
-
-const defaultValues: Partial<SeoFormValues> = {
-  articleType: "informational",
-  toneOfArticle: "professional",
-  wordCount: 1500,
-  includeFirstPerson: false,
-  includeAnecdotes: false,
-  includeHook: true,
-  includeStories: false,
-  includeHtmlElement: false,
-  model: "anthropic/claude-3-7-sonnet",
-};
+// Type for the form values
+type SeoFormValues = z.infer<typeof formSchema>;
 
 interface SeoGeneratorFormProps {
   includeInternalLinks?: boolean;
 }
 
-export function SeoGeneratorForm({ includeInternalLinks = false }: SeoGeneratorFormProps) {
-  const { user, apiKey } = useAuth();
-  const [isGenerating, setIsGenerating] = React.useState(false);
-  const [isSaving, setIsSaving] = React.useState(false);
-  const [generatedContent, setGeneratedContent] = React.useState("");
-  const [activeTab, setActiveTab] = React.useState("content-form");
-  const [apiKeyMissing, setApiKeyMissing] = React.useState(!apiKey);
-  const [viewMode, setViewMode] = React.useState<"rendered" | "markdown">("rendered");
-  const [extractedHtmlCode, setExtractedHtmlCode] = React.useState<string>("");
+export const SeoGeneratorForm = ({ includeInternalLinks = false }: SeoGeneratorFormProps) => {
+  const { toast } = useToast();
+  const { user, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const [generatedContent, setGeneratedContent] = useState<string>("");
+  const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  const [extractedHtmlCode, setExtractedHtmlCode] = useState<string>("");
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState<boolean>(false);
+  const [contentTitle, setContentTitle] = useState<string>("");
+  const [activeTab, setActiveTab] = useState<string>("editor");
+  const [openRouterApiKey, setOpenRouterApiKey] = useState<string>(() => {
+    return localStorage.getItem("openRouterApiKey") || "";
+  });
+  const [isContentSaved, setIsContentSaved] = useState<boolean>(false);
+  const [backgroundGeneration, setBackgroundGeneration] = useState<boolean>(false);
 
+  // Form definition
   const form = useForm<SeoFormValues>({
-    resolver: zodResolver(seoFormSchema),
-    defaultValues,
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      topic: "",
+      searchTerm: "",
+      targetKeyword: "",
+      articleType: "informational",
+      toneOfArticle: "professional",
+      intendedAudience: "",
+      additionalContext: "",
+      wordCount: 1500,
+      model: "anthropic/claude-3.7-sonnet",
+      includeFirstPerson: false,
+      includeAnecdotes: false,
+      includeHook: true,
+      includeStories: false,
+      includeHtmlElement: false,
+      includeInternalLinks: includeInternalLinks,
+    },
   });
 
-  React.useEffect(() => {
-    setApiKeyMissing(!apiKey);
-  }, [apiKey]);
-
+  // Extract HTML code from generated content
   React.useEffect(() => {
     if (generatedContent) {
+      // Look for code blocks that appear to contain HTML
       const htmlCodeBlockRegex = /```(?:html)?\s*(<[\s\S]*?>[\s\S]*?<\/[\s\S]*?>)```/g;
       const htmlInlineRegex = /<(!DOCTYPE|html|div|section|article|header|footer|table|form|button|input|iframe)[\s\S]*?<\/\1>/g;
       
       let matches = [];
       let match;
       
+      // First try to find code blocks with HTML
       while ((match = htmlCodeBlockRegex.exec(generatedContent)) !== null) {
         if (match[1] && match[1].trim()) {
           matches.push(match[1].trim());
         }
       }
       
+      // If no code blocks found, try to find inline HTML
       if (matches.length === 0) {
         while ((match = htmlInlineRegex.exec(generatedContent)) !== null) {
           if (match[0] && match[0].trim()) {
@@ -136,6 +113,7 @@ export function SeoGeneratorForm({ includeInternalLinks = false }: SeoGeneratorF
         }
       }
       
+      // Use the longest match as it's likely the most complete HTML
       if (matches.length > 0) {
         matches.sort((a, b) => b.length - a.length);
         setExtractedHtmlCode(matches[0]);
@@ -147,534 +125,618 @@ export function SeoGeneratorForm({ includeInternalLinks = false }: SeoGeneratorF
     }
   }, [generatedContent]);
 
-  const onSubmit = async (data: SeoFormValues) => {
-    if (!apiKey) {
-      toast({
-        variant: "destructive",
-        title: "API Key Required",
-        description: "Please add your OpenRouter API key in the settings page to generate content.",
-      });
-      return;
-    }
-    
-    setIsGenerating(true);
-    
-    try {
-      const formDataWithInternalLinks = {
-        ...data,
-        includeInternalLinks,
-      };
-      
-      const content = await generateSeoContent(formDataWithInternalLinks as SeoServiceFormValues, apiKey);
-      setGeneratedContent(content);
-      setActiveTab("generated-content");
-      toast({
-        title: "Content generated successfully!",
-        description: "Your SEO-optimized content is ready to review.",
-      });
-    } catch (error) {
-      console.error("Error generating content:", error);
-      toast({
-        variant: "destructive",
-        title: "Generation failed",
-        description: error instanceof Error ? error.message : "There was an error generating your content. Please try again.",
-      });
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
   const handleSaveContent = async () => {
-    if (!user) {
+    if (!contentTitle.trim()) {
       toast({
         variant: "destructive",
-        title: "Authentication required",
-        description: "You must be logged in to save content.",
+        title: "Title Required",
+        description: "Please enter a title for your content",
       });
       return;
     }
-    
-    setIsSaving(true);
+
+    if (!isAuthenticated) {
+      toast({
+        variant: "destructive",
+        title: "Authentication Required",
+        description: "Please login to save your content",
+      });
+      return;
+    }
+
     try {
-      await saveGeneratedContent(
-        form.getValues("topic"), 
-        generatedContent, 
-        user.id
-      );
+      await saveGeneratedContent(contentTitle, generatedContent, user?.id as string);
+      
+      setIsContentSaved(true);
       
       toast({
-        title: "Content saved",
-        description: "Your content has been saved to your account.",
+        title: "Content Saved",
+        description: "Your content has been saved successfully",
       });
     } catch (error) {
       console.error("Error saving content:", error);
       toast({
         variant: "destructive",
-        title: "Save failed",
-        description: "There was an error saving your content. Please try again.",
+        title: "Error",
+        description: "Failed to save content. Please try again.",
       });
-    } finally {
-      setIsSaving(false);
     }
   };
 
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(generatedContent);
-    toast({
-      title: "Copied to clipboard",
-      description: "Content has been copied to your clipboard",
-    });
+  const navigateToSavedContent = () => {
+    navigate("/content");
+  };
+
+  const onSubmit = async (data: SeoFormValues) => {
+    const apiKey = openRouterApiKey.trim();
+    if (!apiKey) {
+      toast({
+        variant: "destructive",
+        title: "API Key Required",
+        description: "Please enter your OpenRouter API Key",
+      });
+      return;
+    }
+
+    // Set title from topic
+    setContentTitle(data.topic);
+    
+    try {
+      setIsGenerating(true);
+      setIsContentSaved(false);
+      
+      // If background generation is enabled, show toast and don't wait for content
+      if (backgroundGeneration) {
+        toast({
+          title: "Content Generation Started",
+          description: "Your content will be generated in the background. You can continue using the application.",
+        });
+        
+        // Start generation without awaiting
+        generateSeoContent(data, apiKey)
+          .then((content) => {
+            setGeneratedContent(content);
+            
+            toast({
+              title: "Content Generation Complete",
+              description: "Your content has been generated successfully!",
+            });
+            
+            setIsGenerating(false);
+            // Switch to preview tab automatically
+            setActiveTab("preview");
+          })
+          .catch((error) => {
+            console.error("Error generating content:", error);
+            
+            toast({
+              variant: "destructive",
+              title: "Generation Error",
+              description: error.message || "Failed to generate content",
+            });
+            
+            setIsGenerating(false);
+          });
+      } else {
+        // Regular foreground generation
+        const content = await generateSeoContent(data, apiKey);
+        setGeneratedContent(content);
+        // Switch to preview tab automatically
+        setActiveTab("preview");
+      }
+    } catch (error) {
+      console.error("Error generating content:", error);
+      
+      toast({
+        variant: "destructive",
+        title: "Generation Error",
+        description: error.message || "Failed to generate content",
+      });
+    } finally {
+      if (!backgroundGeneration) {
+        setIsGenerating(false);
+      }
+    }
+  };
+
+  const handleApiKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newKey = e.target.value;
+    setOpenRouterApiKey(newKey);
+    localStorage.setItem("openRouterApiKey", newKey);
   };
 
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab}>
-      <TabsList className="mb-4 grid w-full grid-cols-2">
-        <TabsTrigger value="content-form">Content Form</TabsTrigger>
-        <TabsTrigger value="generated-content" disabled={!generatedContent}>
-          Generated Content
-        </TabsTrigger>
-      </TabsList>
-      
-      <TabsContent value="content-form">
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div className="grid gap-6 md:grid-cols-2">
-              <Card>
-                <CardContent className="pt-6">
+    <div className="container mx-auto mt-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="mb-4">
+          <TabsTrigger value="editor">Content Generator</TabsTrigger>
+          {generatedContent && <TabsTrigger value="preview">Preview</TabsTrigger>}
+        </TabsList>
+        
+        <TabsContent value="editor">
+          <Card>
+            <CardHeader>
+              <CardTitle>Generate SEO Content</CardTitle>
+              <CardDescription>
+                Fill in the details below to generate AI-powered SEO content
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                   <div className="space-y-4">
-                    <FormField
-                      control={form.control}
-                      name="topic"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Blog Post Topic *</FormLabel>
-                          <FormControl>
-                            <Input placeholder="e.g., Best Coffee Brewing Methods" {...field} />
-                          </FormControl>
-                          <FormDescription>
-                            What is the main topic of your blog post?
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="targetKeyword"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Target Keyword</FormLabel>
-                          <FormControl>
-                            <Input placeholder="e.g., coffee brewing methods" {...field} />
-                          </FormControl>
-                          <FormDescription>
-                            The primary keyword to optimize for (if empty, we'll use the topic)
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="model"
-                      render={({ field }) => (
-                        <FormItem>
-                          <div className="flex items-center justify-between">
-                            <FormLabel>AI Model</FormLabel>
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <InfoIcon className="h-4 w-4 text-muted-foreground" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p className="max-w-xs">Select the AI model that will generate your content. Different models have different capabilities and costs.</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          </div>
-                          <Select 
-                            onValueChange={field.onChange} 
-                            defaultValue={field.value}
-                            disabled={apiKeyMissing}
-                          >
+                    {/* Basic Options Section */}
+                    <div className="space-y-4">
+                      <FormField
+                        control={form.control}
+                        name="topic"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>
+                              Topic <span className="text-red-500">*</span>
+                            </FormLabel>
                             <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select AI model" />
-                              </SelectTrigger>
+                              <Input placeholder="e.g. Benefits of Meditation" {...field} />
                             </FormControl>
-                            <SelectContent>
-                              <div className="mb-2 px-2 py-1.5 text-sm font-semibold">Recommended</div>
-                              {recommendedModels
-                                .filter(model => model.recommended)
-                                .map(model => (
-                                  <SelectItem key={model.id} value={model.id}>
-                                    <div className="flex flex-col">
-                                      <span>{model.name}</span>
-                                      <span className="text-xs text-muted-foreground">{model.description}</span>
-                                    </div>
-                                  </SelectItem>
-                                ))
-                              }
-                              <div className="mb-2 mt-2 px-2 py-1.5 text-sm font-semibold">Other Models</div>
-                              {recommendedModels
-                                .filter(model => !model.recommended)
-                                .map(model => (
-                                  <SelectItem key={model.id} value={model.id}>
-                                    <div className="flex flex-col">
-                                      <span>{model.name}</span>
-                                      <span className="text-xs text-muted-foreground">{model.description}</span>
-                                    </div>
-                                  </SelectItem>
-                                ))
-                              }
-                            </SelectContent>
-                          </Select>
-                          {apiKeyMissing && (
-                            <FormDescription className="text-destructive">
-                              API key required. Add it in Settings.
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="targetKeyword"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Target Keyword</FormLabel>
+                            <FormControl>
+                              <Input placeholder="e.g. meditation benefits" {...field} />
+                            </FormControl>
+                            <FormDescription>
+                              For SEO optimization (if different from topic)
                             </FormDescription>
-                          )}
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
-                    <FormField
-                      control={form.control}
-                      name="articleType"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Article Type</FormLabel>
-                          <Select 
-                            onValueChange={field.onChange} 
-                            defaultValue={field.value}
-                          >
+                      <FormField
+                        control={form.control}
+                        name="searchTerm"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Search Term (Optional)</FormLabel>
                             <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select article type" />
-                              </SelectTrigger>
+                              <Input placeholder="Web search term for real-time research" {...field} />
                             </FormControl>
-                            <SelectContent>
-                              <SelectItem value="informational">Informational</SelectItem>
-                              <SelectItem value="listicle">Listicle</SelectItem>
-                              <SelectItem value="how-to">How-to Guide</SelectItem>
-                              <SelectItem value="anecdote">Anecdote</SelectItem>
-                              <SelectItem value="story">Story</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="toneOfArticle"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Tone of Article</FormLabel>
-                          <Select 
-                            onValueChange={field.onChange} 
-                            defaultValue={field.value}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select tone" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="professional">Professional</SelectItem>
-                              <SelectItem value="conversational">Conversational</SelectItem>
-                              <SelectItem value="friendly">Friendly</SelectItem>
-                              <SelectItem value="authoritative">Authoritative</SelectItem>
-                              <SelectItem value="casual">Casual</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="intendedAudience"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Intended Audience</FormLabel>
-                          <FormControl>
-                            <Input placeholder="e.g., Coffee enthusiasts, beginners" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="space-y-4">
-                    <FormField
-                      control={form.control}
-                      name="additionalContext"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Additional Context</FormLabel>
-                          <FormControl>
-                            <Textarea 
-                              placeholder="Include any specific information, business details, or context you want in the article" 
-                              className="min-h-[120px]"
-                              {...field} 
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="wordCount"
-                      render={({ field: { value, onChange, ...rest } }) => (
-                        <FormItem>
-                          <FormLabel>Word Count: {value}</FormLabel>
-                          <FormControl>
-                            <Slider
-                              min={500}
-                              max={5000}
-                              step={100}
-                              defaultValue={[value]}
-                              onValueChange={(values) => onChange(values[0])}
-                              {...rest}
-                            />
-                          </FormControl>
-                          <div className="flex justify-between text-xs text-muted-foreground">
-                            <span>500</span>
-                            <span>5000</span>
-                          </div>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="space-y-4 pt-4">
-                      <h3 className="font-medium">Article Elements</h3>
+                            <FormDescription>
+                              Enables web search for up-to-date information
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                       
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <FormField
-                            control={form.control}
-                            name="includeFirstPerson"
-                            render={({ field }) => (
-                              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 w-full">
-                                <div className="space-y-0.5">
-                                  <FormLabel className="text-base">First Person</FormLabel>
-                                  <FormDescription>
-                                    Write using "I" perspective
-                                  </FormDescription>
-                                </div>
-                                <FormControl>
-                                  <Switch
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
-                                  />
-                                </FormControl>
-                              </FormItem>
-                            )}
-                          />
-                        </div>
+                      <FormField
+                        control={form.control}
+                        name="wordCount"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Word Count: {field.value}</FormLabel>
+                            <FormControl>
+                              <Slider
+                                min={300}
+                                max={5000}
+                                step={100}
+                                defaultValue={[field.value]}
+                                onValueChange={(value) => field.onChange(value[0])}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="model"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>AI Model</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select model" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="auto">
+                                  Auto-select best model (recommended)
+                                </SelectItem>
+                                {recommendedModels.map((model) => (
+                                  <SelectItem key={model.id} value={model.id}>
+                                    {model.name} {model.recommended && "⭐"} - {model.description}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="includeInternalLinks"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                            <div className="space-y-0.5">
+                              <FormLabel className="text-base">Include Internal Links</FormLabel>
+                              <FormDescription>
+                                Add internal links from your sitemap
+                              </FormDescription>
+                            </div>
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                                disabled={!includeInternalLinks}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="includeHtmlElement"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                            <div className="space-y-0.5">
+                              <FormLabel className="text-base">Include Interactive HTML Element</FormLabel>
+                              <FormDescription>
+                                Generate an interactive element like a calculator or visualization
+                              </FormDescription>
+                            </div>
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <div className="pt-4">
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
+                        >
+                          {showAdvancedOptions ? "Hide" : "Show"} Advanced Options
+                        </Button>
                       </div>
 
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
+                      {/* Advanced Options Section */}
+                      {showAdvancedOptions && (
+                        <div className="space-y-4 pt-4 border-t mt-4">
                           <FormField
                             control={form.control}
-                            name="includeAnecdotes"
+                            name="articleType"
                             render={({ field }) => (
-                              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 w-full">
-                                <div className="space-y-0.5">
-                                  <FormLabel className="text-base">Anecdotes</FormLabel>
-                                  <FormDescription>
-                                    Include personal stories
-                                  </FormDescription>
-                                </div>
-                                <FormControl>
-                                  <Switch
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
-                                  />
-                                </FormControl>
+                              <FormItem>
+                                <FormLabel>Article Type</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select article type" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="informational">Informational</SelectItem>
+                                    <SelectItem value="how-to">How-to Guide</SelectItem>
+                                    <SelectItem value="listicle">Listicle</SelectItem>
+                                    <SelectItem value="anecdote">Case Study</SelectItem>
+                                    <SelectItem value="story">Story-based</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
                               </FormItem>
                             )}
                           />
-                        </div>
-                      </div>
 
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
                           <FormField
                             control={form.control}
-                            name="includeHook"
+                            name="toneOfArticle"
                             render={({ field }) => (
-                              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 w-full">
-                                <div className="space-y-0.5">
-                                  <FormLabel className="text-base">Hook</FormLabel>
-                                  <FormDescription>
-                                    Start with an engaging hook
-                                  </FormDescription>
-                                </div>
-                                <FormControl>
-                                  <Switch
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
-                                  />
-                                </FormControl>
+                              <FormItem>
+                                <FormLabel>Tone of Article</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select tone" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="professional">Professional</SelectItem>
+                                    <SelectItem value="conversational">Conversational</SelectItem>
+                                    <SelectItem value="friendly">Friendly</SelectItem>
+                                    <SelectItem value="authoritative">Authoritative</SelectItem>
+                                    <SelectItem value="casual">Casual</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
                               </FormItem>
                             )}
                           />
-                        </div>
-                      </div>
 
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
                           <FormField
                             control={form.control}
-                            name="includeStories"
+                            name="intendedAudience"
                             render={({ field }) => (
-                              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 w-full">
-                                <div className="space-y-0.5">
-                                  <FormLabel className="text-base">Stories</FormLabel>
-                                  <FormDescription>
-                                    Include relevant stories or examples
-                                  </FormDescription>
-                                </div>
+                              <FormItem>
+                                <FormLabel>Intended Audience</FormLabel>
                                 <FormControl>
-                                  <Switch
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
-                                  />
+                                  <Input placeholder="e.g. Beginners, Professionals, Mothers" {...field} />
                                 </FormControl>
+                                <FormMessage />
                               </FormItem>
                             )}
                           />
-                        </div>
-                      </div>
 
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
                           <FormField
                             control={form.control}
-                            name="includeHtmlElement"
+                            name="additionalContext"
                             render={({ field }) => (
-                              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 w-full">
-                                <div className="space-y-0.5">
-                                  <FormLabel className="text-base">Interactive HTML Element</FormLabel>
-                                  <FormDescription>
-                                    Include an interactive HTML element
-                                  </FormDescription>
-                                </div>
+                              <FormItem>
+                                <FormLabel>Additional Context</FormLabel>
                                 <FormControl>
-                                  <Switch
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
+                                  <Textarea
+                                    placeholder="Any additional information or instructions for the AI"
+                                    {...field}
                                   />
                                 </FormControl>
+                                <FormMessage />
                               </FormItem>
                             )}
                           />
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <FormField
+                              control={form.control}
+                              name="includeFirstPerson"
+                              render={({ field }) => (
+                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                  <div className="space-y-0.5">
+                                    <FormLabel className="text-base">First Person Perspective</FormLabel>
+                                    <FormDescription>
+                                      Write in "I" voice
+                                    </FormDescription>
+                                  </div>
+                                  <FormControl>
+                                    <Switch
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
+                                    />
+                                  </FormControl>
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="includeAnecdotes"
+                              render={({ field }) => (
+                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                  <div className="space-y-0.5">
+                                    <FormLabel className="text-base">Include Anecdotes</FormLabel>
+                                    <FormDescription>
+                                      Add short stories
+                                    </FormDescription>
+                                  </div>
+                                  <FormControl>
+                                    <Switch
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
+                                    />
+                                  </FormControl>
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="includeHook"
+                              render={({ field }) => (
+                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                  <div className="space-y-0.5">
+                                    <FormLabel className="text-base">Include Hook</FormLabel>
+                                    <FormDescription>
+                                      Start with engaging intro
+                                    </FormDescription>
+                                  </div>
+                                  <FormControl>
+                                    <Switch
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
+                                    />
+                                  </FormControl>
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="includeStories"
+                              render={({ field }) => (
+                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                  <div className="space-y-0.5">
+                                    <FormLabel className="text-base">Include Stories</FormLabel>
+                                    <FormDescription>
+                                      Add narrative examples
+                                    </FormDescription>
+                                  </div>
+                                  <FormControl>
+                                    <Switch
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
+                                    />
+                                  </FormControl>
+                                </FormItem>
+                              )}
+                            />
+                          </div>
                         </div>
-                      </div>
+                      )}
+                    </div>
+                    
+                    {/* Background Generation Option */}
+                    <div className="border-t pt-4 mt-4">
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-base">Background Generation</FormLabel>
+                          <FormDescription>
+                            Generate content in the background while you continue using the app
+                          </FormDescription>
+                        </div>
+                        <Switch
+                          checked={backgroundGeneration}
+                          onCheckedChange={setBackgroundGeneration}
+                        />
+                      </FormItem>
+                    </div>
+
+                    {/* API Key Input */}
+                    <div className="border-t pt-4 mt-4">
+                      <FormItem>
+                        <FormLabel>
+                          OpenRouter API Key <span className="text-red-500">*</span>
+                        </FormLabel>
+                        <div className="flex items-center">
+                          <Input
+                            type="password"
+                            value={openRouterApiKey}
+                            onChange={handleApiKeyChange}
+                            placeholder="Enter your OpenRouter API Key"
+                          />
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button type="button" variant="ghost" size="icon" className="ml-2">
+                                <CircleHelp className="h-4 w-4" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>OpenRouter API Key</DialogTitle>
+                              </DialogHeader>
+                              <DialogDescription>
+                                <p className="mb-2">
+                                  You need an OpenRouter API key to generate content. If you don't have one, you can get it from:
+                                </p>
+                                <a
+                                  href="https://openrouter.ai/keys"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-primary hover:underline"
+                                >
+                                  https://openrouter.ai/keys
+                                </a>
+                                <Alert className="mt-4">
+                                  <AlertTitle>Privacy Note</AlertTitle>
+                                  <AlertDescription>
+                                    Your API key is stored locally in your browser and is never sent to our servers.
+                                  </AlertDescription>
+                                </Alert>
+                              </DialogDescription>
+                            </DialogContent>
+                          </Dialog>
+                        </div>
+                        <FormDescription>
+                          Required to use the AI models. Your key is stored locally in your browser.
+                        </FormDescription>
+                      </FormItem>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
 
-            {!apiKey ? (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>API Key Required</AlertTitle>
-                <AlertDescription className="flex flex-col gap-2">
-                  <p>You need to add an OpenRouter API key in Settings to generate content.</p>
                   <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="w-fit"
-                    onClick={() => window.open("https://openrouter.ai/keys", "_blank")}
+                    type="submit" 
+                    className="w-full"
+                    disabled={isGenerating}
                   >
-                    Get an OpenRouter API Key
+                    {isGenerating && !backgroundGeneration ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      "Generate Content"
+                    )}
                   </Button>
-                </AlertDescription>
-              </Alert>
-            ) : (
-              <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Note</AlertTitle>
-                <AlertDescription>
-                  For best results, this template works optimally with the Claude 3.7 Sonnet model.
-                </AlertDescription>
-              </Alert>
-            )}
-
-            <Button 
-              type="submit" 
-              className="w-full"
-              disabled={isGenerating || (!apiKey)}
-            >
-              {isGenerating ? "Generating..." : "Generate SEO Content"}
-            </Button>
-          </form>
-        </Form>
-      </TabsContent>
-      
-      <TabsContent value="generated-content">
-        {generatedContent && (
-          <div className="space-y-4">
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-medium">Generated Content</h3>
-                  <div className="flex gap-2">
-                    <div className="border rounded-md overflow-hidden flex">
-                      <Button 
-                        variant={viewMode === "rendered" ? "default" : "ghost"} 
-                        size="sm"
-                        onClick={() => setViewMode("rendered")}
-                        className="rounded-none"
-                      >
-                        <Eye className="h-4 w-4 mr-2" />
-                        Preview
-                      </Button>
-                      <Button 
-                        variant={viewMode === "markdown" ? "default" : "ghost"} 
-                        size="sm"
-                        onClick={() => setViewMode("markdown")}
-                        className="rounded-none"
-                      >
-                        <Code className="h-4 w-4 mr-2" />
-                        Markdown
-                      </Button>
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="preview">
+          {generatedContent ? (
+            <>
+              <Card>
+                <CardHeader>
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <CardTitle>Preview: {contentTitle}</CardTitle>
+                      <CardDescription>
+                        Generated content preview
+                      </CardDescription>
                     </div>
-                    <Button variant="outline" size="sm" onClick={copyToClipboard}>
-                      <ClipboardCopy className="h-4 w-4 mr-2" />
-                      Copy {viewMode === "markdown" ? "Markdown" : "Content"}
-                    </Button>
+                    {isAuthenticated ? (
+                      <div className="flex space-x-2">
+                        {isContentSaved ? (
+                          <Button onClick={navigateToSavedContent}>
+                            View All Content
+                          </Button>
+                        ) : (
+                          <Button onClick={handleSaveContent}>
+                            Save Content
+                          </Button>
+                        )}
+                      </div>
+                    ) : (
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button>Save Content</Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Authentication Required</DialogTitle>
+                            <DialogDescription>
+                              You need to be logged in to save content.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <DialogFooter>
+                            <Button onClick={() => navigate("/auth")}>
+                              Login / Register
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    )}
                   </div>
-                </div>
-                
-                {viewMode === "rendered" ? (
-                  <div className="content-container prose dark:prose-invert max-w-none border p-4 rounded-md bg-muted/50 min-h-[400px] max-h-[800px] overflow-y-auto">
+                </CardHeader>
+                <CardContent>
+                  <div className="prose dark:prose-invert max-w-none">
                     <ReactMarkdown components={{
                       p: ({ node, ...props }) => {
                         const content = props.children;
+                        // Check if content contains HTML elements
                         if (typeof content === 'string' && (content.includes('<') && content.includes('>'))) {
                           return <div dangerouslySetInnerHTML={{ __html: content }} />;
                         }
                         return <p {...props} />;
                       },
+                      // Handle tables properly
                       table: ({ node, ...props }) => (
                         <div className="overflow-x-auto my-6">
                           <table className="w-full border-collapse border border-border" {...props} />
@@ -695,78 +757,43 @@ export function SeoGeneratorForm({ includeInternalLinks = false }: SeoGeneratorF
                       td: ({ node, ...props }) => (
                         <td className="border border-border px-4 py-2" {...props} />
                       ),
-                      ul: ({ node, ...props }) => (
-                        <ul className="list-disc pl-6 my-4 space-y-2" {...props} />
-                      ),
-                      ol: ({ node, ...props }) => (
-                        <ol className="list-decimal pl-6 my-4 space-y-2" {...props} />
-                      ),
-                      li: ({ node, ...props }) => (
-                        <li className="pl-1" {...props} />
-                      ),
-                      h1: ({ node, ...props }) => (
-                        <h1 className="text-3xl font-bold mt-8 mb-4 scroll-m-20" {...props} />
-                      ),
-                      h2: ({ node, ...props }) => (
-                        <h2 className="text-2xl font-semibold mt-8 mb-3 scroll-m-20" {...props} />
-                      ),
-                      h3: ({ node, ...props }) => (
-                        <h3 className="text-xl font-semibold mt-6 mb-2 scroll-m-20" {...props} />
-                      ),
-                      h4: ({ node, ...props }) => (
-                        <h4 className="text-lg font-medium mt-4 mb-2 scroll-m-20" {...props} />
-                      ),
-                      blockquote: ({ node, ...props }) => (
-                        <blockquote className="border-l-4 border-primary/50 pl-4 italic my-4" {...props} />
-                      ),
-                      code: ({ className, children, ...props }) => {
-                        const match = /language-(\w+)/.exec(className || '');
-                        const isInline = !match && (className || '').indexOf('language-') !== 0;
-                        
-                        if (isInline) {
-                          return <code className="px-1 py-0.5 bg-muted rounded text-sm" {...props}>{children}</code>;
-                        }
-                        
-                        return (
-                          <pre className="p-4 bg-muted rounded-md overflow-x-auto">
-                            <code className="text-sm" {...props}>{children}</code>
-                          </pre>
-                        );
-                      },
                     }}>
                       {generatedContent}
                     </ReactMarkdown>
                   </div>
-                ) : (
-                  <div className="min-h-[400px] max-h-[800px] overflow-y-auto">
-                    <Textarea 
-                      value={generatedContent} 
-                      readOnly 
-                      className="w-full h-full min-h-[400px] font-mono text-sm"
+                  
+                  {/* HTML Element Preview if found */}
+                  {extractedHtmlCode && (
+                    <HtmlPreviewComponent 
+                      htmlCode={extractedHtmlCode} 
+                      className="mt-8" 
                     />
-                  </div>
-                )}
+                  )}
+                </CardContent>
+                <CardFooter className="border-t pt-6">
+                  <Button variant="outline" onClick={() => setActiveTab("editor")} className="w-full">
+                    Return to Editor
+                  </Button>
+                </CardFooter>
+              </Card>
+            </>
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle>No Content Generated</CardTitle>
+                <CardDescription>
+                  Fill out the form and generate content to see a preview
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button onClick={() => setActiveTab("editor")}>
+                  Go to Editor
+                </Button>
               </CardContent>
             </Card>
-            
-            {extractedHtmlCode && form.getValues("includeHtmlElement") && (
-              <HtmlPreviewComponent htmlCode={extractedHtmlCode} />
-            )}
-            
-            <div className="flex justify-between">
-              <Button variant="outline" onClick={() => setActiveTab("content-form")}>
-                Back to Form
-              </Button>
-              <Button 
-                onClick={handleSaveContent} 
-                disabled={isSaving || !user}
-              >
-                {isSaving ? "Saving..." : "Save to My Content"}
-              </Button>
-            </div>
-          </div>
-        )}
-      </TabsContent>
-    </Tabs>
+          )}
+        </TabsContent>
+      </Tabs>
+    </div>
   );
-}
+};
