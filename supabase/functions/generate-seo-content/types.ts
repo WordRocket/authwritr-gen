@@ -17,9 +17,6 @@ export interface RequestParams {
   internalLinks?: string[];
   apiKey: string;
   model?: string;
-  saveOnComplete?: boolean;
-  userId?: string;
-  title?: string;
 }
 
 export interface PromptConfig {

@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, FileText, Loader2, Code, Eye, RefreshCw } from "lucide-react";
+import { Plus, FileText, Loader2, Code, Eye } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,7 +28,6 @@ export default function ContentPage() {
   const [selectedContent, setSelectedContent] = useState<ContentItem | null>(null);
   const [viewMode, setViewMode] = useState<"rendered" | "markdown">("rendered");
   const [extractedHtmlCode, setExtractedHtmlCode] = useState<string>("");
-  const [refreshKey, setRefreshKey] = useState(0); // Added for manual refresh
 
   useEffect(() => {
     if (isAuthenticated && user) {
@@ -36,7 +35,7 @@ export default function ContentPage() {
     } else {
       setLoading(false);
     }
-  }, [isAuthenticated, user, refreshKey]); // Added refreshKey to dependencies
+  }, [isAuthenticated, user]);
 
   // Extract HTML when content is selected
   useEffect(() => {
@@ -104,10 +103,6 @@ export default function ContentPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleRefresh = () => {
-    setRefreshKey(prev => prev + 1);
   };
 
   const handleViewContent = (item: ContentItem) => {
@@ -344,19 +339,11 @@ export default function ContentPage() {
           <p className="text-muted-foreground">View and manage your generated content</p>
         </div>
         
-        <div className="flex items-center gap-2">
-          {isAuthenticated && (
-            <Button variant="outline" onClick={handleRefresh} title="Refresh content">
-              <RefreshCw className="h-4 w-4 mr-2" /> Refresh
-            </Button>
-          )}
-          
-          {isAuthenticated && contentItems.length > 0 && (
-            <Button onClick={() => navigate("/templates")}>
-              <Plus className="mr-2 h-4 w-4" /> Create New Content
-            </Button>
-          )}
-        </div>
+        {isAuthenticated && contentItems.length > 0 && (
+          <Button onClick={() => navigate("/templates")}>
+            <Plus className="mr-2 h-4 w-4" /> Create New Content
+          </Button>
+        )}
       </div>
 
       {renderContent()}
