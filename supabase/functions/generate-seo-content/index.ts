@@ -397,8 +397,8 @@ serve(async (req) => {
               { role: "user", content: userPrompt }
             ],
             temperature: 0.7,
-            // Set max_tokens to 20000 specifically for Claude 3.7 Sonnet
-            max_tokens: requestedModel.includes("claude-3.7-sonnet") ? 20000 : 16000,
+            // Set max_tokens to 128000 specifically for Claude 3.7 Sonnet
+            max_tokens: requestedModel.includes("claude-3.7-sonnet") ? 128000 : 16000,
           }),
         });
 
