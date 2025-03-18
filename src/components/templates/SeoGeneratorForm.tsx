@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -15,7 +16,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { generateSeoContent, saveGeneratedContent, recommendedModels } from "@/services/contentGenerationService";
+import { 
+  generateSeoContent, 
+  saveGeneratedContent, 
+  recommendedModels, 
+  type SeoFormValues as ContentServiceFormValues
+} from "@/services/contentGenerationService";
 import { useAuth } from "@/context/AuthContext";
 import {
   Select,
@@ -56,7 +62,8 @@ const formSchema = z.object({
   includeHtmlElement: z.boolean().optional(),
 });
 
-interface SeoFormValues extends z.infer<typeof formSchema> {
+// Define a local interface that extends the service interface
+interface LocalSeoFormValues extends ContentServiceFormValues {
   includeInternalLinks: boolean;
   saveOnComplete?: boolean;
 }
@@ -67,15 +74,15 @@ export function SeoGeneratorForm({ includeInternalLinks }: { includeInternalLink
   const [contentTitle, setContentTitle] = useState<string>("");
   const { toast } = useToast();
   const { user, isAuthenticated } = useAuth();
-  const [openRouterApiKey, setOpenRouterApiKey] = useState<string | null>(null);
+  const [apiKey, setApiKey] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState(recommendedModels[0]);
 
   // Add new state for background generation
   const [generateInBackground, setGenerateInBackground] = useState(false);
 
   useEffect(() => {
-    const apiKey = localStorage.getItem('openRouterApiKey');
-    setOpenRouterApiKey(apiKey);
+    const storedApiKey = localStorage.getItem('openRouterApiKey');
+    setApiKey(storedApiKey);
   }, []);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -98,7 +105,7 @@ export function SeoGeneratorForm({ includeInternalLinks }: { includeInternalLink
   });
 
   const handleSubmit = async (values: z.infer<typeof formSchema>) => {
-    if (!openRouterApiKey) {
+    if (!apiKey) {
       toast({
         title: "Missing OpenRouter API Key",
         description: "Please add your OpenRouter API key in the settings page to generate content.",
@@ -112,21 +119,29 @@ export function SeoGeneratorForm({ includeInternalLinks }: { includeInternalLink
       const actualTitle = values.title || values.topic;
       setContentTitle(actualTitle);
 
-      // Add saveOnComplete flag to the values
-      const formattedValues: SeoFormValues = {
-        ...values,
+      // Transform form values to the service expected format
+      const serviceFormValues: ContentServiceFormValues = {
+        topic: values.topic,
+        searchTerm: values.searchTerm,
+        targetKeyword: values.targetKeyword,
+        wordCount: values.wordCount,
+        articleType: values.articleType as any,
+        toneOfArticle: values.toneOfArticle as any,
+        intendedAudience: values.intendedAudience,
+        additionalContext: values.additionalContext,
         includeFirstPerson: values.includeFirstPerson || false,
         includeAnecdotes: values.includeAnecdotes || false,
         includeHook: values.includeHook || false,
         includeStories: values.includeStories || false,
         includeHtmlElement: values.includeHtmlElement || false,
-        includeInternalLinks,
+        includeInternalLinks: includeInternalLinks,
+        model: values.model,
         saveOnComplete: generateInBackground
       };
 
       if (generateInBackground) {
         // For background generation, notify user and return early
-        generateSeoContent(formattedValues, openRouterApiKey, user?.id, actualTitle)
+        generateSeoContent(serviceFormValues, apiKey, user?.id, actualTitle)
           .then(() => {
             toast({
               title: "Content generation started",
@@ -146,7 +161,7 @@ export function SeoGeneratorForm({ includeInternalLinks }: { includeInternalLink
         return;
       }
 
-      const content = await generateSeoContent(formattedValues, openRouterApiKey);
+      const content = await generateSeoContent(serviceFormValues, apiKey);
       setGeneratedContent(content);
 
       // If user is authenticated, automatically save content
