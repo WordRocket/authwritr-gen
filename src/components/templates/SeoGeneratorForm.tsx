@@ -1,4 +1,3 @@
-
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -161,9 +160,20 @@ export function SeoGeneratorForm({ includeInternalLinks = false }: SeoGeneratorF
     setIsGenerating(true);
     
     try {
-      // Make sure topic is included and not optional by spreading the full data object
-      const formDataWithInternalLinks: SeoServiceFormValues = {
-        ...data, // This ensures topic and wordCount are included
+      const formDataWithInternalLinks: SeoFormValues = {
+        topic: data.topic,
+        wordCount: data.wordCount,
+        includeFirstPerson: data.includeFirstPerson,
+        includeAnecdotes: data.includeAnecdotes,
+        includeHook: data.includeHook,
+        includeStories: data.includeStories,
+        includeHtmlElement: data.includeHtmlElement,
+        ...(data.targetKeyword && { targetKeyword: data.targetKeyword }),
+        ...(data.articleType && { articleType: data.articleType }),
+        ...(data.toneOfArticle && { toneOfArticle: data.toneOfArticle }),
+        ...(data.intendedAudience && { intendedAudience: data.intendedAudience }),
+        ...(data.additionalContext && { additionalContext: data.additionalContext }),
+        ...(data.model && { model: data.model }),
         includeInternalLinks: includeInternalLinks || false,
       };
       
@@ -772,3 +782,4 @@ export function SeoGeneratorForm({ includeInternalLinks = false }: SeoGeneratorF
     </Tabs>
   );
 }
+

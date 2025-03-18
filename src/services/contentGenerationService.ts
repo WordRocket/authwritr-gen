@@ -2,14 +2,14 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export interface SeoFormValues {
-  topic: string;
+  topic: string; // This is required
   searchTerm?: string;
   targetKeyword?: string;
   articleType?: "informational" | "listicle" | "how-to" | "anecdote" | "story";
   toneOfArticle?: "professional" | "conversational" | "friendly" | "authoritative" | "casual";
   intendedAudience?: string;
   additionalContext?: string;
-  wordCount: number;
+  wordCount: number; // This is required
   includeFirstPerson: boolean;
   includeAnecdotes: boolean;
   includeHook: boolean;
