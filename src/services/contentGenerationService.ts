@@ -2,20 +2,20 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export interface SeoFormValues {
-  topic: string; // This is required
+  topic: string;
   searchTerm?: string;
   targetKeyword?: string;
   articleType?: "informational" | "listicle" | "how-to" | "anecdote" | "story";
   toneOfArticle?: "professional" | "conversational" | "friendly" | "authoritative" | "casual";
   intendedAudience?: string;
   additionalContext?: string;
-  wordCount: number; // This is required
+  wordCount: number;
   includeFirstPerson: boolean;
   includeAnecdotes: boolean;
   includeHook: boolean;
   includeStories: boolean;
   includeHtmlElement: boolean;
-  includeInternalLinks?: boolean;
+  includeInternalLinks: boolean;
   model?: string;
 }
 

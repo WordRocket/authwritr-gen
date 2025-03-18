@@ -160,24 +160,12 @@ export function SeoGeneratorForm({ includeInternalLinks = false }: SeoGeneratorF
     setIsGenerating(true);
     
     try {
-      const formDataWithInternalLinks: SeoFormValues = {
-        topic: data.topic,
-        wordCount: data.wordCount,
-        includeFirstPerson: data.includeFirstPerson,
-        includeAnecdotes: data.includeAnecdotes,
-        includeHook: data.includeHook,
-        includeStories: data.includeStories,
-        includeHtmlElement: data.includeHtmlElement,
-        includeInternalLinks: includeInternalLinks,
-        ...(data.targetKeyword && { targetKeyword: data.targetKeyword }),
-        ...(data.articleType && { articleType: data.articleType }),
-        ...(data.toneOfArticle && { toneOfArticle: data.toneOfArticle }),
-        ...(data.intendedAudience && { intendedAudience: data.intendedAudience }),
-        ...(data.additionalContext && { additionalContext: data.additionalContext }),
-        ...(data.model && { model: data.model })
+      const formDataWithInternalLinks = {
+        ...data,
+        includeInternalLinks,
       };
       
-      const content = await generateSeoContent(formDataWithInternalLinks, apiKey);
+      const content = await generateSeoContent(formDataWithInternalLinks as SeoServiceFormValues, apiKey);
       setGeneratedContent(content);
       setActiveTab("generated-content");
       toast({
