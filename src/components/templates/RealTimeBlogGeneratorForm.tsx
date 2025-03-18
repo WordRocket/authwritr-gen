@@ -31,7 +31,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { 
   generateSeoContent, 
   saveGeneratedContent, 
-  type SeoFormValues,
+  type SeoFormValues as SeoServiceFormValues,
   recommendedModels 
 } from "@/services/contentGenerationService";
 import { useAuth } from "@/context/AuthContext";
@@ -106,7 +106,7 @@ export function RealTimeBlogGeneratorForm({ includeInternalLinks = false }: Real
   const [apiKeyMissing, setApiKeyMissing] = React.useState(!apiKey);
   const [viewMode, setViewMode] = React.useState<"rendered" | "markdown">("rendered");
   const [extractedHtmlCode, setExtractedHtmlCode] = React.useState<string>("");
-  const [contentTitle, setContentTitle] = React.useState<string>("");
+
   const [generateInBackground, setGenerateInBackground] = React.useState(false);
 
   const form = useForm<BlogGeneratorFormValues>({
@@ -154,7 +154,7 @@ export function RealTimeBlogGeneratorForm({ includeInternalLinks = false }: Real
   const handleFormSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     
-    const { topic, searchTerm, targetKeyword, wordCount, articleType, toneOfArticle, intendedAudience, additionalContext, includeFirstPerson, includeAnecdotes, includeHook, includeStories, includeHtmlElement } = form.getValues();
+    const { topic, searchTerm, targetKeyword, wordCount, articleType, toneOfArticle, intendedAudience, additionalContext, includeFirstPerson, includeAnecdotes, includeHook, includeStories, includeHtmlElement, includeInternalLinks } = form.getValues();
     
     if (!searchTerm) {
       toast({
@@ -175,7 +175,7 @@ export function RealTimeBlogGeneratorForm({ includeInternalLinks = false }: Real
         topic,
         searchTerm,
         targetKeyword: targetKeyword || undefined,
-        wordCount,
+        wordCount: parseInt(wordCount),
         articleType: articleType as any || undefined,
         toneOfArticle: toneOfArticle as any || undefined,
         intendedAudience: intendedAudience || undefined,
@@ -191,7 +191,7 @@ export function RealTimeBlogGeneratorForm({ includeInternalLinks = false }: Real
       };
       
       if (generateInBackground) {
-        generateSeoContent(formData, apiKey, user?.id, title)
+        generateSeoContent(formData, openRouterApiKey, user?.id, title)
           .then(() => {
             toast({
               title: "Content generation started",
@@ -211,7 +211,7 @@ export function RealTimeBlogGeneratorForm({ includeInternalLinks = false }: Real
         return;
       }
       
-      const content = await generateSeoContent(formData, apiKey);
+      const content = await generateSeoContent(formData, openRouterApiKey);
       setGeneratedContent(content);
       
       if (isAuthenticated && user) {
@@ -287,7 +287,7 @@ export function RealTimeBlogGeneratorForm({ includeInternalLinks = false }: Real
       
       <TabsContent value="content-form">
         <Form {...form}>
-          <form onSubmit={handleFormSubmit} className="space-y-6">
+          <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
             <div className="grid gap-6 md:grid-cols-2">
               <Card>
                 <CardHeader>
