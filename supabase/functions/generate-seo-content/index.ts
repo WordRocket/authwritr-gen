@@ -21,7 +21,8 @@ serve(async (req) => {
       includeInternalLinks: params.includeInternalLinks,
       internalLinksCount: params.internalLinks?.length || 0,
       model: params.model,
-      searchTerm: params.searchTerm || "None"
+      searchTerm: params.searchTerm || "None",
+      saveOnComplete: params.saveOnComplete || false
     });
 
     if (params.includeInternalLinks && (!params.internalLinks || params.internalLinks.length === 0)) {

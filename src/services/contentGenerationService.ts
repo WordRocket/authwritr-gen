@@ -1,5 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 export interface SeoFormValues {
   topic: string;
@@ -17,9 +18,15 @@ export interface SeoFormValues {
   includeHtmlElement: boolean;
   includeInternalLinks: boolean;
   model?: string;
+  saveOnComplete?: boolean;
 }
 
-export async function generateSeoContent(formData: SeoFormValues, apiKey?: string): Promise<string> {
+export async function generateSeoContent(
+  formData: SeoFormValues, 
+  apiKey?: string, 
+  userId?: string, 
+  title?: string
+): Promise<string> {
   try {
     // Map the simplified model IDs to the OpenRouter format
     let modelId = formData.model || "anthropic/claude-3.7-sonnet";
@@ -67,7 +74,9 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
     console.log("Content generation request:", {
       includeInternalLinks: formData.includeInternalLinks,
       internalLinksCount: internalLinks.length,
-      topic: formData.topic
+      topic: formData.topic,
+      saveOnComplete: formData.saveOnComplete,
+      userId: userId ? 'present' : 'not provided'
     });
     
     const { data, error } = await supabase.functions.invoke("generate-seo-content", {
@@ -75,7 +84,10 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
         ...formData,
         apiKey,
         model: modelId,
-        internalLinks: formData.includeInternalLinks ? internalLinks : []
+        internalLinks: formData.includeInternalLinks ? internalLinks : [],
+        saveOnComplete: formData.saveOnComplete,
+        userId,
+        title: title || formData.topic
       },
     });
 

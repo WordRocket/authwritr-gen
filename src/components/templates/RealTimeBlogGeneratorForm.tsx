@@ -48,6 +48,7 @@ import {
 } from "@/components/ui/hover-card";
 import ReactMarkdown from "react-markdown";
 import { HtmlPreviewComponent } from "./HtmlPreviewComponent";
+import { BackgroundGenerationOption } from "./BackgroundGenerationOption";
 
 const blogGeneratorSchema = z.object({
   topic: z.string().min(3, { message: "Topic must be at least 3 characters" }),
@@ -97,7 +98,7 @@ interface RealTimeBlogGeneratorFormProps {
 }
 
 export function RealTimeBlogGeneratorForm({ includeInternalLinks = false }: RealTimeBlogGeneratorFormProps) {
-  const { user, apiKey } = useAuth();
+  const { user, apiKey, isAuthenticated } = useAuth();
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [isSaving, setIsSaving] = React.useState(false);
   const [generatedContent, setGeneratedContent] = React.useState("");
@@ -105,6 +106,8 @@ export function RealTimeBlogGeneratorForm({ includeInternalLinks = false }: Real
   const [apiKeyMissing, setApiKeyMissing] = React.useState(!apiKey);
   const [viewMode, setViewMode] = React.useState<"rendered" | "markdown">("rendered");
   const [extractedHtmlCode, setExtractedHtmlCode] = React.useState<string>("");
+
+  const [generateInBackground, setGenerateInBackground] = React.useState(false);
 
   const form = useForm<BlogGeneratorFormValues>({
     resolver: zodResolver(blogGeneratorSchema),
@@ -148,31 +151,77 @@ export function RealTimeBlogGeneratorForm({ includeInternalLinks = false }: Real
     }
   }, [generatedContent]);
 
-  const onSubmit = async (data: BlogGeneratorFormValues) => {
-    if (!apiKey) {
+  const handleFormSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    
+    const { topic, searchTerm, targetKeyword, wordCount, articleType, toneOfArticle, intendedAudience, additionalContext, includeFirstPerson, includeAnecdotes, includeHook, includeStories, includeHtmlElement, includeInternalLinks } = form.getValues();
+    
+    if (!searchTerm) {
       toast({
         variant: "destructive",
-        title: "API Key Required",
-        description: "Please add your OpenRouter API key in the settings page to generate content.",
+        title: "Search Term Required",
+        description: "Please enter a web search term.",
       });
       return;
     }
     
-    setIsGenerating(true);
+    const title = topic;
+    setContentTitle(title);
     
     try {
-      const formDataWithInternalLinks = {
-        ...data,
+      setIsGenerating(true);
+      
+      const formData: SeoFormValues = {
+        topic,
+        searchTerm,
+        targetKeyword: targetKeyword || undefined,
+        wordCount: parseInt(wordCount),
+        articleType: articleType as any || undefined,
+        toneOfArticle: toneOfArticle as any || undefined,
+        intendedAudience: intendedAudience || undefined,
+        additionalContext: additionalContext || undefined,
+        includeFirstPerson: includeFirstPerson || false,
+        includeAnecdotes: includeAnecdotes || false,
+        includeHook: includeHook || true,
+        includeStories: includeStories || false,
+        includeHtmlElement: includeHtmlElement || false,
         includeInternalLinks,
+        model: form.getValues("model"),
+        saveOnComplete: generateInBackground
       };
       
-      const content = await generateSeoContent(formDataWithInternalLinks as SeoServiceFormValues, apiKey);
+      if (generateInBackground) {
+        generateSeoContent(formData, openRouterApiKey, user?.id, title)
+          .then(() => {
+            toast({
+              title: "Content generation started",
+              description: "Your content is being generated in the background and will be saved to 'My Content'",
+              variant: "default"
+            });
+          })
+          .catch((error) => {
+            toast({
+              title: "Error starting background generation",
+              description: error.message,
+              variant: "destructive"
+            });
+          });
+          
+        setIsGenerating(false);
+        return;
+      }
+      
+      const content = await generateSeoContent(formData, openRouterApiKey);
       setGeneratedContent(content);
-      setActiveTab("generated-content");
-      toast({
-        title: "Content generated successfully!",
-        description: "Your web-researched blog post is ready to review.",
-      });
+      
+      if (isAuthenticated && user) {
+        await saveGeneratedContent(title, content, user.id);
+        toast({
+          title: "Content saved",
+          description: "Your content has been saved to 'My Content'",
+        });
+      }
+      
     } catch (error) {
       console.error("Error generating content:", error);
       toast({
@@ -238,7 +287,7 @@ export function RealTimeBlogGeneratorForm({ includeInternalLinks = false }: Real
       
       <TabsContent value="content-form">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
             <div className="grid gap-6 md:grid-cols-2">
               <Card>
                 <CardHeader>
@@ -632,13 +681,28 @@ export function RealTimeBlogGeneratorForm({ includeInternalLinks = false }: Real
               </Alert>
             )}
 
-            <Button 
-              type="submit" 
-              className="w-full"
-              disabled={isGenerating || (!apiKey)}
-            >
-              {isGenerating ? "Researching & Generating..." : "Generate Real-Time Blog Post"}
-            </Button>
+            <div className="border rounded-md p-4 bg-card">
+              {isAuthenticated ? (
+                <BackgroundGenerationOption 
+                  enabled={generateInBackground} 
+                  onToggle={setGenerateInBackground} 
+                />
+              ) : (
+                <div className="text-sm text-muted-foreground">
+                  Please login to enable background generation and save content automatically.
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-col space-y-4">
+              <Button 
+                type="submit" 
+                className="w-full"
+                disabled={isGenerating || (!apiKey)}
+              >
+                {isGenerating ? "Researching & Generating..." : "Generate Real-Time Blog Post"}
+              </Button>
+            </div>
           </form>
         </Form>
       </TabsContent>
@@ -783,4 +847,3 @@ export function RealTimeBlogGeneratorForm({ includeInternalLinks = false }: Real
     </Tabs>
   );
 }
-
