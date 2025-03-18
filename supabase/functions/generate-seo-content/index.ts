@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -396,7 +397,8 @@ serve(async (req) => {
               { role: "user", content: userPrompt }
             ],
             temperature: 0.7,
-            max_tokens: 16000,
+            // Set max_tokens to 20000 specifically for Claude 3.7 Sonnet
+            max_tokens: requestedModel.includes("claude-3.7-sonnet") ? 20000 : 16000,
           }),
         });
 
