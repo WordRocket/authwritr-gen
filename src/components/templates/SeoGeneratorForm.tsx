@@ -47,6 +47,7 @@ const formSchema = z.object({
   }),
   title: z.string().optional(),
   targetKeyword: z.string().optional(),
+  searchTerm: z.string().optional(), // Add the missing searchTerm field
   articleType: z.string().optional(),
   toneOfArticle: z.string().optional(),
   intendedAudience: z.string().optional(),
@@ -91,6 +92,7 @@ export function SeoGeneratorForm({ includeInternalLinks }: { includeInternalLink
       topic: "",
       title: "",
       targetKeyword: "",
+      searchTerm: "", // Initialize the searchTerm field
       articleType: "informational",
       toneOfArticle: "professional",
       intendedAudience: "",
