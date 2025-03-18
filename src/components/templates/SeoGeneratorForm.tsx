@@ -168,13 +168,13 @@ export function SeoGeneratorForm({ includeInternalLinks = false }: SeoGeneratorF
         includeHook: data.includeHook,
         includeStories: data.includeStories,
         includeHtmlElement: data.includeHtmlElement,
+        includeInternalLinks: includeInternalLinks,
         ...(data.targetKeyword && { targetKeyword: data.targetKeyword }),
         ...(data.articleType && { articleType: data.articleType }),
         ...(data.toneOfArticle && { toneOfArticle: data.toneOfArticle }),
         ...(data.intendedAudience && { intendedAudience: data.intendedAudience }),
         ...(data.additionalContext && { additionalContext: data.additionalContext }),
-        ...(data.model && { model: data.model }),
-        includeInternalLinks: includeInternalLinks || false,
+        ...(data.model && { model: data.model })
       };
       
       const content = await generateSeoContent(formDataWithInternalLinks, apiKey);
@@ -782,4 +782,3 @@ export function SeoGeneratorForm({ includeInternalLinks = false }: SeoGeneratorF
     </Tabs>
   );
 }
-
