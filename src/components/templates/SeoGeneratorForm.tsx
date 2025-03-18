@@ -161,8 +161,9 @@ export function SeoGeneratorForm({ includeInternalLinks = false }: SeoGeneratorF
     setIsGenerating(true);
     
     try {
+      // Make sure topic is included and not optional by spreading the full data object
       const formDataWithInternalLinks: SeoServiceFormValues = {
-        ...data,
+        ...data, // This ensures topic and wordCount are included
         includeInternalLinks: includeInternalLinks || false,
       };
       

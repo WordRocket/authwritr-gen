@@ -15,7 +15,7 @@ export interface SeoFormValues {
   includeHook: boolean;
   includeStories: boolean;
   includeHtmlElement: boolean;
-  includeInternalLinks: boolean;
+  includeInternalLinks?: boolean;
   model?: string;
 }
 
