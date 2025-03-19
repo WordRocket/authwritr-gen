@@ -77,34 +77,42 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
     let placeholderId = null;
     
     if (formData.backgroundGeneration) {
+      console.log("Background generation enabled, creating placeholder");
+      
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       
       if (user) {
-        // Create a placeholder entry
-        const { data: placeholder, error: placeholderError } = await supabase
-          .from('content')
-          .insert([
-            { 
-              title: `${formData.topic} (Generating...)`, 
-              content: `# Content for "${formData.topic}" is being generated\n\nYour content is currently being generated in the background. This placeholder will be automatically updated when the generation is complete. Please check back in a few minutes.`, 
-              user_id: user.id,
-              created_at: new Date().toISOString(),
-              status: 'generating'
-            }
-          ])
-          .select();
-          
-        if (placeholderError) {
-          console.error("Error creating placeholder:", placeholderError);
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: "Failed to create content placeholder: " + placeholderError.message,
-          });
-        } else if (placeholder && placeholder.length > 0) {
-          placeholderId = placeholder[0].id;
-          console.log("Created placeholder content with ID:", placeholderId);
+        try {
+          // Create a placeholder entry
+          const { data: placeholder, error: placeholderError } = await supabase
+            .from('content')
+            .insert([
+              { 
+                title: `${formData.topic} (Generating...)`, 
+                content: `# Content for "${formData.topic}" is being generated\n\nYour content is currently being generated in the background. This placeholder will be automatically updated when the generation is complete. Please check back in a few minutes.`, 
+                user_id: user.id,
+                created_at: new Date().toISOString(),
+                status: 'generating'
+              }
+            ])
+            .select();
+            
+          if (placeholderError) {
+            console.error("Error creating placeholder:", placeholderError);
+            toast({
+              variant: "destructive",
+              title: "Error",
+              description: "Failed to create content placeholder: " + placeholderError.message,
+            });
+          } else if (placeholder && placeholder.length > 0) {
+            placeholderId = placeholder[0].id;
+            console.log("Created placeholder content with ID:", placeholderId);
+          } else {
+            console.error("No placeholder data returned from insert");
+          }
+        } catch (createError) {
+          console.error("Exception during placeholder creation:", createError);
         }
       } else {
         console.error("No authenticated user found");
@@ -117,6 +125,8 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
       }
     }
     
+    // Call the edge function to generate content
+    console.log("Invoking edge function with placeholderId:", placeholderId);
     const { data, error } = await supabase.functions.invoke("generate-seo-content", {
       body: {
         ...formData,
@@ -131,14 +141,19 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
       console.error("Error invoking generate-seo-content function:", error);
       // If there was a placeholder, update it to show the error
       if (placeholderId) {
-        await supabase
-          .from('content')
-          .update({
-            title: `${formData.topic} (Failed)`,
-            content: `# Error Generating Content\n\nThere was an error generating content for "${formData.topic}".\n\nError: ${error.message}\n\nPlease try again.`,
-            status: 'failed'
-          })
-          .eq('id', placeholderId);
+        try {
+          await supabase
+            .from('content')
+            .update({
+              title: `${formData.topic} (Failed)`,
+              content: `# Error Generating Content\n\nThere was an error generating content for "${formData.topic}".\n\nError: ${error.message}\n\nPlease try again.`,
+              status: 'failed'
+            })
+            .eq('id', placeholderId);
+          console.log("Updated placeholder with error status");
+        } catch (updateError) {
+          console.error("Error updating placeholder with error status:", updateError);
+        }
       }
       throw new Error(`Failed to generate content: ${error.message}`);
     }
@@ -147,14 +162,19 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
       const errorMessage = data?.error || "Failed to generate content";
       // If there was a placeholder, update it to show the error
       if (placeholderId) {
-        await supabase
-          .from('content')
-          .update({
-            title: `${formData.topic} (Failed)`,
-            content: `# Error Generating Content\n\nThere was an error generating content for "${formData.topic}".\n\nError: ${errorMessage}\n\nPlease try again.`,
-            status: 'failed'
-          })
-          .eq('id', placeholderId);
+        try {
+          await supabase
+            .from('content')
+            .update({
+              title: `${formData.topic} (Failed)`,
+              content: `# Error Generating Content\n\nThere was an error generating content for "${formData.topic}".\n\nError: ${errorMessage}\n\nPlease try again.`,
+              status: 'failed'
+            })
+            .eq('id', placeholderId);
+          console.log("Updated placeholder with error status");
+        } catch (updateError) {
+          console.error("Error updating placeholder with error status:", updateError);
+        }
       }
       throw new Error(errorMessage);
     }

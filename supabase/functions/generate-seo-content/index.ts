@@ -227,11 +227,14 @@ serve(async (req) => {
 
     // If background generation is requested, return immediately with a job ID
     if (backgroundGeneration) {
+      console.log("Background generation requested. PlaceholderId:", placeholderId);
+      
       // Generate a random job ID
       const jobId = crypto.randomUUID();
       
       // Define the background task that will run independently
       const generateInBackground = async () => {
+        console.log(`Starting background generation job ${jobId} for topic "${topic}"`);
         try {
           console.log("Starting background generation with job ID:", jobId);
           let generatedContent = "";
@@ -239,6 +242,7 @@ serve(async (req) => {
           // Call the OpenRouter API with the search model if search term is provided
           if (searchTerm) {
             // STEP 1: Use search-capable model to gather information
+            console.log("Using search model to gather information on:", searchTerm);
             let searchResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
               method: 'POST',
               headers: {
@@ -390,6 +394,7 @@ serve(async (req) => {
             }
           } else {
             // For non-search requests, use the specified or default model directly
+            console.log(`Using model ${requestedModel} directly for content generation`);
             const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
               method: 'POST',
               headers: {
@@ -423,6 +428,7 @@ serve(async (req) => {
             }
             
             generatedContent = data.choices[0].message.content;
+            console.log("Successfully generated content with model:", requestedModel);
           }
           
           // Extract title from the generated content
@@ -447,93 +453,47 @@ serve(async (req) => {
             console.log("Auth header present:", !!authHeader);
             console.log("API key header present:", !!apiKeyHeader);
             
-            // Update the placeholder with the actual content
-            const updateResult = await fetch(`${baseUrl}/rest/v1/content?id=eq.${placeholderId}`, {
-              method: 'PATCH',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': authHeader,
-                'apikey': apiKeyHeader,
-                'Prefer': 'return=minimal'
-              },
-              body: JSON.stringify({
-                title: title,
-                content: generatedContent,
-                status: 'completed',
-                updated_at: new Date().toISOString()
-              }),
-            });
-            
-            const updateStatus = updateResult.status;
-            console.log("Update response status:", updateStatus);
-            
-            if (updateStatus !== 204) {
-              const errorText = await updateResult.text();
-              console.error("Failed to update placeholder:", errorText);
-              throw new Error(`Failed to update placeholder: ${updateStatus} - ${errorText}`);
-            } else {
-              console.log("Successfully updated placeholder content");
+            try {
+              // Update the placeholder with the actual content
+              const updateResult = await fetch(`${baseUrl}/rest/v1/content?id=eq.${placeholderId}`, {
+                method: 'PATCH',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': authHeader,
+                  'apikey': apiKeyHeader,
+                  'Prefer': 'return=minimal'
+                },
+                body: JSON.stringify({
+                  title: title,
+                  content: generatedContent,
+                  status: 'completed',
+                  updated_at: new Date().toISOString()
+                }),
+              });
+              
+              const updateStatus = updateResult.status;
+              console.log("Update response status:", updateStatus);
+              
+              if (updateStatus !== 204) {
+                const errorText = await updateResult.text();
+                console.error("Failed to update placeholder:", errorText);
+                console.error("API Key header:", apiKeyHeader ? "Present" : "Missing");
+                console.error("Auth header:", authHeader ? "Present" : "Missing");
+                throw new Error(`Failed to update placeholder: ${updateStatus} - ${errorText}`);
+              } else {
+                console.log("Successfully updated placeholder content");
+              }
+            } catch (updateError) {
+              console.error("Error during placeholder update:", updateError);
+              throw updateError;
             }
           }
           // Save new content if no placeholder was provided
           else {
-            // Get user_id from auth header
-            let userId = req.headers.get('x-user-id');
-            
-            // If we don't have a user ID, try to extract it from the request parameters
-            if (!userId && req.headers.get('authorization')) {
-              try {
-                // Extract JWT token
-                const token = req.headers.get('authorization')?.split('Bearer ')[1];
-                if (token) {
-                  // This is a simplified example. In a real app, you'd properly decode and verify the JWT
-                  const base64Url = token.split('.')[1];
-                  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-                  const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-                  }).join(''));
-                  const payload = JSON.parse(jsonPayload);
-                  userId = payload.sub;
-                }
-              } catch (error) {
-                console.error("Error extracting user ID from token:", error);
-              }
-            }
-            
-            if (!userId) {
-              console.error("Could not determine user ID for background job");
-              return;
-            }
-            
-            // Get the URL of the Supabase REST API
-            const apiUrl = new URL(req.url);
-            const baseUrl = `${apiUrl.protocol}//${apiUrl.hostname}`;
-            
-            // Save content to database
-            const contentResult = await fetch(`${baseUrl}/rest/v1/content`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': req.headers.get('authorization') || '',
-                'apikey': req.headers.get('apikey') || '',
-              },
-              body: JSON.stringify({
-                title: title,
-                content: generatedContent,
-                user_id: userId,
-                created_at: new Date().toISOString(),
-                status: 'completed'
-              }),
-            });
-            
-            if (!contentResult.ok) {
-              console.error("Failed to save content:", await contentResult.text());
-              throw new Error(`Failed to save content: ${contentResult.statusText}`);
-            }
+            console.error("No placeholder ID provided for background generation job");
           }
           
-          console.log("Background content generation complete and saved, job ID:", jobId);
-          
+          console.log("Background content generation complete, job ID:", jobId);
         } catch (error) {
           console.error("Error in background generation task:", error);
           
@@ -575,9 +535,24 @@ serve(async (req) => {
         }
       };
       
+      console.log("Setting up background task with EdgeRuntime.waitUntil");
       // Use EdgeRuntime.waitUntil to ensure the function continues running in the background
       // This is a Supabase Edge Function feature that allows background processing
-      EdgeRuntime.waitUntil(generateInBackground());
+      try {
+        if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
+          EdgeRuntime.waitUntil(generateInBackground());
+          console.log("Background task registered with EdgeRuntime.waitUntil");
+        } else {
+          console.error("EdgeRuntime.waitUntil is not available");
+          // Fallback for environments where EdgeRuntime.waitUntil is not available
+          generateInBackground().catch(err => console.error("Background task error:", err));
+          console.log("Using fallback background processing");
+        }
+      } catch (waitUntilError) {
+        console.error("Error setting up EdgeRuntime.waitUntil:", waitUntilError);
+        // Fallback
+        generateInBackground().catch(err => console.error("Background task error:", err));
+      }
       
       // Return immediately with job ID
       return new Response(
@@ -585,6 +560,7 @@ serve(async (req) => {
           success: true, 
           backgroundGeneration: true,
           jobId: jobId,
+          placeholderId: placeholderId,
           message: "Content generation started in background"
         }),
         { 
@@ -771,143 +747,3 @@ serve(async (req) => {
             max_tokens: requestedModel.includes("claude-3.7-sonnet") ? 128000 : 16000,
           }),
         });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error("Error response from API:", errorText);
-          throw new Error(`API Error (${response.status}): ${errorText}`);
-        }
-
-        const data = await response.json();
-        
-        if (!data || !data.choices || !data.choices[0] || !data.choices[0].message) {
-          console.error("Invalid response structure from API:", data);
-          throw new Error("Invalid response structure from API");
-        }
-        
-        generatedContent = data.choices[0].message.content;
-      }
-      
-      // Extract title from the generated content
-      const titleMatch = generatedContent.match(/^#\s*(.*?)(\n|$)/);
-      const title = titleMatch ? titleMatch[1].trim() : topic;
-      
-      console.log("Generated content with title:", title);
-      
-      // Update existing placeholder content if provided
-      if (placeholderId) {
-        console.log("Updating placeholder content with ID:", placeholderId);
-        
-        // Get the URL of the Supabase REST API from the request URL
-        const apiUrl = new URL(req.url);
-        const baseUrl = `${apiUrl.protocol}//${apiUrl.hostname}`;
-        
-        // Copy relevant headers from the original request
-        const authHeader = req.headers.get('authorization') || '';
-        const apiKeyHeader = req.headers.get('apikey') || '';
-        
-        console.log("Using base URL for update:", baseUrl);
-        console.log("Auth header present:", !!authHeader);
-        console.log("API key header present:", !!apiKeyHeader);
-        
-        // Update the placeholder with the actual content
-        const updateResult = await fetch(`${baseUrl}/rest/v1/content?id=eq.${placeholderId}`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': authHeader,
-            'apikey': apiKeyHeader,
-            'Prefer': 'return=minimal'
-          },
-          body: JSON.stringify({
-            title: title,
-            content: generatedContent,
-            status: 'completed',
-            updated_at: new Date().toISOString()
-          }),
-        });
-        
-        const updateStatus = updateResult.status;
-        console.log("Update response status:", updateStatus);
-        
-        if (updateStatus !== 204) {
-          const errorText = await updateResult.text();
-          console.error("Failed to update placeholder:", errorText);
-          throw new Error(`Failed to update placeholder: ${updateStatus} - ${errorText}`);
-        } else {
-          console.log("Successfully updated placeholder content");
-        }
-      }
-      // Save new content if no placeholder was provided
-      else {
-        // Get user_id from auth header
-        let userId = req.headers.get('x-user-id');
-        
-        // If we don't have a user ID, try to extract it from the request parameters
-        if (!userId && req.headers.get('authorization')) {
-          try {
-            // Extract JWT token
-            const token = req.headers.get('authorization')?.split('Bearer ')[1];
-            if (token) {
-              // This is a simplified example. In a real app, you'd properly decode and verify the JWT
-              const base64Url = token.split('.')[1];
-              const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-              const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-              }).join(''));
-              const payload = JSON.parse(jsonPayload);
-              userId = payload.sub;
-            }
-          } catch (error) {
-            console.error("Error extracting user ID from token:", error);
-          }
-        }
-        
-        if (!userId) {
-          console.error("Could not determine user ID for background job");
-          return;
-        }
-        
-        // Get the URL of the Supabase REST API
-        const apiUrl = new URL(req.url);
-        const baseUrl = `${apiUrl.protocol}//${apiUrl.hostname}`;
-        
-        // Save content to database
-        const contentResult = await fetch(`${baseUrl}/rest/v1/content`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': req.headers.get('authorization') || '',
-            'apikey': req.headers.get('apikey') || '',
-          },
-          body: JSON.stringify({
-            title: title,
-            content: generatedContent,
-            user_id: userId,
-            created_at: new Date().toISOString(),
-            status: 'completed'
-          }),
-        });
-        
-        if (!contentResult.ok) {
-          console.error("Failed to save content:", await contentResult.text());
-          throw new Error(`Failed to save content: ${contentResult.statusText}`);
-        }
-      }
-    } catch (error) {
-      console.error("Error in synchronous generation task:", error);
-    }
-  } catch (error) {
-    console.error("Error in edge function:", error);
-    return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: `Server error: ${error.message}` 
-      }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
-    );
-  }
-});

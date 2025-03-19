@@ -32,114 +32,104 @@ export default function ContentPage() {
   useEffect(() => {
     if (isAuthenticated && user) {
       fetchUserContent();
-      
-      // Set up real-time subscription for content updates
-      const channel = supabase
-        .channel('content-updates')
-        .on('postgres_changes', { 
-          event: 'INSERT', 
-          schema: 'public', 
-          table: 'content',
-          filter: `user_id=eq.${user.id}`
-        }, (payload) => {
-          console.log("New content inserted:", payload.new);
-          // Show a notification
-          toast({
-            title: "New Content Available",
-            description: "Your background content generation is complete!",
-          });
-          
-          // Add the new content to the list
-          const newContent = payload.new as ContentItem;
-          setContentItems(prev => [newContent, ...prev]);
-        })
-        .on('postgres_changes', {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'content',
-          filter: `user_id=eq.${user.id}`
-        }, (payload) => {
-          console.log("Content updated:", payload.new);
-          // Handle updates to existing content (like background generation completion)
-          const updatedContent = payload.new as ContentItem;
-          
-          if (updatedContent.status === 'completed') {
-            toast({
-              title: "Content Generation Complete",
-              description: `"${updatedContent.title}" is now ready to view`,
-            });
-            
-            // Update the content item in the list
-            setContentItems(prev => prev.map(item => 
-              item.id === updatedContent.id ? updatedContent : item
-            ));
-          } else if (updatedContent.status === 'failed') {
-            toast({
-              variant: "destructive",
-              title: "Content Generation Failed",
-              description: `"${updatedContent.title}" generation failed`,
-            });
-            
-            // Update the content item in the list
-            setContentItems(prev => prev.map(item => 
-              item.id === updatedContent.id ? updatedContent : item
-            ));
-          }
-        })
-        .subscribe((status) => {
-          console.log("Supabase realtime subscription status:", status);
-        });
-      
-      // Debug logging for channel
-      console.log("Setting up realtime subscription with channel:", channel);
-      
-      // Cleanup function
-      return () => {
-        console.log("Cleaning up realtime subscription");
-        supabase.removeChannel(channel);
-      };
+      setupRealtimeSubscription();
     } else {
       setLoading(false);
     }
+    
+    // Cleanup function
+    return () => {
+      cleanupRealtimeSubscription();
+    };
   }, [isAuthenticated, user]);
 
-  // Extract HTML when content is selected
-  useEffect(() => {
-    if (selectedContent?.content) {
-      // Look for code blocks that appear to contain HTML
-      const htmlCodeBlockRegex = /```(?:html)?\s*(<[\s\S]*?>[\s\S]*?<\/[\s\S]*?>)```/g;
-      const htmlInlineRegex = /<(!DOCTYPE|html|div|section|article|header|footer|table|form|button|input|iframe)[\s\S]*?<\/\1>/g;
-      
-      let matches = [];
-      let match;
-      
-      // First try to find code blocks with HTML
-      while ((match = htmlCodeBlockRegex.exec(selectedContent.content)) !== null) {
-        if (match[1] && match[1].trim()) {
-          matches.push(match[1].trim());
-        }
-      }
-      
-      // If no code blocks found, try to find inline HTML
-      if (matches.length === 0) {
-        while ((match = htmlInlineRegex.exec(selectedContent.content)) !== null) {
-          if (match[0] && match[0].trim()) {
-            matches.push(match[0].trim());
+  const setupRealtimeSubscription = () => {
+    if (!user) return;
+    
+    console.log("Setting up realtime subscription for user:", user.id);
+    
+    // Set up real-time subscription for content updates
+    const channel = supabase
+      .channel('content-updates')
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'content',
+        filter: `user_id=eq.${user.id}`
+      }, (payload) => {
+        console.log("New content inserted:", payload.new);
+        // Show a notification
+        toast({
+          title: "New Content Available",
+          description: "Your content has been added to your library!",
+        });
+        
+        // Add the new content to the list
+        const newContent = payload.new as ContentItem;
+        setContentItems(prev => [newContent, ...prev]);
+      })
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'content',
+        filter: `user_id=eq.${user.id}`
+      }, (payload) => {
+        console.log("Content updated:", payload.new);
+        // Handle updates to existing content (like background generation completion)
+        const updatedContent = payload.new as ContentItem;
+        
+        if (updatedContent.status === 'completed') {
+          toast({
+            title: "Content Generation Complete",
+            description: `"${updatedContent.title}" is now ready to view`,
+          });
+          
+          // Update the content item in the list
+          setContentItems(prev => prev.map(item => 
+            item.id === updatedContent.id ? updatedContent : item
+          ));
+          
+          // If the user is currently viewing this item, update the selected content
+          if (selectedContent && selectedContent.id === updatedContent.id) {
+            setSelectedContent(updatedContent);
+          }
+        } else if (updatedContent.status === 'failed') {
+          toast({
+            variant: "destructive",
+            title: "Content Generation Failed",
+            description: `"${updatedContent.title}" generation failed`,
+          });
+          
+          // Update the content item in the list
+          setContentItems(prev => prev.map(item => 
+            item.id === updatedContent.id ? updatedContent : item
+          ));
+          
+          // If the user is currently viewing this item, update the selected content
+          if (selectedContent && selectedContent.id === updatedContent.id) {
+            setSelectedContent(updatedContent);
           }
         }
-      }
-      
-      // Use the longest match as it's likely the most complete HTML
-      if (matches.length > 0) {
-        matches.sort((a, b) => b.length - a.length);
-        setExtractedHtmlCode(matches[0]);
-      } else {
-        setExtractedHtmlCode("");
-      }
-    } else {
-      setExtractedHtmlCode("");
+      })
+      .subscribe((status) => {
+        console.log("Supabase realtime subscription status:", status);
+      });
+    
+    // Store the channel in window for cleanup
+    // @ts-ignore
+    window.__contentUpdateChannel = channel;
+  };
+  
+  const cleanupRealtimeSubscription = () => {
+    // @ts-ignore
+    if (window.__contentUpdateChannel) {
+      console.log("Cleaning up realtime subscription");
+      // @ts-ignore
+      supabase.removeChannel(window.__contentUpdateChannel);
+      // @ts-ignore
+      delete window.__contentUpdateChannel;
     }
-  }, [selectedContent]);
+  };
 
   const fetchUserContent = async () => {
     try {
