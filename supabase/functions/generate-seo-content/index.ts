@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -747,3 +748,52 @@ serve(async (req) => {
             max_tokens: requestedModel.includes("claude-3.7-sonnet") ? 128000 : 16000,
           }),
         });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("Error response from API:", errorText);
+          throw new Error(`API Error (${response.status}): ${errorText}`);
+        }
+
+        const data = await response.json();
+        
+        if (!data || !data.choices || !data.choices[0] || !data.choices[0].message) {
+          console.error("Invalid response structure from API:", data);
+          throw new Error("Invalid response structure from API");
+        }
+        
+        generatedContent = data.choices[0].message.content;
+        console.log("Successfully generated content with model:", requestedModel);
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, content: generatedContent }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    } catch (error) {
+      console.error("Error generating content:", error);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: error.message || "Failed to generate content" 
+        }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+  } catch (error) {
+    console.error("Error processing request:", error);
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: error.message || "Unknown error occurred" 
+      }),
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+  }
+});
