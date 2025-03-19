@@ -11,28 +11,46 @@ export interface SitemapResult {
 
 export const scrapeSitemap = async (sitemapUrl: string): Promise<SitemapResult> => {
   try {
+    console.log("Scraping sitemap:", sitemapUrl);
+    
+    // Normalize URL if it doesn't have a protocol
+    const normalizedUrl = sitemapUrl.startsWith("http") ? sitemapUrl : `https://${sitemapUrl}`;
+    
     const { data, error } = await supabase.functions.invoke("scrape-sitemap", {
       body: {
-        sitemapUrl
+        sitemapUrl: normalizedUrl
       },
     });
 
     if (error) {
       console.error("Error invoking scrape-sitemap function:", error);
-      throw new Error(`Failed to scrape sitemap: ${error.message}`);
+      return {
+        success: false,
+        error: `Failed to scrape sitemap: ${error.message}`
+      };
     }
 
-    if (!data || !data.success) {
-      const errorMessage = data?.error || "Failed to scrape sitemap";
-      throw new Error(errorMessage);
+    if (!data) {
+      return {
+        success: false,
+        error: "No response received from the sitemap scraper"
+      };
+    }
+
+    if (!data.success) {
+      return {
+        success: false,
+        error: data.error || "Failed to scrape sitemap"
+      };
     }
 
     return data as SitemapResult;
   } catch (error) {
     console.error("Error in scrapeSitemap:", error);
+    const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
     return {
       success: false,
-      error: error.message || "An unexpected error occurred"
+      error: errorMessage
     };
   }
 };

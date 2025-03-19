@@ -87,14 +87,16 @@ export function useSitemapScraper(onUrlsScraped?: (count: number) => void): UseS
           onUrlsScraped(result.urls.length);
         }
       } else {
-        setError(result.error || "No URLs found in the sitemap");
+        const errorMsg = result.error || "No URLs found in the sitemap";
+        setError(errorMsg);
         toast({
           variant: "destructive",
           title: "Scraping Failed",
-          description: result.error || "No URLs found in the sitemap",
+          description: errorMsg,
         });
       }
     } catch (err) {
+      console.error("Sitemap scraping error:", err);
       const errorMessage = err instanceof Error ? err.message : "Failed to scrape sitemap";
       setError(errorMessage);
       toast({
