@@ -32,38 +32,23 @@ export function SitemapUrlInput({
   const { toast } = useToast();
   
   const { 
-    url,
-    setUrl,
+    sitemapUrl,
+    setSitemapUrl,
     isLoading,
     error,
     success,
     lastUpdatedDate,
     storedUrls,
-    scrapeSitemap,
-    clearUrlData
-  } = useSitemapScraper();
+    handleSitemapSubmit,
+    handleClearUrls,
+    guessAndSetSitemapUrl
+  } = useSitemapScraper(onUrlsScraped);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const result = await scrapeSitemap();
-    if (result && result.urls.length > 0) {
-      onUrlsScraped(result.urls.length);
-      setIsOpen(false);
-      
-      toast({
-        title: "Sitemap Scraped",
-        description: `Successfully extracted ${result.urls.length} URLs from sitemap`,
-      });
-    }
-  };
-
-  const handleClear = () => {
-    clearUrlData();
-    toast({
-      title: "Sitemap Data Cleared",
-      description: "All scraped URLs have been removed",
-    });
+    await handleSitemapSubmit(e);
+    setIsOpen(false);
   };
 
   return (
@@ -73,7 +58,10 @@ export function SitemapUrlInput({
       className="bg-muted/40 border rounded-lg overflow-hidden"
     >
       <div className="flex justify-between items-center p-4">
-        <SitemapInfoHeader storedUrls={storedUrls} isOpen={isOpen} />
+        <SitemapInfoHeader 
+          storedUrls={storedUrls} 
+          lastUpdatedDate={lastUpdatedDate} 
+        />
         <CollapsibleTrigger asChild>
           <Button variant="ghost" size="sm">
             {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -96,15 +84,18 @@ export function SitemapUrlInput({
           />
           
           <SitemapUrlForm 
-            url={url} 
-            setUrl={setUrl} 
-            handleSubmit={handleSubmit} 
+            sitemapUrl={sitemapUrl} 
+            onSitemapUrlChange={setSitemapUrl} 
+            onSubmit={handleSubmit} 
+            onUrlBlur={(e) => guessAndSetSitemapUrl(e.target.value)}
             isLoading={isLoading} 
           />
           
           <SitemapActionButtons 
-            storedUrls={storedUrls}
-            handleClear={handleClear}
+            sitemapUrl={sitemapUrl}
+            storedUrlsCount={storedUrls.length}
+            onTryDifferentFormat={() => {/* Add implementation later */}}
+            onClearUrls={handleClearUrls}
           />
         </div>
       </CollapsibleContent>
