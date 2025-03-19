@@ -32,6 +32,32 @@ export default function ContentPage() {
   useEffect(() => {
     if (isAuthenticated && user) {
       fetchUserContent();
+      
+      // Set up real-time subscription for new content
+      const channel = supabase
+        .channel('public:content')
+        .on('postgres_changes', { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'content',
+          filter: `user_id=eq.${user.id}`
+        }, (payload) => {
+          // Show a notification
+          toast({
+            title: "New Content Available",
+            description: "Your background content generation is complete!",
+          });
+          
+          // Add the new content to the list
+          const newContent = payload.new as ContentItem;
+          setContentItems(prev => [newContent, ...prev]);
+        })
+        .subscribe();
+      
+      // Cleanup function
+      return () => {
+        supabase.removeChannel(channel);
+      };
     } else {
       setLoading(false);
     }

@@ -1,5 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 export interface SeoFormValues {
   topic: string;
@@ -17,6 +18,7 @@ export interface SeoFormValues {
   includeHtmlElement: boolean;
   includeInternalLinks: boolean;
   model?: string;
+  backgroundGeneration?: boolean;
 }
 
 export async function generateSeoContent(formData: SeoFormValues, apiKey?: string): Promise<string> {
@@ -67,7 +69,8 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
     console.log("Content generation request:", {
       includeInternalLinks: formData.includeInternalLinks,
       internalLinksCount: internalLinks.length,
-      topic: formData.topic
+      topic: formData.topic,
+      backgroundGeneration: formData.backgroundGeneration
     });
     
     const { data, error } = await supabase.functions.invoke("generate-seo-content", {
@@ -87,6 +90,16 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
     if (!data || !data.success) {
       const errorMessage = data?.error || "Failed to generate content";
       throw new Error(errorMessage);
+    }
+
+    // Handle background generation
+    if (data.backgroundGeneration) {
+      toast({
+        title: "Content Generation Started",
+        description: "Your content is being generated in the background. You'll find it in 'My Content' when it's ready.",
+      });
+      
+      return "BACKGROUND_GENERATION_STARTED";
     }
 
     return data.content;

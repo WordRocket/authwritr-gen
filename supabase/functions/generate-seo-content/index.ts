@@ -30,14 +30,16 @@ serve(async (req) => {
       includeInternalLinks,
       internalLinks,
       apiKey,
-      model
+      model,
+      backgroundGeneration
     } = await req.json();
 
     // Log for debugging
     console.log("Function received params:", {
       topic,
       includeInternalLinks,
-      internalLinksCount: internalLinks?.length || 0
+      internalLinksCount: internalLinks?.length || 0,
+      backgroundGeneration: !!backgroundGeneration
     });
 
     if (includeInternalLinks && (!internalLinks || internalLinks.length === 0)) {
@@ -222,9 +224,283 @@ serve(async (req) => {
       Ensure the HTML is valid, clean, and follows best practices for embedding in WordPress without breaking the layout.`;
     }
 
-    // If search term is provided, we use a two-step process:
-    // 1. First call: Use search model to gather information
-    // 2. Second call: Use o1-mini model to create the final content
+    // If background generation is requested, return immediately with a job ID
+    if (backgroundGeneration) {
+      // Generate a random job ID
+      const jobId = crypto.randomUUID();
+      
+      // Start background job
+      const generateInBackground = async () => {
+        try {
+          let generatedContent = "";
+          
+          // Call the OpenRouter API with the search model if search term is provided
+          console.log("Starting background generation with job ID:", jobId);
+          
+          if (searchTerm) {
+            // STEP 1: Use search-capable model to gather information
+            let searchResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`,
+                'HTTP-Referer': 'https://contentgenius.app', 
+                'X-Title': 'ContentGenius SEO Generator'
+              },
+              body: JSON.stringify({
+                model: "openai/gpt-4o-mini-search-preview",
+                messages: [
+                  { role: "system", content: systemPrompt },
+                  { role: "user", content: userPrompt }
+                ],
+                temperature: 0.7,
+                max_tokens: 16000,
+              }),
+            });
+
+            if (!searchResponse.ok) {
+              const errorText = await searchResponse.text();
+              throw new Error(`Search API Error (${searchResponse.status}): ${errorText}`);
+            }
+
+            let searchData = await searchResponse.json();
+            
+            if (!searchData || !searchData.choices || !searchData.choices[0] || !searchData.choices[0].message) {
+              throw new Error("Invalid response structure from search API");
+            }
+            
+            let searchResults = searchData.choices[0].message.content;
+            console.log("Search completed. Now processing with o1-mini...");
+            
+            // STEP 2: Use o1-mini to create the final content
+            const o1SystemPrompt = `You are an expert SEO content writer. Your task is to create a high-quality, 
+            SEO-optimized blog post based on the research information provided. The content should have a readability 
+            level of grade 8, sound human-written, and follow best SEO practices to optimize for the keyword "${keyword}".
+            
+            The blog post should be written in a ${toneOfArticle || 'professional'} ${articleType || 'informational'} style, 
+            aiming for approximately ${wordCount} words for ${intendedAudience || 'general readers'}.
+            
+            Include lists, tables, charts, pull quotes, and emojis when it makes sense. Always end with an SEO title and meta description.`;
+            
+            // Add internal links instruction if requested
+            if (includeInternalLinks && internalLinks && internalLinks.length > 0) {
+              o1SystemPrompt += ` Include relevant internal links from the provided list of URLs. Select 3-7 of the most relevant URLs based on the content and link to them naturally within the text using anchor text that is relevant to both the linked page and the context of your article.`;
+            }
+            
+            const o1UserPrompt = `I have conducted extensive research on the topic "${topic}" optimized for the keyword "${keyword}". 
+            Here is the research data:
+            
+            ${searchResults}
+            
+            Using this research, write a comprehensive ${wordCount}-word SEO-optimized blog post about "${topic}" that's optimized 
+            for the keyword "${keyword}". Ensure the content:
+            
+            - Has a readability level of grade 8
+            - Sounds natural and human-written
+            - Follows best SEO practices
+            - Is written in a ${toneOfArticle || 'professional'} ${articleType || 'informational'} style`;
+            
+            if (stylePreferences.length > 0) {
+              o1UserPrompt += `\n- Uses ${stylePreferences.join(", ")} style`;
+            }
+            
+            // Add internal links if requested
+            if (includeInternalLinks && internalLinks && internalLinks.length > 0) {
+              o1UserPrompt += `
+              
+              Include 3-7 relevant internal links from this list of URLs. Choose the most appropriate URLs that relate to the content and incorporate them naturally in the article:
+              
+              ${internalLinks.join('\n')}
+              
+              For each link, use descriptive and contextually relevant anchor text that helps both users and search engines understand what the linked page is about. Distribute the links evenly throughout the article.`;
+            }
+            
+            if (includeHtmlElement) {
+              o1UserPrompt += `
+              
+              Additionally, create ONE highly relevant interactive HTML element that would significantly help readers understand or use the information in this article. The HTML element must:
+              
+              1. Start with <!DOCTYPE HTML> and be structured as a complete, self-contained document
+              2. Choose the most appropriate format based on the article content:
+                 - Interactive table (for comparing options/data)
+                 - Data visualization (for statistics/trends)
+                 - Calculator (for financial/numeric concepts)
+                 - Quiz (for educational content)
+                 - Timeline (for historical/sequential information)
+                 - Selector/filtering tool (for decision-making assistance)
+                 - Infographic (for visual representation of complex concepts)
+              
+              3. Include all CSS within a <style> tag and all JavaScript within a <script> tag
+              4. Use prefixed class names (like "cg-element-") to avoid conflicts with WordPress themes
+              5. Be responsive and mobile-friendly
+              6. Not rely on external libraries or dependencies
+              7. Not affect the page layout or styling when embedded in a WordPress post
+              8. Be actually useful to the reader, not just decorative
+              
+              Ensure the HTML is valid, clean, and follows best practices for embedding in WordPress without breaking the layout.`;
+            }
+            
+            try {
+              // Call the o1-mini model
+              let o1Response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${apiKey}`,
+                  'HTTP-Referer': 'https://contentgenius.app', 
+                  'X-Title': 'ContentGenius SEO Generator'
+                },
+                body: JSON.stringify({
+                  model: "openai/o1-mini-2024-09-12",
+                  messages: [
+                    { role: "system", content: o1SystemPrompt },
+                    { role: "user", content: o1UserPrompt }
+                  ],
+                  temperature: 0.7,
+                  max_tokens: 16000,
+                }),
+              });
+
+              if (!o1Response.ok) {
+                const errorText = await o1Response.text();
+                console.error("Error from o1-mini:", errorText);
+                // Fall back to using the search results if o1-mini fails
+                generatedContent = searchResults;
+                console.log("Falling back to search results due to o1-mini failure");
+              } else {
+                let o1Data = await o1Response.json();
+                
+                if (!o1Data || !o1Data.choices || !o1Data.choices[0] || !o1Data.choices[0].message) {
+                  console.error("Invalid response structure from o1-mini:", o1Data);
+                  // Fall back to using the search results
+                  generatedContent = searchResults;
+                  console.log("Falling back to search results due to invalid o1-mini response");
+                } else {
+                  generatedContent = o1Data.choices[0].message.content;
+                  console.log("Successfully generated content with o1-mini");
+                }
+              }
+            } catch (o1Error) {
+              console.error("Error during o1-mini call:", o1Error);
+              // Fall back to using the search results if o1-mini call fails
+              generatedContent = searchResults;
+              console.log("Falling back to search results due to o1-mini call error:", o1Error.message);
+            }
+          } else {
+            // For non-search requests, use the specified or default model directly
+            const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`,
+                'HTTP-Referer': 'https://contentgenius.app', 
+                'X-Title': 'ContentGenius SEO Generator'
+              },
+              body: JSON.stringify({
+                model: requestedModel,
+                messages: [
+                  { role: "system", content: systemPrompt },
+                  { role: "user", content: userPrompt }
+                ],
+                temperature: 0.7,
+                // Set max_tokens to 128000 specifically for Claude 3.7 Sonnet
+                max_tokens: requestedModel.includes("claude-3.7-sonnet") ? 128000 : 16000,
+              }),
+            });
+
+            if (!response.ok) {
+              const errorText = await response.text();
+              throw new Error(`API Error (${response.status}): ${errorText}`);
+            }
+
+            const data = await response.json();
+            
+            if (!data || !data.choices || !data.choices[0] || !data.choices[0].message) {
+              throw new Error("Invalid response structure from API");
+            }
+            
+            generatedContent = data.choices[0].message.content;
+          }
+          
+          // Save completed content to content table
+          const titleMatch = generatedContent.match(/^#\s*(.*?)(\n|$)/);
+          const title = titleMatch ? titleMatch[1].trim() : topic;
+          
+          // Get user_id from auth header
+          // In a real app, you'd extract the user ID from auth. For now, let's use a placeholder
+          let userId = req.headers.get('x-user-id');
+          
+          // If we don't have a user ID, try to extract it from the request parameters
+          if (!userId && req.headers.get('authorization')) {
+            try {
+              // Extract JWT token
+              const token = req.headers.get('authorization')?.split('Bearer ')[1];
+              if (token) {
+                // This is a simplified example. In a real app, you'd properly decode and verify the JWT
+                const base64Url = token.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                  return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+                const payload = JSON.parse(jsonPayload);
+                userId = payload.sub;
+              }
+            } catch (error) {
+              console.error("Error extracting user ID from token:", error);
+            }
+          }
+          
+          if (!userId) {
+            console.error("Could not determine user ID for background job");
+            return;
+          }
+          
+          // Save content to database
+          const contentResult = await fetch(`${req.url.split('/functions/')[0]}/rest/v1/content`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': req.headers.get('authorization') || '',
+              'apikey': req.headers.get('apikey') || '',
+            },
+            body: JSON.stringify({
+              title: title,
+              content: generatedContent,
+              user_id: userId,
+              created_at: new Date().toISOString()
+            }),
+          });
+          
+          if (!contentResult.ok) {
+            console.error("Failed to save content:", await contentResult.text());
+          } else {
+            console.log("Background content generation complete and saved, job ID:", jobId);
+          }
+          
+        } catch (error) {
+          console.error("Error in background generation task:", error);
+        }
+      };
+      
+      // Use EdgeRuntime.waitUntil to ensure the function continues running in the background
+      // This is a Supabase Edge Function feature that allows background processing
+      EdgeRuntime.waitUntil(generateInBackground());
+      
+      // Return immediately with job ID
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          backgroundGeneration: true,
+          jobId: jobId,
+          message: "Content generation started in background"
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+    
+    // If not background generation, proceed with regular synchronous generation
     let generatedContent = "";
     
     // Call the OpenRouter API with the search model if search term is provided
