@@ -13,8 +13,6 @@ interface SitemapStatusAlertsProps {
   storedUrls?: string[];
   onInternalLinksToggle?: (enabled: boolean) => void;
   includeInternalLinks?: boolean;
-  backgroundGeneration?: boolean;
-  onBackgroundGenerationToggle?: (enabled: boolean) => void;
 }
 
 export function SitemapStatusAlerts({ 
@@ -23,9 +21,7 @@ export function SitemapStatusAlerts({
   lastUpdatedDate, 
   storedUrls = [],
   onInternalLinksToggle,
-  includeInternalLinks = false,
-  backgroundGeneration = false,
-  onBackgroundGenerationToggle
+  includeInternalLinks = false
 }: SitemapStatusAlertsProps) {
   const formattedDate = lastUpdatedDate 
     ? formatDistanceToNow(new Date(lastUpdatedDate), { addSuffix: true })
@@ -34,12 +30,6 @@ export function SitemapStatusAlerts({
   const handleToggleChange = (checked: boolean) => {
     if (onInternalLinksToggle) {
       onInternalLinksToggle(checked);
-    }
-  };
-
-  const handleBackgroundToggleChange = (checked: boolean) => {
-    if (onBackgroundGenerationToggle) {
-      onBackgroundGenerationToggle(checked);
     }
   };
 
@@ -73,19 +63,6 @@ export function SitemapStatusAlerts({
           />
           <Label htmlFor="include-internal-links" className="text-sm font-medium">
             Include {storedUrls.length} URLs as internal links in generated content
-          </Label>
-        </div>
-      )}
-
-      {onBackgroundGenerationToggle && (
-        <div className="flex items-center space-x-2 py-2 mt-2">
-          <Switch 
-            id="background-generation" 
-            checked={backgroundGeneration}
-            onCheckedChange={handleBackgroundToggleChange}
-          />
-          <Label htmlFor="background-generation" className="text-sm font-medium">
-            Generate in background and save automatically to My Content
           </Label>
         </div>
       )}

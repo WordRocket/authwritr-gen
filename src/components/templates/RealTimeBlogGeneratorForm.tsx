@@ -1,4 +1,3 @@
-
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -49,7 +48,6 @@ import {
 } from "@/components/ui/hover-card";
 import ReactMarkdown from "react-markdown";
 import { HtmlPreviewComponent } from "./HtmlPreviewComponent";
-import { useNavigate } from "react-router-dom";
 
 const blogGeneratorSchema = z.object({
   topic: z.string().min(3, { message: "Topic must be at least 3 characters" }),
@@ -77,7 +75,6 @@ const blogGeneratorSchema = z.object({
   includeHook: z.boolean().default(true),
   includeStories: z.boolean().default(false),
   includeHtmlElement: z.boolean().default(false),
-  backgroundGeneration: z.boolean().default(false),
   model: z.string().optional(),
 });
 
@@ -92,16 +89,14 @@ const defaultValues: Partial<BlogGeneratorFormValues> = {
   includeHook: true,
   includeStories: false,
   includeHtmlElement: false,
-  backgroundGeneration: false,
   model: "openai/gpt-4o-mini-search-preview",
 };
 
 interface RealTimeBlogGeneratorFormProps {
   includeInternalLinks?: boolean;
-  backgroundGeneration?: boolean;
 }
 
-export function RealTimeBlogGeneratorForm({ includeInternalLinks = false, backgroundGeneration = false }: RealTimeBlogGeneratorFormProps) {
+export function RealTimeBlogGeneratorForm({ includeInternalLinks = false }: RealTimeBlogGeneratorFormProps) {
   const { user, apiKey } = useAuth();
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [isSaving, setIsSaving] = React.useState(false);
@@ -110,14 +105,10 @@ export function RealTimeBlogGeneratorForm({ includeInternalLinks = false, backgr
   const [apiKeyMissing, setApiKeyMissing] = React.useState(!apiKey);
   const [viewMode, setViewMode] = React.useState<"rendered" | "markdown">("rendered");
   const [extractedHtmlCode, setExtractedHtmlCode] = React.useState<string>("");
-  const navigate = useNavigate();
 
   const form = useForm<BlogGeneratorFormValues>({
     resolver: zodResolver(blogGeneratorSchema),
-    defaultValues: {
-      ...defaultValues,
-      backgroundGeneration: backgroundGeneration,
-    },
+    defaultValues,
   });
 
   React.useEffect(() => {
@@ -176,14 +167,6 @@ export function RealTimeBlogGeneratorForm({ includeInternalLinks = false, backgr
       };
       
       const content = await generateSeoContent(formDataWithInternalLinks as SeoServiceFormValues, apiKey);
-      
-      // If background generation was selected, redirect to My Content page
-      if (data.backgroundGeneration || content === "BACKGROUND_GENERATION_STARTED") {
-        setIsGenerating(false);
-        navigate("/content");
-        return;
-      }
-      
       setGeneratedContent(content);
       setActiveTab("generated-content");
       toast({
@@ -491,34 +474,7 @@ export function RealTimeBlogGeneratorForm({ includeInternalLinks = false, backgr
                     />
 
                     <div className="space-y-4 pt-4">
-                      <h3 className="font-medium">Article Options</h3>
-                      
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <FormField
-                            control={form.control}
-                            name="backgroundGeneration"
-                            render={({ field }) => (
-                              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 w-full">
-                                <div className="space-y-0.5">
-                                  <FormLabel className="text-base">Background Generation</FormLabel>
-                                  <FormDescription>
-                                    Generate in background and save to My Content
-                                  </FormDescription>
-                                </div>
-                                <FormControl>
-                                  <Switch
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
-                                  />
-                                </FormControl>
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-                      </div>
-                      
-                      <h3 className="font-medium mt-4">Article Elements</h3>
+                      <h3 className="font-medium">Article Elements</h3>
                       
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
@@ -671,9 +627,7 @@ export function RealTimeBlogGeneratorForm({ includeInternalLinks = false, backgr
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Note</AlertTitle>
                 <AlertDescription>
-                  {form.getValues('backgroundGeneration') ? 
-                    "When using background generation, the content will be saved automatically to 'My Content'." :
-                    "Web search may use additional tokens and increase API costs compared to standard generation."}
+                  Web search may use additional tokens and increase API costs compared to standard generation.
                 </AlertDescription>
               </Alert>
             )}
@@ -683,8 +637,7 @@ export function RealTimeBlogGeneratorForm({ includeInternalLinks = false, backgr
               className="w-full"
               disabled={isGenerating || (!apiKey)}
             >
-              {isGenerating ? "Researching & Generating..." : form.getValues('backgroundGeneration') ? 
-                "Generate & Save to My Content" : "Generate Real-Time Blog Post"}
+              {isGenerating ? "Researching & Generating..." : "Generate Real-Time Blog Post"}
             </Button>
           </form>
         </Form>
@@ -830,3 +783,4 @@ export function RealTimeBlogGeneratorForm({ includeInternalLinks = false, backgr
     </Tabs>
   );
 }
+

@@ -10,7 +10,6 @@ export default function SeoGeneratorTemplate() {
   const isArticleGenerator = location.pathname.includes("article-generator");
   const isBulkBlogPost = location.pathname.includes("bulk-blog-post");
   const [includeInternalLinks, setIncludeInternalLinks] = useState(false);
-  const [backgroundGeneration, setBackgroundGeneration] = useState(false);
   
   useEffect(() => {
     if (isArticleGenerator) {
@@ -34,24 +33,11 @@ export default function SeoGeneratorTemplate() {
     localStorage.setItem('includeInternalLinks', enabled.toString());
   };
 
-  const handleBackgroundGenerationToggle = (enabled: boolean) => {
-    setBackgroundGeneration(enabled);
-    console.log(`Background generation ${enabled ? 'enabled' : 'disabled'}`);
-    
-    // Store the preference in localStorage
-    localStorage.setItem('backgroundGeneration', enabled.toString());
-  };
-
-  // Load the preferences from localStorage on component mount
+  // Load the preference from localStorage on component mount
   useEffect(() => {
-    const savedInternalLinks = localStorage.getItem('includeInternalLinks');
-    if (savedInternalLinks !== null) {
-      setIncludeInternalLinks(savedInternalLinks === 'true');
-    }
-    
-    const savedBackgroundGeneration = localStorage.getItem('backgroundGeneration');
-    if (savedBackgroundGeneration !== null) {
-      setBackgroundGeneration(savedBackgroundGeneration === 'true');
+    const savedPreference = localStorage.getItem('includeInternalLinks');
+    if (savedPreference !== null) {
+      setIncludeInternalLinks(savedPreference === 'true');
     }
   }, []);
 
@@ -77,20 +63,12 @@ export default function SeoGeneratorTemplate() {
           onUrlsScraped={handleUrlsScraped} 
           onInternalLinksToggle={handleInternalLinksToggle}
           includeInternalLinks={includeInternalLinks}
-          backgroundGeneration={backgroundGeneration}
-          onBackgroundGenerationToggle={handleBackgroundGenerationToggle}
         />
       </div>
       
       {isArticleGenerator 
-        ? <RealTimeBlogGeneratorForm 
-            includeInternalLinks={includeInternalLinks}
-            backgroundGeneration={backgroundGeneration}
-          /> 
-        : <SeoGeneratorForm 
-            includeInternalLinks={includeInternalLinks}
-            backgroundGeneration={backgroundGeneration}
-          />}
+        ? <RealTimeBlogGeneratorForm includeInternalLinks={includeInternalLinks} /> 
+        : <SeoGeneratorForm includeInternalLinks={includeInternalLinks} />}
     </div>
   );
 }

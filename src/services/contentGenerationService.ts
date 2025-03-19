@@ -73,114 +73,27 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
       backgroundGeneration: formData.backgroundGeneration
     });
     
-    // Create a placeholder in "My Content" section if this is background generation
-    let placeholderId = null;
-    
-    if (formData.backgroundGeneration) {
-      console.log("Background generation enabled, creating placeholder");
-      
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (user) {
-        try {
-          // Create a placeholder entry
-          const { data: placeholder, error: placeholderError } = await supabase
-            .from('content')
-            .insert([
-              { 
-                title: `${formData.topic} (Generating...)`, 
-                content: `# Content for "${formData.topic}" is being generated\n\nYour content is currently being generated in the background. This placeholder will be automatically updated when the generation is complete. Please check back in a few minutes.`, 
-                user_id: user.id,
-                created_at: new Date().toISOString(),
-                status: 'generating'
-              }
-            ])
-            .select();
-            
-          if (placeholderError) {
-            console.error("Error creating placeholder:", placeholderError);
-            toast({
-              variant: "destructive",
-              title: "Error",
-              description: "Failed to create content placeholder: " + placeholderError.message,
-            });
-          } else if (placeholder && placeholder.length > 0) {
-            placeholderId = placeholder[0].id;
-            console.log("Created placeholder content with ID:", placeholderId);
-          } else {
-            console.error("No placeholder data returned from insert");
-          }
-        } catch (createError) {
-          console.error("Exception during placeholder creation:", createError);
-        }
-      } else {
-        console.error("No authenticated user found");
-        toast({
-          variant: "destructive",
-          title: "Authentication Error",
-          description: "You must be logged in to generate content in the background.",
-        });
-        throw new Error("No authenticated user found");
-      }
-    }
-    
-    // Call the edge function to generate content
-    console.log("Invoking edge function with placeholderId:", placeholderId);
     const { data, error } = await supabase.functions.invoke("generate-seo-content", {
       body: {
         ...formData,
         apiKey,
         model: modelId,
-        internalLinks: formData.includeInternalLinks ? internalLinks : [],
-        placeholderId: placeholderId
+        internalLinks: formData.includeInternalLinks ? internalLinks : []
       },
     });
 
     if (error) {
       console.error("Error invoking generate-seo-content function:", error);
-      // If there was a placeholder, update it to show the error
-      if (placeholderId) {
-        try {
-          await supabase
-            .from('content')
-            .update({
-              title: `${formData.topic} (Failed)`,
-              content: `# Error Generating Content\n\nThere was an error generating content for "${formData.topic}".\n\nError: ${error.message}\n\nPlease try again.`,
-              status: 'failed'
-            })
-            .eq('id', placeholderId);
-          console.log("Updated placeholder with error status");
-        } catch (updateError) {
-          console.error("Error updating placeholder with error status:", updateError);
-        }
-      }
       throw new Error(`Failed to generate content: ${error.message}`);
     }
 
     if (!data || !data.success) {
       const errorMessage = data?.error || "Failed to generate content";
-      // If there was a placeholder, update it to show the error
-      if (placeholderId) {
-        try {
-          await supabase
-            .from('content')
-            .update({
-              title: `${formData.topic} (Failed)`,
-              content: `# Error Generating Content\n\nThere was an error generating content for "${formData.topic}".\n\nError: ${errorMessage}\n\nPlease try again.`,
-              status: 'failed'
-            })
-            .eq('id', placeholderId);
-          console.log("Updated placeholder with error status");
-        } catch (updateError) {
-          console.error("Error updating placeholder with error status:", updateError);
-        }
-      }
       throw new Error(errorMessage);
     }
 
     // Handle background generation
-    if (formData.backgroundGeneration) {
+    if (data.backgroundGeneration) {
       toast({
         title: "Content Generation Started",
         description: "Your content is being generated in the background. You'll find it in 'My Content' when it's ready.",
@@ -205,8 +118,7 @@ export async function saveGeneratedContent(title: string, content: string, userI
           title, 
           content, 
           user_id: userId,
-          created_at: new Date().toISOString(),
-          status: 'completed'
+          created_at: new Date().toISOString()
         }
       ])
       .select();
