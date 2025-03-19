@@ -97,9 +97,10 @@ const defaultValues: Partial<SeoFormValues> = {
 
 interface SeoGeneratorFormProps {
   includeInternalLinks?: boolean;
+  backgroundGeneration?: boolean;
 }
 
-export function SeoGeneratorForm({ includeInternalLinks = false }: SeoGeneratorFormProps) {
+export function SeoGeneratorForm({ includeInternalLinks = false, backgroundGeneration = false }: SeoGeneratorFormProps) {
   const { user, apiKey } = useAuth();
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [isSaving, setIsSaving] = React.useState(false);
@@ -112,7 +113,10 @@ export function SeoGeneratorForm({ includeInternalLinks = false }: SeoGeneratorF
 
   const form = useForm<SeoFormValues>({
     resolver: zodResolver(seoFormSchema),
-    defaultValues,
+    defaultValues: {
+      ...defaultValues,
+      backgroundGeneration: backgroundGeneration,
+    },
   });
 
   React.useEffect(() => {

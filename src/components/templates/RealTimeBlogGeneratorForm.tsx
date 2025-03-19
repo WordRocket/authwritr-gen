@@ -98,9 +98,10 @@ const defaultValues: Partial<BlogGeneratorFormValues> = {
 
 interface RealTimeBlogGeneratorFormProps {
   includeInternalLinks?: boolean;
+  backgroundGeneration?: boolean;
 }
 
-export function RealTimeBlogGeneratorForm({ includeInternalLinks = false }: RealTimeBlogGeneratorFormProps) {
+export function RealTimeBlogGeneratorForm({ includeInternalLinks = false, backgroundGeneration = false }: RealTimeBlogGeneratorFormProps) {
   const { user, apiKey } = useAuth();
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [isSaving, setIsSaving] = React.useState(false);
@@ -113,7 +114,10 @@ export function RealTimeBlogGeneratorForm({ includeInternalLinks = false }: Real
 
   const form = useForm<BlogGeneratorFormValues>({
     resolver: zodResolver(blogGeneratorSchema),
-    defaultValues,
+    defaultValues: {
+      ...defaultValues,
+      backgroundGeneration: backgroundGeneration,
+    },
   });
 
   React.useEffect(() => {
