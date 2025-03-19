@@ -73,12 +73,44 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
       backgroundGeneration: formData.backgroundGeneration
     });
     
+    // Create a placeholder in "My Content" section if this is background generation
+    let placeholderId = null;
+    
+    if (formData.backgroundGeneration) {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
+        // Create a placeholder entry
+        const { data: placeholder, error: placeholderError } = await supabase
+          .from('content')
+          .insert([
+            { 
+              title: `${formData.topic} (Generating...)`, 
+              content: `# Content for "${formData.topic}" is being generated\n\nYour content is currently being generated in the background. This placeholder will be automatically updated when the generation is complete. Please check back in a few minutes.`, 
+              user_id: user.id,
+              created_at: new Date().toISOString(),
+              status: 'generating'
+            }
+          ])
+          .select();
+          
+        if (placeholderError) {
+          console.error("Error creating placeholder:", placeholderError);
+        } else if (placeholder && placeholder.length > 0) {
+          placeholderId = placeholder[0].id;
+          console.log("Created placeholder content with ID:", placeholderId);
+        }
+      }
+    }
+    
     const { data, error } = await supabase.functions.invoke("generate-seo-content", {
       body: {
         ...formData,
         apiKey,
         model: modelId,
-        internalLinks: formData.includeInternalLinks ? internalLinks : []
+        internalLinks: formData.includeInternalLinks ? internalLinks : [],
+        placeholderId: placeholderId
       },
     });
 
@@ -118,7 +150,8 @@ export async function saveGeneratedContent(title: string, content: string, userI
           title, 
           content, 
           user_id: userId,
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString(),
+          status: 'completed'
         }
       ])
       .select();
