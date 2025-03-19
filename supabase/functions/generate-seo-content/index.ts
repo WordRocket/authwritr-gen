@@ -34,7 +34,7 @@ serve(async (req) => {
       placeholderId
     } = await req.json();
 
-    // Log for debugging
+    // Log request parameters for debugging
     console.log("Function received params:", {
       topic,
       includeInternalLinks,
@@ -230,14 +230,13 @@ serve(async (req) => {
       // Generate a random job ID
       const jobId = crypto.randomUUID();
       
-      // Start background job
+      // Define the background task that will run independently
       const generateInBackground = async () => {
         try {
+          console.log("Starting background generation with job ID:", jobId);
           let generatedContent = "";
           
           // Call the OpenRouter API with the search model if search term is provided
-          console.log("Starting background generation with job ID:", jobId);
-          
           if (searchTerm) {
             // STEP 1: Use search-capable model to gather information
             let searchResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -261,12 +260,14 @@ serve(async (req) => {
 
             if (!searchResponse.ok) {
               const errorText = await searchResponse.text();
+              console.error("Error response from API:", errorText);
               throw new Error(`Search API Error (${searchResponse.status}): ${errorText}`);
             }
 
             let searchData = await searchResponse.json();
             
             if (!searchData || !searchData.choices || !searchData.choices[0] || !searchData.choices[0].message) {
+              console.error("Invalid response structure from search API:", searchData);
               throw new Error("Invalid response structure from search API");
             }
             
@@ -404,19 +405,20 @@ serve(async (req) => {
                   { role: "user", content: userPrompt }
                 ],
                 temperature: 0.7,
-                // Set max_tokens to 128000 specifically for Claude 3.7 Sonnet
                 max_tokens: requestedModel.includes("claude-3.7-sonnet") ? 128000 : 16000,
               }),
             });
 
             if (!response.ok) {
               const errorText = await response.text();
+              console.error("Error response from API:", errorText);
               throw new Error(`API Error (${response.status}): ${errorText}`);
             }
 
             const data = await response.json();
             
             if (!data || !data.choices || !data.choices[0] || !data.choices[0].message) {
+              console.error("Invalid response structure from API:", data);
               throw new Error("Invalid response structure from API");
             }
             
@@ -433,17 +435,26 @@ serve(async (req) => {
           if (placeholderId) {
             console.log("Updating placeholder content with ID:", placeholderId);
             
-            // Get the URL of the Supabase REST API
+            // Get the URL of the Supabase REST API from the request URL
             const apiUrl = new URL(req.url);
             const baseUrl = `${apiUrl.protocol}//${apiUrl.hostname}`;
+            
+            // Copy relevant headers from the original request
+            const authHeader = req.headers.get('authorization') || '';
+            const apiKeyHeader = req.headers.get('apikey') || '';
+            
+            console.log("Using base URL for update:", baseUrl);
+            console.log("Auth header present:", !!authHeader);
+            console.log("API key header present:", !!apiKeyHeader);
             
             // Update the placeholder with the actual content
             const updateResult = await fetch(`${baseUrl}/rest/v1/content?id=eq.${placeholderId}`, {
               method: 'PATCH',
               headers: {
                 'Content-Type': 'application/json',
-                'Authorization': req.headers.get('authorization') || '',
-                'apikey': req.headers.get('apikey') || '',
+                'Authorization': authHeader,
+                'apikey': apiKeyHeader,
+                'Prefer': 'return=minimal'
               },
               body: JSON.stringify({
                 title: title,
@@ -453,12 +464,16 @@ serve(async (req) => {
               }),
             });
             
-            if (!updateResult.ok) {
-              console.error("Failed to update placeholder:", await updateResult.text());
-              throw new Error(`Failed to update placeholder: ${updateResult.statusText}`);
-            }
+            const updateStatus = updateResult.status;
+            console.log("Update response status:", updateStatus);
             
-            console.log("Successfully updated placeholder content");
+            if (updateStatus !== 204) {
+              const errorText = await updateResult.text();
+              console.error("Failed to update placeholder:", errorText);
+              throw new Error(`Failed to update placeholder: ${updateStatus} - ${errorText}`);
+            } else {
+              console.log("Successfully updated placeholder content");
+            }
           }
           // Save new content if no placeholder was provided
           else {
@@ -529,13 +544,16 @@ serve(async (req) => {
               const apiUrl = new URL(req.url);
               const baseUrl = `${apiUrl.protocol}//${apiUrl.hostname}`;
               
+              console.log("Updating placeholder with failure status:", placeholderId);
+              
               // Update the placeholder to indicate failure
-              await fetch(`${baseUrl}/rest/v1/content?id=eq.${placeholderId}`, {
+              const errorUpdateResult = await fetch(`${baseUrl}/rest/v1/content?id=eq.${placeholderId}`, {
                 method: 'PATCH',
                 headers: {
                   'Content-Type': 'application/json',
                   'Authorization': req.headers.get('authorization') || '',
                   'apikey': req.headers.get('apikey') || '',
+                  'Prefer': 'return=minimal'
                 },
                 body: JSON.stringify({
                   title: `${topic} (Failed)`,
@@ -544,6 +562,12 @@ serve(async (req) => {
                   updated_at: new Date().toISOString()
                 }),
               });
+              
+              if (errorUpdateResult.status !== 204) {
+                console.error("Failed to update placeholder with error:", await errorUpdateResult.text());
+              } else {
+                console.log("Successfully updated placeholder with failure status");
+              }
             } catch (updateError) {
               console.error("Error updating placeholder with failure status:", updateError);
             }
@@ -599,12 +623,14 @@ serve(async (req) => {
 
         if (!searchResponse.ok) {
           const errorText = await searchResponse.text();
+          console.error("Error response from API:", errorText);
           throw new Error(`Search API Error (${searchResponse.status}): ${errorText}`);
         }
 
         let searchData = await searchResponse.json();
         
         if (!searchData || !searchData.choices || !searchData.choices[0] || !searchData.choices[0].message) {
+          console.error("Invalid response structure from search API:", searchData);
           throw new Error("Invalid response structure from search API");
         }
         
@@ -668,7 +694,7 @@ serve(async (req) => {
              - Timeline (for historical/sequential information)
              - Selector/filtering tool (for decision-making assistance)
              - Infographic (for visual representation of complex concepts)
-          
+              
           3. Include all CSS within a <style> tag and all JavaScript within a <script> tag
           4. Use prefixed class names (like "cg-element-") to avoid conflicts with WordPress themes
           5. Be responsive and mobile-friendly
@@ -742,17 +768,146 @@ serve(async (req) => {
               { role: "user", content: userPrompt }
             ],
             temperature: 0.7,
-            // Set max_tokens to 128000 specifically for Claude 3.7 Sonnet
             max_tokens: requestedModel.includes("claude-3.7-sonnet") ? 128000 : 16000,
           }),
         });
 
         if (!response.ok) {
           const errorText = await response.text();
+          console.error("Error response from API:", errorText);
           throw new Error(`API Error (${response.status}): ${errorText}`);
         }
 
         const data = await response.json();
         
         if (!data || !data.choices || !data.choices[0] || !data.choices[0].message) {
-          throw new Error("Invalid response structure
+          console.error("Invalid response structure from API:", data);
+          throw new Error("Invalid response structure from API");
+        }
+        
+        generatedContent = data.choices[0].message.content;
+      }
+      
+      // Extract title from the generated content
+      const titleMatch = generatedContent.match(/^#\s*(.*?)(\n|$)/);
+      const title = titleMatch ? titleMatch[1].trim() : topic;
+      
+      console.log("Generated content with title:", title);
+      
+      // Update existing placeholder content if provided
+      if (placeholderId) {
+        console.log("Updating placeholder content with ID:", placeholderId);
+        
+        // Get the URL of the Supabase REST API from the request URL
+        const apiUrl = new URL(req.url);
+        const baseUrl = `${apiUrl.protocol}//${apiUrl.hostname}`;
+        
+        // Copy relevant headers from the original request
+        const authHeader = req.headers.get('authorization') || '';
+        const apiKeyHeader = req.headers.get('apikey') || '';
+        
+        console.log("Using base URL for update:", baseUrl);
+        console.log("Auth header present:", !!authHeader);
+        console.log("API key header present:", !!apiKeyHeader);
+        
+        // Update the placeholder with the actual content
+        const updateResult = await fetch(`${baseUrl}/rest/v1/content?id=eq.${placeholderId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': authHeader,
+            'apikey': apiKeyHeader,
+            'Prefer': 'return=minimal'
+          },
+          body: JSON.stringify({
+            title: title,
+            content: generatedContent,
+            status: 'completed',
+            updated_at: new Date().toISOString()
+          }),
+        });
+        
+        const updateStatus = updateResult.status;
+        console.log("Update response status:", updateStatus);
+        
+        if (updateStatus !== 204) {
+          const errorText = await updateResult.text();
+          console.error("Failed to update placeholder:", errorText);
+          throw new Error(`Failed to update placeholder: ${updateStatus} - ${errorText}`);
+        } else {
+          console.log("Successfully updated placeholder content");
+        }
+      }
+      // Save new content if no placeholder was provided
+      else {
+        // Get user_id from auth header
+        let userId = req.headers.get('x-user-id');
+        
+        // If we don't have a user ID, try to extract it from the request parameters
+        if (!userId && req.headers.get('authorization')) {
+          try {
+            // Extract JWT token
+            const token = req.headers.get('authorization')?.split('Bearer ')[1];
+            if (token) {
+              // This is a simplified example. In a real app, you'd properly decode and verify the JWT
+              const base64Url = token.split('.')[1];
+              const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+              const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+              }).join(''));
+              const payload = JSON.parse(jsonPayload);
+              userId = payload.sub;
+            }
+          } catch (error) {
+            console.error("Error extracting user ID from token:", error);
+          }
+        }
+        
+        if (!userId) {
+          console.error("Could not determine user ID for background job");
+          return;
+        }
+        
+        // Get the URL of the Supabase REST API
+        const apiUrl = new URL(req.url);
+        const baseUrl = `${apiUrl.protocol}//${apiUrl.hostname}`;
+        
+        // Save content to database
+        const contentResult = await fetch(`${baseUrl}/rest/v1/content`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': req.headers.get('authorization') || '',
+            'apikey': req.headers.get('apikey') || '',
+          },
+          body: JSON.stringify({
+            title: title,
+            content: generatedContent,
+            user_id: userId,
+            created_at: new Date().toISOString(),
+            status: 'completed'
+          }),
+        });
+        
+        if (!contentResult.ok) {
+          console.error("Failed to save content:", await contentResult.text());
+          throw new Error(`Failed to save content: ${contentResult.statusText}`);
+        }
+      }
+    } catch (error) {
+      console.error("Error in synchronous generation task:", error);
+    }
+  } catch (error) {
+    console.error("Error in edge function:", error);
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: `Server error: ${error.message}` 
+      }),
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+  }
+});

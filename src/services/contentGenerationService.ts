@@ -97,10 +97,23 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
           
         if (placeholderError) {
           console.error("Error creating placeholder:", placeholderError);
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Failed to create content placeholder: " + placeholderError.message,
+          });
         } else if (placeholder && placeholder.length > 0) {
           placeholderId = placeholder[0].id;
           console.log("Created placeholder content with ID:", placeholderId);
         }
+      } else {
+        console.error("No authenticated user found");
+        toast({
+          variant: "destructive",
+          title: "Authentication Error",
+          description: "You must be logged in to generate content in the background.",
+        });
+        throw new Error("No authenticated user found");
       }
     }
     
@@ -116,16 +129,38 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
 
     if (error) {
       console.error("Error invoking generate-seo-content function:", error);
+      // If there was a placeholder, update it to show the error
+      if (placeholderId) {
+        await supabase
+          .from('content')
+          .update({
+            title: `${formData.topic} (Failed)`,
+            content: `# Error Generating Content\n\nThere was an error generating content for "${formData.topic}".\n\nError: ${error.message}\n\nPlease try again.`,
+            status: 'failed'
+          })
+          .eq('id', placeholderId);
+      }
       throw new Error(`Failed to generate content: ${error.message}`);
     }
 
     if (!data || !data.success) {
       const errorMessage = data?.error || "Failed to generate content";
+      // If there was a placeholder, update it to show the error
+      if (placeholderId) {
+        await supabase
+          .from('content')
+          .update({
+            title: `${formData.topic} (Failed)`,
+            content: `# Error Generating Content\n\nThere was an error generating content for "${formData.topic}".\n\nError: ${errorMessage}\n\nPlease try again.`,
+            status: 'failed'
+          })
+          .eq('id', placeholderId);
+      }
       throw new Error(errorMessage);
     }
 
     // Handle background generation
-    if (data.backgroundGeneration) {
+    if (formData.backgroundGeneration) {
       toast({
         title: "Content Generation Started",
         description: "Your content is being generated in the background. You'll find it in 'My Content' when it's ready.",

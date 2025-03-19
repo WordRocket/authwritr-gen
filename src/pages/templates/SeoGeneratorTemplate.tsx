@@ -85,9 +85,11 @@ export default function SeoGeneratorTemplate() {
       {isArticleGenerator 
         ? <RealTimeBlogGeneratorForm 
             includeInternalLinks={includeInternalLinks}
+            backgroundGeneration={backgroundGeneration}
           /> 
         : <SeoGeneratorForm 
             includeInternalLinks={includeInternalLinks}
+            backgroundGeneration={backgroundGeneration}
           />}
     </div>
   );

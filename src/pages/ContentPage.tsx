@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -34,15 +33,16 @@ export default function ContentPage() {
     if (isAuthenticated && user) {
       fetchUserContent();
       
-      // Set up real-time subscription for new content
+      // Set up real-time subscription for content updates
       const channel = supabase
-        .channel('public:content')
+        .channel('content-updates')
         .on('postgres_changes', { 
           event: 'INSERT', 
           schema: 'public', 
           table: 'content',
           filter: `user_id=eq.${user.id}`
         }, (payload) => {
+          console.log("New content inserted:", payload.new);
           // Show a notification
           toast({
             title: "New Content Available",
@@ -59,6 +59,7 @@ export default function ContentPage() {
           table: 'content',
           filter: `user_id=eq.${user.id}`
         }, (payload) => {
+          console.log("Content updated:", payload.new);
           // Handle updates to existing content (like background generation completion)
           const updatedContent = payload.new as ContentItem;
           
@@ -72,12 +73,29 @@ export default function ContentPage() {
             setContentItems(prev => prev.map(item => 
               item.id === updatedContent.id ? updatedContent : item
             ));
+          } else if (updatedContent.status === 'failed') {
+            toast({
+              variant: "destructive",
+              title: "Content Generation Failed",
+              description: `"${updatedContent.title}" generation failed`,
+            });
+            
+            // Update the content item in the list
+            setContentItems(prev => prev.map(item => 
+              item.id === updatedContent.id ? updatedContent : item
+            ));
           }
         })
-        .subscribe();
+        .subscribe((status) => {
+          console.log("Supabase realtime subscription status:", status);
+        });
+      
+      // Debug logging for channel
+      console.log("Setting up realtime subscription with channel:", channel);
       
       // Cleanup function
       return () => {
+        console.log("Cleaning up realtime subscription");
         supabase.removeChannel(channel);
       };
     } else {
@@ -129,18 +147,23 @@ export default function ContentPage() {
       const { data, error } = await supabase
         .from('content')
         .select('*')
+        .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
 
       if (error) {
+        console.error("Error fetching content:", error);
         toast({
           variant: "destructive",
           title: "Error fetching content",
           description: error.message,
         });
+        setLoading(false);
         return;
       }
 
+      console.log("Fetched content items:", data?.length || 0);
       setContentItems(data || []);
+      setLoading(false);
     } catch (error) {
       console.error("Error fetching content:", error);
       toast({
@@ -148,7 +171,6 @@ export default function ContentPage() {
         title: "Error",
         description: "Failed to fetch your content. Please try again.",
       });
-    } finally {
       setLoading(false);
     }
   };
@@ -216,11 +238,14 @@ export default function ContentPage() {
     return (
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {contentItems.map((item) => (
-          <Card key={item.id} className={`overflow-hidden ${item.status === 'generating' ? 'border-amber-400 border-2' : ''}`}>
+          <Card key={item.id} className={`overflow-hidden ${item.status === 'generating' ? 'border-amber-400 border-2' : item.status === 'failed' ? 'border-destructive border-2' : ''}`}>
             <CardHeader className="pb-2">
               <CardTitle className="text-lg truncate flex items-center gap-2">
                 {item.status === 'generating' && (
                   <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
+                )}
+                {item.status === 'failed' && (
+                  <AlertCircle className="h-4 w-4 text-destructive" />
                 )}
                 {item.title}
               </CardTitle>
@@ -229,12 +254,17 @@ export default function ContentPage() {
                 {item.status === 'generating' && (
                   <span className="ml-2 text-amber-500 font-medium">Generating...</span>
                 )}
+                {item.status === 'failed' && (
+                  <span className="ml-2 text-destructive font-medium">Failed</span>
+                )}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground line-clamp-3 mb-4">
                 {item.status === 'generating' 
                   ? "Content is being generated and will appear here when finished."
+                  : item.status === 'failed'
+                  ? "Generation failed. Please try again with different settings."
                   : item.content.replace(/[#*`]/g, '').substring(0, 150) + "..."}
               </p>
               <Dialog>
@@ -243,7 +273,6 @@ export default function ContentPage() {
                     variant={item.status === 'generating' ? "outline" : "outline"} 
                     className="w-full" 
                     onClick={() => handleViewContent(item)}
-                    disabled={false}
                   >
                     {item.status === 'generating' 
                       ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generation in Progress</>
@@ -256,6 +285,9 @@ export default function ContentPage() {
                       <DialogTitle className="flex items-center gap-2">
                         {item.status === 'generating' && (
                           <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
+                        )}
+                        {item.status === 'failed' && (
+                          <AlertCircle className="h-4 w-4 text-destructive" />
                         )}
                         {item.title}
                       </DialogTitle>
