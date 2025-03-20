@@ -1,4 +1,3 @@
-
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -172,7 +171,6 @@ export function SeoGeneratorForm({ includeInternalLinks = false }: SeoGeneratorF
       
       const content = await generateSeoContent(formDataWithInternalLinks as SeoServiceFormValues, apiKey);
       
-      // If background generation was selected, redirect to My Content page
       if (data.backgroundGeneration || content === "BACKGROUND_GENERATION_STARTED") {
         setIsGenerating(false);
         navigate("/content");
@@ -440,9 +438,15 @@ export function SeoGeneratorForm({ includeInternalLinks = false }: SeoGeneratorF
                             <Textarea 
                               placeholder="Include any specific information, business details, or context you want in the article" 
                               className="min-h-[120px]"
+                              showCount
+                              countType="words"
+                              maxCount={1000}
                               {...field} 
                             />
                           </FormControl>
+                          <FormDescription>
+                            Business information will be used sparingly and only when relevant
+                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}

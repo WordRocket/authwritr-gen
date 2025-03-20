@@ -350,9 +350,10 @@ export function RealTimeBlogGeneratorForm({ includeInternalLinks = false }: Real
                           </FormLabel>
                           <FormControl>
                             <Textarea 
-                              placeholder="Paste your research content here (up to 2000 characters)..."
+                              placeholder="Paste your research content here (up to 2000 words)..."
                               className="min-h-[200px]"
                               showCount
+                              countType="words"
                               maxCount={2000}
                               {...field}
                             />
@@ -556,6 +557,7 @@ export function RealTimeBlogGeneratorForm({ includeInternalLinks = false }: Real
                               placeholder="Include any specific information, business details, or context you want in the article" 
                               className="min-h-[120px]"
                               showCount
+                              countType="words"
                               maxCount={1000}
                               {...field} 
                             />
