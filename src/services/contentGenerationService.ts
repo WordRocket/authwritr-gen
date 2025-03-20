@@ -1,10 +1,11 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
 export interface SeoFormValues {
   topic: string;
   searchTerm?: string;
+  manualInput?: string;
+  inputMode?: "webSearch" | "manualInput";
   targetKeyword?: string;
   articleType?: "informational" | "listicle" | "how-to" | "anecdote" | "story";
   toneOfArticle?: "professional" | "conversational" | "friendly" | "authoritative" | "casual";

@@ -13,7 +13,7 @@ export default function SeoGeneratorTemplate() {
   
   useEffect(() => {
     if (isArticleGenerator) {
-      document.title = "Real-Time Blog Generator With Web Search";
+      document.title = "Real-Time Blog Generator With Web Search or Manual Input";
     } else if (isBulkBlogPost) {
       document.title = "Bulk Blog Post Generator | Content Genius";
     } else {
@@ -45,14 +45,14 @@ export default function SeoGeneratorTemplate() {
     <div className="mx-auto container py-8">
       <h1 className="text-3xl font-bold tracking-tight">
         {isArticleGenerator 
-          ? "Real-Time Blog Generator With Web Search" 
+          ? "Real-Time Blog Generator With Web Search or Manual Input" 
           : isBulkBlogPost
             ? "Bulk Blog Post Generator"
             : "All In One SEO Generator"}
       </h1>
       <p className="text-muted-foreground mt-2">
         {isArticleGenerator 
-          ? "Create up-to-date blog posts with real-time web research"
+          ? "Create blog posts with real-time web research or your own content"
           : isBulkBlogPost
             ? "Generate multiple blog posts with consistent formatting and structure"
             : "Generate SEO-optimized content using AI with perfect formatting and structure"}

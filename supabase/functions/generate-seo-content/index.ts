@@ -16,6 +16,8 @@ serve(async (req) => {
     const { 
       topic, 
       searchTerm,
+      manualInput,
+      inputMode,
       targetKeyword, 
       articleType, 
       toneOfArticle, 
@@ -37,6 +39,9 @@ serve(async (req) => {
     // Log for debugging
     console.log("Function received params:", {
       topic,
+      inputMode,
+      hasSearchTerm: !!searchTerm,
+      hasManualInput: !!manualInput,
       includeInternalLinks,
       internalLinksCount: internalLinks?.length || 0,
       backgroundGeneration: !!backgroundGeneration,
@@ -80,13 +85,18 @@ serve(async (req) => {
     // Initialize model variables - using 'let' instead of 'const' since they might change
     let requestedModel = "openai/gpt-4o-mini-search-preview";
     
-    // If no search term is provided, use the model specified or default to claude
-    if (!searchTerm) {
+    // If using manual input mode or no search term is provided, use the model specified or default to claude
+    if (inputMode === "manualInput" || !searchTerm) {
       requestedModel = model || "anthropic/claude-3.7-sonnet";
     }
     
     console.log("Using model for initial phase:", requestedModel);
-    console.log("Search term (if applicable):", searchTerm);
+    console.log("Input mode:", inputMode);
+    if (inputMode === "webSearch") {
+      console.log("Search term:", searchTerm);
+    } else {
+      console.log("Manual input length:", manualInput?.length || 0);
+    }
     console.log("Internal links:", includeInternalLinks ? "Enabled" : "Disabled");
     if (includeInternalLinks && internalLinks) {
       console.log(`${internalLinks.length} internal links provided`);
@@ -97,7 +107,7 @@ serve(async (req) => {
     // System prompt
     let systemPrompt = "";
     
-    if (searchTerm) {
+    if (inputMode === "webSearch" && searchTerm) {
       // Part 1: Deep research & information gathering focus
       systemPrompt = `You are an in-depth and extremely detailed researcher with access to real-time web search. 
       Your task has two parts:
@@ -110,6 +120,15 @@ serve(async (req) => {
       level of grade 8 on "${topic}" optimized for the keyword "${keyword}". The article should follow best SEO practices while 
       maintaining a natural, engaging flow. Write in the ${toneOfArticle || 'professional'} ${articleType || 'informational'} 
       style, aiming for approximately ${wordCount} words for the intended audience of ${intendedAudience || 'general readers'}.`;
+    } else if (inputMode === "manualInput" && manualInput) {
+      systemPrompt = `You are an expert SEO content writer. Your task is to create a high-quality, SEO-optimized blog post based
+      on the research information provided by the user. The content should have a readability level of grade 8, sound human-written,
+      and follow best SEO practices to optimize for the keyword "${keyword}".
+      
+      You'll be given research content that you should use as the primary source of information for the article.
+      Write a comprehensive article about ${topic} with a readability of grade 8, optimized for the keyword "${keyword}".
+      Write in the ${toneOfArticle || 'professional'} ${articleType || 'informational'} style, 
+      aiming for approximately ${wordCount} words for the intended audience of ${intendedAudience || 'general readers'}.`;
     } else {
       systemPrompt = `You are an expert SEO content writer. Write an SEO-optimized in-depth blog post about ${topic} with a readability of grade 8.`;
     }
@@ -143,7 +162,7 @@ serve(async (req) => {
     // User prompt
     let userPrompt = "";
     
-    if (searchTerm) {
+    if (inputMode === "webSearch" && searchTerm) {
       userPrompt = `I need you to do deep, detailed research on "${searchTerm}" and provide me with at least 1000+ words of information on this topic.
       
       In your research, please include:
@@ -158,6 +177,20 @@ serve(async (req) => {
       
       Once you've gathered this comprehensive research, use it to write a ${wordCount}-word 
       SEO-optimized article about "${topic}" that's optimized for the keyword "${keyword}". 
+      
+      Make sure the article:
+      - Has a readability level of grade 8
+      - Sounds natural and human-written
+      - Follows best SEO practices
+      - Is written in a ${toneOfArticle || 'professional'} ${articleType || 'informational'} style`;
+    } else if (inputMode === "manualInput" && manualInput) {
+      userPrompt = `I've conducted research on the topic "${topic}" and I'd like you to use this research to write a comprehensive, ${toneOfArticle || 'professional'} ${articleType || 'informational'} blog post.
+      
+      Here is my research information:
+      
+      ${manualInput}
+      
+      Using this research information, write a ${wordCount}-word SEO-optimized article about "${topic}" that's optimized for the keyword "${keyword}".
       
       Make sure the article:
       - Has a readability level of grade 8
@@ -252,7 +285,7 @@ serve(async (req) => {
           // Call the OpenRouter API with the search model if search term is provided
           console.log("Starting background generation with job ID:", jobId);
           
-          if (searchTerm) {
+          if (inputMode === "webSearch" && searchTerm) {
             // STEP 1: Use search-capable model to gather information
             let searchResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
               method: 'POST',
@@ -402,7 +435,7 @@ serve(async (req) => {
               console.log("Falling back to search results due to o1-mini call error:", o1Error.message);
             }
           } else {
-            // For non-search requests, use the specified or default model directly
+            // For manual input or non-search requests, use the specified or default model directly
             const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
               method: 'POST',
               headers: {
@@ -522,7 +555,7 @@ serve(async (req) => {
     console.log("Calling OpenRouter API with initial model...");
     
     try {
-      if (searchTerm) {
+      if (inputMode === "webSearch" && searchTerm) {
         // STEP 1: Use search-capable model to gather information
         let searchResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
           method: 'POST',
@@ -688,7 +721,7 @@ serve(async (req) => {
           console.log("Falling back to search results due to o1-mini call error:", o1Error.message);
         }
       } else {
-        // For non-search requests, use the specified or default model directly
+        // For manual input or non-search requests, use the specified or default model directly
         const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
           method: 'POST',
           headers: {

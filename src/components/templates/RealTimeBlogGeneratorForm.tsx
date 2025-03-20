@@ -1,3 +1,4 @@
+
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -26,7 +27,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "@/hooks/use-toast";
-import { ClipboardCopy, AlertCircle, InfoIcon, Code, Eye, Search, Globe } from "lucide-react";
+import { ClipboardCopy, AlertCircle, InfoIcon, Code, Eye, Search, Globe, FileText } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { 
   generateSeoContent, 
@@ -48,10 +49,13 @@ import {
 } from "@/components/ui/hover-card";
 import ReactMarkdown from "react-markdown";
 import { HtmlPreviewComponent } from "./HtmlPreviewComponent";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 const blogGeneratorSchema = z.object({
   topic: z.string().min(3, { message: "Topic must be at least 3 characters" }),
+  inputMode: z.enum(["webSearch", "manualInput"]).default("webSearch"),
   searchTerm: z.string().optional(),
+  manualInput: z.string().max(2000, "Manual input must be 2000 characters or less").optional(),
   targetKeyword: z.string().optional(),
   articleType: z.enum([
     "informational", 
@@ -81,6 +85,7 @@ const blogGeneratorSchema = z.object({
 type BlogGeneratorFormValues = z.infer<typeof blogGeneratorSchema>;
 
 const defaultValues: Partial<BlogGeneratorFormValues> = {
+  inputMode: "webSearch",
   articleType: "informational",
   toneOfArticle: "professional",
   wordCount: 1500,
@@ -110,6 +115,8 @@ export function RealTimeBlogGeneratorForm({ includeInternalLinks = false }: Real
     resolver: zodResolver(blogGeneratorSchema),
     defaultValues,
   });
+
+  const inputMode = form.watch("inputMode");
 
   React.useEffect(() => {
     setApiKeyMissing(!apiKey);
@@ -158,6 +165,25 @@ export function RealTimeBlogGeneratorForm({ includeInternalLinks = false }: Real
       return;
     }
     
+    // Validate form based on selected input mode
+    if (data.inputMode === "webSearch" && (!data.searchTerm || data.searchTerm.trim() === "")) {
+      toast({
+        variant: "destructive",
+        title: "Search Term Required",
+        description: "Please enter a search term for web research.",
+      });
+      return;
+    }
+    
+    if (data.inputMode === "manualInput" && (!data.manualInput || data.manualInput.trim() === "")) {
+      toast({
+        variant: "destructive",
+        title: "Manual Input Required",
+        description: "Please enter your research content in the manual input field.",
+      });
+      return;
+    }
+    
     setIsGenerating(true);
     
     try {
@@ -171,7 +197,9 @@ export function RealTimeBlogGeneratorForm({ includeInternalLinks = false }: Real
       setActiveTab("generated-content");
       toast({
         title: "Content generated successfully!",
-        description: "Your web-researched blog post is ready to review.",
+        description: data.inputMode === "webSearch" 
+          ? "Your web-researched blog post is ready to review."
+          : "Your blog post based on your input is ready to review.",
       });
     } catch (error) {
       console.error("Error generating content:", error);
@@ -242,31 +270,101 @@ export function RealTimeBlogGeneratorForm({ includeInternalLinks = false }: Real
             <div className="grid gap-6 md:grid-cols-2">
               <Card>
                 <CardHeader>
-                  <CardTitle>Web Research & Content Details</CardTitle>
+                  <CardTitle>Content Research</CardTitle>
                   <CardDescription>
-                    Enter your topic and web search terms to create a real-time researched blog post
+                    Choose how to provide research for your blog post
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <FormField
                     control={form.control}
-                    name="searchTerm"
+                    name="inputMode"
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center">
-                          <Search className="mr-2 h-4 w-4" />
-                          Web Search Term *
-                        </FormLabel>
+                      <FormItem className="space-y-3">
+                        <FormLabel>Research Method</FormLabel>
                         <FormControl>
-                          <Input placeholder="e.g., latest coffee brewing methods 2025" {...field} />
+                          <RadioGroup
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                            className="flex flex-col space-y-1"
+                          >
+                            <FormItem className="flex items-center space-x-3 space-y-0">
+                              <FormControl>
+                                <RadioGroupItem value="webSearch" />
+                              </FormControl>
+                              <FormLabel className="font-normal cursor-pointer flex items-center">
+                                <Search className="mr-2 h-4 w-4" />
+                                Web Search
+                              </FormLabel>
+                            </FormItem>
+                            <FormItem className="flex items-center space-x-3 space-y-0">
+                              <FormControl>
+                                <RadioGroupItem value="manualInput" />
+                              </FormControl>
+                              <FormLabel className="font-normal cursor-pointer flex items-center">
+                                <FileText className="mr-2 h-4 w-4" />
+                                Manual Input
+                              </FormLabel>
+                            </FormItem>
+                          </RadioGroup>
                         </FormControl>
                         <FormDescription>
-                          The term to research online for up-to-date information
+                          Choose to research topics online or provide your own research
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+
+                  {inputMode === "webSearch" && (
+                    <FormField
+                      control={form.control}
+                      name="searchTerm"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center">
+                            <Search className="mr-2 h-4 w-4" />
+                            Web Search Term *
+                          </FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g., latest coffee brewing methods 2025" {...field} />
+                          </FormControl>
+                          <FormDescription>
+                            The term to research online for up-to-date information
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+
+                  {inputMode === "manualInput" && (
+                    <FormField
+                      control={form.control}
+                      name="manualInput"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center">
+                            <FileText className="mr-2 h-4 w-4" />
+                            Your Research Content *
+                          </FormLabel>
+                          <FormControl>
+                            <Textarea 
+                              placeholder="Paste your research content here (up to 2000 characters)..."
+                              className="min-h-[200px]"
+                              showCount
+                              maxCount={2000}
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Paste your own research content to use as the basis for your article
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
 
                   <FormField
                     control={form.control}
@@ -318,7 +416,11 @@ export function RealTimeBlogGeneratorForm({ includeInternalLinks = false }: Real
                                 <InfoIcon className="h-4 w-4 text-muted-foreground" />
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p className="max-w-xs">For web search, GPT-4o mini Search Preview is automatically selected.</p>
+                                <p className="max-w-xs">
+                                  {inputMode === "webSearch" 
+                                    ? "For web search, GPT-4o mini Search Preview is automatically selected."
+                                    : "Select the AI model to use for content generation."}
+                                </p>
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
@@ -326,7 +428,7 @@ export function RealTimeBlogGeneratorForm({ includeInternalLinks = false }: Real
                         <Select 
                           onValueChange={field.onChange} 
                           defaultValue={field.value}
-                          disabled={true}
+                          disabled={inputMode === "webSearch"}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -334,16 +436,29 @@ export function RealTimeBlogGeneratorForm({ includeInternalLinks = false }: Real
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="openai/gpt-4o-mini-search-preview">
-                              <div className="flex flex-col">
-                                <span>GPT-4o mini Search Preview</span>
-                                <span className="text-xs text-muted-foreground">Best for real-time web search</span>
-                              </div>
-                            </SelectItem>
+                            {inputMode === "webSearch" ? (
+                              <SelectItem value="openai/gpt-4o-mini-search-preview">
+                                <div className="flex flex-col">
+                                  <span>GPT-4o mini Search Preview</span>
+                                  <span className="text-xs text-muted-foreground">Best for real-time web search</span>
+                                </div>
+                              </SelectItem>
+                            ) : (
+                              recommendedModels.map(model => (
+                                <SelectItem key={model.id} value={model.id}>
+                                  <div className="flex flex-col">
+                                    <span>{model.name} {model.recommended && "★"}</span>
+                                    <span className="text-xs text-muted-foreground">{model.description}</span>
+                                  </div>
+                                </SelectItem>
+                              ))
+                            )}
                           </SelectContent>
                         </Select>
                         <FormDescription>
-                          Web search requires GPT-4o mini Search Preview model.
+                          {inputMode === "webSearch" 
+                            ? "Web search requires GPT-4o mini Search Preview model."
+                            : "Choose a model for your content generation."}
                         </FormDescription>
                         {apiKeyMissing && (
                           <FormDescription className="text-destructive">
@@ -440,9 +555,14 @@ export function RealTimeBlogGeneratorForm({ includeInternalLinks = false }: Real
                             <Textarea 
                               placeholder="Include any specific information, business details, or context you want in the article" 
                               className="min-h-[120px]"
+                              showCount
+                              maxCount={1000}
                               {...field} 
                             />
                           </FormControl>
+                          <FormDescription>
+                            Business information will be used sparingly and only when relevant
+                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -627,7 +747,9 @@ export function RealTimeBlogGeneratorForm({ includeInternalLinks = false }: Real
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Note</AlertTitle>
                 <AlertDescription>
-                  Web search may use additional tokens and increase API costs compared to standard generation.
+                  {inputMode === "webSearch"
+                    ? "Web search may use additional tokens and increase API costs compared to standard generation."
+                    : "Using your own research content may help save on API costs."}
                 </AlertDescription>
               </Alert>
             )}
@@ -637,7 +759,7 @@ export function RealTimeBlogGeneratorForm({ includeInternalLinks = false }: Real
               className="w-full"
               disabled={isGenerating || (!apiKey)}
             >
-              {isGenerating ? "Researching & Generating..." : "Generate Real-Time Blog Post"}
+              {isGenerating ? "Generating..." : inputMode === "webSearch" ? "Generate Real-Time Blog Post" : "Generate Blog Post"}
             </Button>
           </form>
         </Form>
@@ -783,4 +905,3 @@ export function RealTimeBlogGeneratorForm({ includeInternalLinks = false }: Real
     </Tabs>
   );
 }
-
