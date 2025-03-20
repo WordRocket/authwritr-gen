@@ -55,31 +55,34 @@ export const scrapeSitemap = async (sitemapUrl: string): Promise<SitemapResult> 
   }
 };
 
-export const saveUrlsToLocalStorage = (urls: string[]): void => {
+export const saveUrlsToLocalStorage = (urls: string[], sitemapUrl: string): void => {
   try {
     localStorage.setItem('sitemapUrls', JSON.stringify(urls));
     localStorage.setItem('sitemapLastUpdated', new Date().toISOString());
+    localStorage.setItem('sitemapUrl', sitemapUrl);
   } catch (error) {
     console.error("Error saving URLs to localStorage:", error);
   }
 };
 
-export const getUrlsFromLocalStorage = (): { urls: string[], lastUpdated: string | null } => {
+export const getUrlsFromLocalStorage = (): { urls: string[], lastUpdated: string | null, sitemapUrl: string | null } => {
   try {
     const urlsJson = localStorage.getItem('sitemapUrls');
     const lastUpdated = localStorage.getItem('sitemapLastUpdated');
+    const sitemapUrl = localStorage.getItem('sitemapUrl');
     
     if (!urlsJson) {
-      return { urls: [], lastUpdated: null };
+      return { urls: [], lastUpdated: null, sitemapUrl: null };
     }
     
     return { 
       urls: JSON.parse(urlsJson), 
-      lastUpdated 
+      lastUpdated,
+      sitemapUrl
     };
   } catch (error) {
     console.error("Error retrieving URLs from localStorage:", error);
-    return { urls: [], lastUpdated: null };
+    return { urls: [], lastUpdated: null, sitemapUrl: null };
   }
 };
 
@@ -87,6 +90,7 @@ export const clearStoredUrls = (): void => {
   try {
     localStorage.removeItem('sitemapUrls');
     localStorage.removeItem('sitemapLastUpdated');
+    localStorage.removeItem('sitemapUrl');
   } catch (error) {
     console.error("Error clearing stored URLs:", error);
   }

@@ -59,6 +59,7 @@ export function SitemapUrlInput({
         storedUrls={storedUrls}
         onInternalLinksToggle={onInternalLinksToggle}
         includeInternalLinks={includeInternalLinks}
+        sitemapUrl={sitemapUrl}
       />
 
       <SitemapActionButtons

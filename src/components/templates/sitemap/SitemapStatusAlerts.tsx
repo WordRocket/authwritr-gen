@@ -13,6 +13,7 @@ interface SitemapStatusAlertsProps {
   storedUrls?: string[];
   onInternalLinksToggle?: (enabled: boolean) => void;
   includeInternalLinks?: boolean;
+  sitemapUrl?: string;
 }
 
 export function SitemapStatusAlerts({ 
@@ -21,7 +22,8 @@ export function SitemapStatusAlerts({
   lastUpdatedDate, 
   storedUrls = [],
   onInternalLinksToggle,
-  includeInternalLinks = false
+  includeInternalLinks = false,
+  sitemapUrl = ""
 }: SitemapStatusAlertsProps) {
   const formattedDate = lastUpdatedDate 
     ? formatDistanceToNow(new Date(lastUpdatedDate), { addSuffix: true })
@@ -32,6 +34,20 @@ export function SitemapStatusAlerts({
       onInternalLinksToggle(checked);
     }
   };
+
+  // Extract the base domain from the sitemap URL for display
+  const getBaseDomain = (url: string) => {
+    try {
+      if (!url) return "";
+      // Remove protocol and get domain
+      const domainMatch = url.match(/^(?:https?:\/\/)?(?:www\.)?([^\/]+)/i);
+      return domainMatch ? domainMatch[1] : "";
+    } catch (e) {
+      return "";
+    }
+  };
+
+  const baseDomain = getBaseDomain(sitemapUrl);
 
   return (
     <>
@@ -55,15 +71,22 @@ export function SitemapStatusAlerts({
       )}
 
       {storedUrls.length > 0 && (
-        <div className="flex items-center space-x-2 py-2 mt-2">
-          <Switch 
-            id="include-internal-links" 
-            checked={includeInternalLinks}
-            onCheckedChange={handleToggleChange}
-          />
-          <Label htmlFor="include-internal-links" className="text-sm font-medium">
-            Include {storedUrls.length} URLs as internal links in generated content
-          </Label>
+        <div className="space-y-2">
+          {baseDomain && (
+            <div className="text-xs text-muted-foreground ml-1">
+              Scraped from: {baseDomain}
+            </div>
+          )}
+          <div className="flex items-center space-x-2 py-2">
+            <Switch 
+              id="include-internal-links" 
+              checked={includeInternalLinks}
+              onCheckedChange={handleToggleChange}
+            />
+            <Label htmlFor="include-internal-links" className="text-sm font-medium">
+              Include relevant internal links throughout the article
+            </Label>
+          </div>
         </div>
       )}
     </>

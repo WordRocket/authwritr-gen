@@ -18,12 +18,12 @@ export interface UseSitemapScraperResult {
 }
 
 export function useSitemapScraper(onUrlsScraped?: (count: number) => void): UseSitemapScraperResult {
-  const [sitemapUrl, setSitemapUrl] = useState("");
+  const { urls: initialUrls, lastUpdated, sitemapUrl: savedSitemapUrl } = getUrlsFromLocalStorage();
+  const [sitemapUrl, setSitemapUrl] = useState(savedSitemapUrl || "");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   
-  const { urls: initialUrls, lastUpdated } = getUrlsFromLocalStorage();
   const [storedUrls, setStoredUrls] = useState(initialUrls);
   const [lastUpdatedDate, setLastUpdatedDate] = useState<string | null>(lastUpdated);
   const { toast } = useToast();
@@ -69,7 +69,7 @@ export function useSitemapScraper(onUrlsScraped?: (count: number) => void): UseS
       const result = await scrapeSitemap(sitemapUrl);
       
       if (result.success && result.urls && result.urls.length > 0) {
-        saveUrlsToLocalStorage(result.urls);
+        saveUrlsToLocalStorage(result.urls, sitemapUrl);
         setStoredUrls(result.urls);
         setLastUpdatedDate(new Date().toISOString());
         
