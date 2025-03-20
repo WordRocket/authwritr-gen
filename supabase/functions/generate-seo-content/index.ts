@@ -39,7 +39,8 @@ serve(async (req) => {
       topic,
       includeInternalLinks,
       internalLinksCount: internalLinks?.length || 0,
-      backgroundGeneration: !!backgroundGeneration
+      backgroundGeneration: !!backgroundGeneration,
+      hasAdditionalContext: !!additionalContext
     });
 
     if (includeInternalLinks && (!internalLinks || internalLinks.length === 0)) {
@@ -116,6 +117,11 @@ serve(async (req) => {
     systemPrompt += ` Include lists, tables, charts, pull quotes, and emojis when it makes sense in the article.`;
     systemPrompt += ` Aim for approximately ${wordCount} words.`;
     
+    // Add additional context instructions if provided
+    if (additionalContext) {
+      systemPrompt += ` I've provided you with additional context information. If it contains business or company information, use it sparingly and only when it makes sense in the flow of the article. If appropriate, include subtle calls-to-action that feel natural within the content. Don't just dump all the information in one place - integrate it naturally throughout the article where relevant to the surrounding content.`;
+    }
+    
     // Add internal links instruction if requested
     if (includeInternalLinks && internalLinks && internalLinks.length > 0) {
       console.log("Adding internal links instructions to system prompt");
@@ -170,8 +176,17 @@ serve(async (req) => {
       userPrompt += ` for an audience of ${intendedAudience}`;
     }
     
+    // Add additional context with clear instructions on how to use it
     if (additionalContext) {
-      userPrompt += `. Additional context: ${additionalContext}`;
+      userPrompt += `. Here is additional context information for you to incorporate throughout the article where relevant:
+      
+      ${additionalContext}
+      
+      Please weave this information naturally into the article where it makes sense. If it contains business or company information, use it sparingly and only when relevant. If appropriate, include subtle calls-to-action that feel natural within the content. Don't just dump all this information in one place - integrate it thoughtfully throughout the article.`;
+    } else {
+      if (additionalContext) {
+        userPrompt += `. Additional context: ${additionalContext}`;
+      }
     }
     
     userPrompt += `. Make it approximately ${wordCount} words.`;
@@ -552,12 +567,17 @@ serve(async (req) => {
         
         Include lists, tables, charts, pull quotes, and emojis when it makes sense. Always end with an SEO title and meta description.`;
         
+        // Add additional context instructions if provided
+        if (additionalContext) {
+          o1SystemPrompt += ` I've provided you with additional context information. If it contains business or company information, use it sparingly and only when it makes sense in the flow of the article. If appropriate, include subtle calls-to-action that feel natural within the content. Don't just dump all the information in one place - integrate it naturally throughout the article where relevant to the surrounding content.`;
+        }
+        
         // Add internal links instruction if requested
         if (includeInternalLinks && internalLinks && internalLinks.length > 0) {
           o1SystemPrompt += ` Include relevant internal links from the provided list of URLs. Select 3-7 of the most relevant URLs based on the content and link to them naturally within the text using anchor text that is relevant to both the linked page and the context of your article.`;
         }
         
-        const o1UserPrompt = `I have conducted extensive research on the topic "${topic}" optimized for the keyword "${keyword}". 
+        let o1UserPrompt = `I have conducted extensive research on the topic "${topic}" optimized for the keyword "${keyword}". 
         Here is the research data:
         
         ${searchResults}
@@ -572,6 +592,17 @@ serve(async (req) => {
         
         if (stylePreferences.length > 0) {
           o1UserPrompt += `\n- Uses ${stylePreferences.join(", ")} style`;
+        }
+        
+        // Add additional context with clear instructions
+        if (additionalContext) {
+          o1UserPrompt += `
+          
+          Here is additional context information to incorporate throughout your article where relevant:
+          
+          ${additionalContext}
+          
+          Please weave this information naturally into the article where it makes sense. If it contains business or company information, use it sparingly and only when relevant. If appropriate, include subtle calls-to-action that feel natural within the content. Don't just dump all this information in one place - integrate it thoughtfully throughout the article.`;
         }
         
         // Add internal links if requested
