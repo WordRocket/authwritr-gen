@@ -89,13 +89,20 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
       },
     });
 
+    // Improved error handling
     if (error) {
       console.error("Error invoking generate-seo-content function:", error);
-      throw new Error(`Failed to generate content: ${error.message}`);
+      const errorMessage = error.message || "Failed to connect to the content generation service";
+      console.log("Error details:", error);
+      throw new Error(`Failed to generate content: ${errorMessage}`);
     }
 
-    if (!data || !data.success) {
-      const errorMessage = data?.error || "Failed to generate content";
+    if (!data) {
+      throw new Error("No data returned from content generation service");
+    }
+    
+    if (!data.success) {
+      const errorMessage = data.error || "Failed to generate content";
       throw new Error(errorMessage);
     }
 

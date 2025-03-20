@@ -60,7 +60,7 @@ serve(async (req) => {
           error: "API key is required" 
         }),
         { 
-          status: 400, 
+          status: 200, // Always return 200 to client but with error in body
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       );
@@ -74,7 +74,7 @@ serve(async (req) => {
           error: "Invalid API key format" 
         }),
         { 
-          status: 400, 
+          status: 200, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       );
@@ -216,10 +216,6 @@ serve(async (req) => {
       ${additionalContext}
       
       Please weave this information naturally into the article where it makes sense. If it contains business or company information, use it sparingly and only when relevant. If appropriate, include subtle calls-to-action that feel natural within the content. Don't just dump all this information in one place - integrate it thoughtfully throughout the article.`;
-    } else {
-      if (additionalContext) {
-        userPrompt += `. Additional context: ${additionalContext}`;
-      }
     }
     
     userPrompt += `. Make it approximately ${wordCount} words.`;
@@ -576,15 +572,38 @@ serve(async (req) => {
           }),
         });
 
+        // Improved error handling for search request
         if (!searchResponse.ok) {
           const errorText = await searchResponse.text();
-          throw new Error(`Search API Error (${searchResponse.status}): ${errorText}`);
+          console.error(`Search API Error (${searchResponse.status}): ${errorText}`);
+          
+          return new Response(
+            JSON.stringify({ 
+              success: false, 
+              error: `Error with web search: ${errorText || `Status code ${searchResponse.status}`}` 
+            }),
+            { 
+              status: 200, // Always return 200 but with error in body
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+            }
+          );
         }
 
         let searchData = await searchResponse.json();
         
         if (!searchData || !searchData.choices || !searchData.choices[0] || !searchData.choices[0].message) {
-          throw new Error("Invalid response structure from search API");
+          console.error("Invalid response structure from search API:", searchData);
+          
+          return new Response(
+            JSON.stringify({ 
+              success: false, 
+              error: "Invalid response from search API. Please try again or use manual input mode." 
+            }),
+            { 
+              status: 200,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+            }
+          );
         }
         
         let searchResults = searchData.choices[0].message.content;
@@ -698,17 +717,42 @@ serve(async (req) => {
           if (!o1Response.ok) {
             const errorText = await o1Response.text();
             console.error("Error from o1-mini:", errorText);
+            
             // Fall back to using the search results if o1-mini fails
             generatedContent = searchResults;
             console.log("Falling back to search results due to o1-mini failure");
+            
+            // Send a more detailed error message including the fallback
+            return new Response(
+              JSON.stringify({ 
+                success: true, 
+                content: generatedContent,
+                warning: "Used search results directly due to error generating final content."
+              }),
+              { 
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+              }
+            );
           } else {
             let o1Data = await o1Response.json();
             
             if (!o1Data || !o1Data.choices || !o1Data.choices[0] || !o1Data.choices[0].message) {
               console.error("Invalid response structure from o1-mini:", o1Data);
+              
               // Fall back to using the search results
               generatedContent = searchResults;
               console.log("Falling back to search results due to invalid o1-mini response");
+              
+              return new Response(
+                JSON.stringify({ 
+                  success: true, 
+                  content: generatedContent,
+                  warning: "Used search results directly due to error formatting final content."
+                }),
+                { 
+                  headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+                }
+              );
             } else {
               generatedContent = o1Data.choices[0].message.content;
               console.log("Successfully generated content with o1-mini");
@@ -716,9 +760,21 @@ serve(async (req) => {
           }
         } catch (o1Error) {
           console.error("Error during o1-mini call:", o1Error);
+          
           // Fall back to using the search results if o1-mini call fails
           generatedContent = searchResults;
           console.log("Falling back to search results due to o1-mini call error:", o1Error.message);
+          
+          return new Response(
+            JSON.stringify({ 
+              success: true, 
+              content: generatedContent,
+              warning: "Used search results directly due to processing error."
+            }),
+            { 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+            }
+          );
         }
       } else {
         // For manual input or non-search requests, use the specified or default model directly
@@ -742,15 +798,38 @@ serve(async (req) => {
           }),
         });
 
+        // Improved error handling for model request
         if (!response.ok) {
           const errorText = await response.text();
-          throw new Error(`API Error (${response.status}): ${errorText}`);
+          console.error(`API Error (${response.status}): ${errorText}`);
+          
+          return new Response(
+            JSON.stringify({ 
+              success: false, 
+              error: `Error generating content: ${errorText || `Status code ${response.status}`}` 
+            }),
+            { 
+              status: 200, // Always return 200 but with error in body
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+            }
+          );
         }
 
         const data = await response.json();
         
         if (!data || !data.choices || !data.choices[0] || !data.choices[0].message) {
-          throw new Error("Invalid response structure from API");
+          console.error("Invalid response structure from API:", data);
+          
+          return new Response(
+            JSON.stringify({ 
+              success: false, 
+              error: "Invalid response from content generation API. Please try again." 
+            }),
+            { 
+              status: 200,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+            }
+          );
         }
         
         generatedContent = data.choices[0].message.content;
@@ -773,7 +852,7 @@ serve(async (req) => {
           error: `Error calling OpenRouter API: ${fetchError.message}` 
         }),
         { 
-          status: 500, 
+          status: 200, // Always return 200 with error in body
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       );
@@ -784,10 +863,10 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message 
+        error: error.message || "An unexpected error occurred"
       }),
       { 
-        status: 500, 
+        status: 200, // Always return 200 with error in body
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     );
