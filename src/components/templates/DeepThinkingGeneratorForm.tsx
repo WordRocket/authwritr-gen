@@ -1,4 +1,3 @@
-
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -60,14 +59,7 @@ const wordCountValidator = (value: string | undefined, maxWords: number): boolea
 
 const deepThinkingFormSchema = z.object({
   topic: z.string().min(3, { message: "Topic must be at least 3 characters" }),
-  inputMode: z.enum(["webSearch", "manualInput"]).default("manualInput"),
   searchTerm: z.string().optional(),
-  manualInput: z.string()
-    .optional()
-    .refine(
-      value => wordCountValidator(value, 2000),
-      { message: "Manual input must be 2000 words or less" }
-    ),
   targetKeyword: z.string().optional(),
   articleType: z.enum([
     "informational", 
@@ -113,7 +105,6 @@ const defaultValues: Partial<DeepThinkingFormValues> = {
   includeHtmlElement: false,
   backgroundGeneration: false,
   model: "anthropic/claude-3.7-sonnet:thinking",
-  inputMode: "manualInput"
 };
 
 interface DeepThinkingGeneratorFormProps {
@@ -135,8 +126,6 @@ export function DeepThinkingGeneratorForm({ includeInternalLinks = false }: Deep
     resolver: zodResolver(deepThinkingFormSchema),
     defaultValues,
   });
-
-  const watchInputMode = form.watch("inputMode");
 
   React.useEffect(() => {
     setApiKeyMissing(!apiKey);
@@ -306,92 +295,23 @@ export function DeepThinkingGeneratorForm({ includeInternalLinks = false }: Deep
 
                     <FormField
                       control={form.control}
-                      name="inputMode"
+                      name="searchTerm"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Input Mode</FormLabel>
+                          <FormLabel>Search Term *</FormLabel>
                           <FormControl>
-                            <div className="grid grid-cols-2 gap-2">
-                              <Button
-                                type="button"
-                                variant={field.value === "manualInput" ? "default" : "outline"}
-                                className="w-full justify-start"
-                                onClick={() => field.onChange("manualInput")}
-                              >
-                                <div className="flex flex-col items-start">
-                                  <span>Manual Input</span>
-                                  <span className="text-xs text-muted-foreground">
-                                    Enter your own text
-                                  </span>
-                                </div>
-                              </Button>
-                              <Button
-                                type="button"
-                                variant={field.value === "webSearch" ? "default" : "outline"}
-                                className="w-full justify-start"
-                                onClick={() => field.onChange("webSearch")}
-                              >
-                                <div className="flex flex-col items-start">
-                                  <span>Web Search</span>
-                                  <span className="text-xs text-muted-foreground">
-                                    Search online content
-                                  </span>
-                                </div>
-                              </Button>
-                            </div>
+                            <Input
+                              placeholder="e.g., latest coffee brewing techniques 2024"
+                              {...field}
+                            />
                           </FormControl>
+                          <FormDescription>
+                            Enter a search term to find current information on the web
+                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-
-                    {watchInputMode === "webSearch" && (
-                      <FormField
-                        control={form.control}
-                        name="searchTerm"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Search Term *</FormLabel>
-                            <FormControl>
-                              <Input
-                                placeholder="e.g., latest coffee brewing techniques 2024"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormDescription>
-                              Enter a search term to find current information on the web
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    )}
-
-                    {watchInputMode === "manualInput" && (
-                      <FormField
-                        control={form.control}
-                        name="manualInput"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Manual Input</FormLabel>
-                            <FormControl>
-                              <Textarea
-                                placeholder="Enter your own text input, research, or references here (2000 words max)"
-                                className="min-h-[200px]"
-                                showCount
-                                countType="words"
-                                maxCount={2000}
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormDescription>
-                              Enter your own research, text, or sources for the model to use
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    )}
 
                     <FormField
                       control={form.control}
