@@ -33,7 +33,8 @@ serve(async (req) => {
       internalLinks,
       apiKey,
       model,
-      backgroundGeneration
+      backgroundGeneration,
+      enableThinking
     } = await req.json();
 
     // Log for debugging
