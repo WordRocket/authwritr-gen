@@ -28,7 +28,8 @@ export function SitemapUrlInput({
     handleSitemapSubmit,
     handleClearUrls,
     guessAndSetSitemapUrl,
-    trySitemapIndex
+    trySitemapIndex,
+    baseDomain
   } = useSitemapScraper(onUrlsScraped);
 
   const handleUrlBlur = (e: React.FocusEvent<HTMLInputElement>) => {
@@ -42,6 +43,7 @@ export function SitemapUrlInput({
       <SitemapInfoHeader 
         storedUrls={storedUrls} 
         lastUpdatedDate={lastUpdatedDate} 
+        baseDomain={baseDomain}
       />
 
       <SitemapUrlForm

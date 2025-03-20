@@ -109,6 +109,36 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
       return "BACKGROUND_GENERATION_STARTED";
     }
 
+    // Auto-save content to the database
+    if (data.content) {
+      try {
+        // Extract title from the content (usually the first heading)
+        const titleMatch = data.content.match(/^#\s*(.*?)(\n|$)/);
+        const title = titleMatch ? titleMatch[1].trim() : formData.topic;
+        
+        // Get the current user
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (user) {
+          // Save to database
+          await saveGeneratedContent(title, data.content, user.id);
+          toast({
+            title: "Content Saved",
+            description: "Your generated content has been automatically saved to 'My Content'.",
+          });
+        } else {
+          console.warn("Content not auto-saved: No authenticated user found");
+        }
+      } catch (saveError) {
+        console.error("Error auto-saving content:", saveError);
+        toast({
+          title: "Auto-Save Failed",
+          description: "We couldn't automatically save your content. You might need to save it manually.",
+          variant: "destructive",
+        });
+      }
+    }
+
     return data.content;
   } catch (error) {
     console.error("Error in generateSeoContent:", error);
