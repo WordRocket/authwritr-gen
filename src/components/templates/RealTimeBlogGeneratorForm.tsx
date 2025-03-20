@@ -1,4 +1,3 @@
-
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -55,7 +54,7 @@ const blogGeneratorSchema = z.object({
   topic: z.string().min(3, { message: "Topic must be at least 3 characters" }),
   inputMode: z.enum(["webSearch", "manualInput"]).default("webSearch"),
   searchTerm: z.string().optional(),
-  manualInput: z.string().max(2000, "Manual input must be 2000 characters or less").optional(),
+  manualInput: z.string().max(2000, "Manual input must be 2000 words or less").optional(),
   targetKeyword: z.string().optional(),
   articleType: z.enum([
     "informational", 
@@ -165,7 +164,6 @@ export function RealTimeBlogGeneratorForm({ includeInternalLinks = false }: Real
       return;
     }
     
-    // Validate form based on selected input mode
     if (data.inputMode === "webSearch" && (!data.searchTerm || data.searchTerm.trim() === "")) {
       toast({
         variant: "destructive",
