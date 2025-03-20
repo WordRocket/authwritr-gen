@@ -35,20 +35,6 @@ export function SitemapStatusAlerts({
     }
   };
 
-  // Extract the base domain from the sitemap URL for display
-  const getBaseDomain = (url: string) => {
-    try {
-      if (!url) return "";
-      // Remove protocol and get domain
-      const domainMatch = url.match(/^(?:https?:\/\/)?(?:www\.)?([^\/]+)/i);
-      return domainMatch ? domainMatch[1] : "";
-    } catch (e) {
-      return "";
-    }
-  };
-
-  const baseDomain = getBaseDomain(sitemapUrl);
-
   return (
     <>
       {error && (
@@ -72,11 +58,6 @@ export function SitemapStatusAlerts({
 
       {storedUrls.length > 0 && (
         <div className="space-y-2">
-          {baseDomain && (
-            <div className="text-xs text-muted-foreground ml-1">
-              Scraped from: {baseDomain}
-            </div>
-          )}
           <div className="flex items-center space-x-2 py-2">
             <Switch 
               id="include-internal-links" 

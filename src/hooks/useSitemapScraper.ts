@@ -15,6 +15,7 @@ export interface UseSitemapScraperResult {
   handleClearUrls: () => void;
   guessAndSetSitemapUrl: (url: string) => void;
   trySitemapIndex: () => void;
+  baseDomain: string | null;
 }
 
 export function useSitemapScraper(onUrlsScraped?: (count: number) => void): UseSitemapScraperResult {
@@ -27,11 +28,36 @@ export function useSitemapScraper(onUrlsScraped?: (count: number) => void): UseS
   const [storedUrls, setStoredUrls] = useState(initialUrls);
   const [lastUpdatedDate, setLastUpdatedDate] = useState<string | null>(lastUpdated);
   const { toast } = useToast();
+  const [baseDomain, setBaseDomain] = useState<string | null>(null);
+
+  // Extract the base domain from the sitemap URL for display
+  const extractBaseDomain = (url: string): string | null => {
+    try {
+      if (!url) return null;
+      // Remove protocol and get domain
+      const domainMatch = url.match(/^(?:https?:\/\/)?(?:www\.)?([^\/]+)/i);
+      return domainMatch ? domainMatch[1] : null;
+    } catch (e) {
+      return null;
+    }
+  };
+
+  // Update base domain when sitemap URL changes
+  useEffect(() => {
+    if (sitemapUrl) {
+      setBaseDomain(extractBaseDomain(sitemapUrl));
+    }
+  }, [sitemapUrl]);
 
   // Notify parent component of initial URL count on mount
   useEffect(() => {
     if (onUrlsScraped && initialUrls.length > 0) {
       onUrlsScraped(initialUrls.length);
+    }
+    
+    // Set the initial base domain from saved sitemap URL
+    if (savedSitemapUrl) {
+      setBaseDomain(extractBaseDomain(savedSitemapUrl));
     }
   }, []);
 
@@ -72,6 +98,7 @@ export function useSitemapScraper(onUrlsScraped?: (count: number) => void): UseS
         saveUrlsToLocalStorage(result.urls, sitemapUrl);
         setStoredUrls(result.urls);
         setLastUpdatedDate(new Date().toISOString());
+        setBaseDomain(extractBaseDomain(sitemapUrl));
         
         const successMessage = result.message 
           ? `${result.message}: Found ${result.urls.length} URLs` 
@@ -113,6 +140,7 @@ export function useSitemapScraper(onUrlsScraped?: (count: number) => void): UseS
     clearStoredUrls();
     setStoredUrls([]);
     setLastUpdatedDate(null);
+    setBaseDomain(null);
     setSuccess("Stored URLs have been cleared");
     toast({
       title: "URLs Cleared",
@@ -175,6 +203,7 @@ export function useSitemapScraper(onUrlsScraped?: (count: number) => void): UseS
     handleSitemapSubmit,
     handleClearUrls,
     guessAndSetSitemapUrl,
-    trySitemapIndex
+    trySitemapIndex,
+    baseDomain
   };
 }

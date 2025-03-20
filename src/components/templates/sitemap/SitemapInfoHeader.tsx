@@ -7,9 +7,10 @@ import { Info } from "lucide-react";
 interface SitemapInfoHeaderProps {
   storedUrls: string[];
   lastUpdatedDate: string | null;
+  baseDomain?: string | null;
 }
 
-export function SitemapInfoHeader({ storedUrls, lastUpdatedDate }: SitemapInfoHeaderProps) {
+export function SitemapInfoHeader({ storedUrls, lastUpdatedDate, baseDomain }: SitemapInfoHeaderProps) {
   const formatLastUpdated = () => {
     if (!lastUpdatedDate) return null;
     
@@ -52,6 +53,11 @@ export function SitemapInfoHeader({ storedUrls, lastUpdatedDate }: SitemapInfoHe
       {lastUpdatedDate && (
         <p className="text-sm text-muted-foreground">
           Last updated: {formatLastUpdated()}
+        </p>
+      )}
+      {baseDomain && (
+        <p className="text-xs text-muted-foreground mt-1">
+          Domain: {baseDomain}
         </p>
       )}
     </div>

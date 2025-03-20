@@ -27,7 +27,7 @@ serve(async (req) => {
           error: "Invalid request body: " + (e instanceof Error ? e.message : String(e))
         }),
         { 
-          status: 400, 
+          status: 200, // Always return 200 so client can read the error message 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       );
@@ -43,7 +43,7 @@ serve(async (req) => {
           error: "Sitemap URL is required" 
         }),
         { 
-          status: 400, 
+          status: 200, // Always return 200 for consistent client handling
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       );
@@ -73,7 +73,7 @@ serve(async (req) => {
           error: `Failed to fetch sitemap: ${error instanceof Error ? error.message : String(error)}` 
         }),
         { 
-          status: 500, 
+          status: 200, // Always return 200 for consistent client handling
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       );
@@ -132,7 +132,7 @@ serve(async (req) => {
           error: `Error reading sitemap content: ${error instanceof Error ? error.message : String(error)}` 
         }),
         { 
-          status: 500, 
+          status: 200, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       );

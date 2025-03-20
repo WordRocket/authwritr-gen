@@ -37,7 +37,9 @@ export const scrapeSitemap = async (sitemapUrl: string): Promise<SitemapResult> 
       };
     }
 
-    if (!data.success) {
+    // The Edge Function always returns a 200 status code even for errors,
+    // so we need to check the success field in the response
+    if (data.success === false) {
       return {
         success: false,
         error: data.error || "Failed to scrape sitemap"
