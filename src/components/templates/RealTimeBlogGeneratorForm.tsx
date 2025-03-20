@@ -1,3 +1,4 @@
+
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -50,11 +51,23 @@ import ReactMarkdown from "react-markdown";
 import { HtmlPreviewComponent } from "./HtmlPreviewComponent";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
+// Custom validator for word count
+const wordCountValidator = (value: string | undefined, maxWords: number): boolean => {
+  if (!value) return true;
+  const wordCount = value.trim() ? value.trim().split(/\s+/).length : 0;
+  return wordCount <= maxWords;
+};
+
 const blogGeneratorSchema = z.object({
   topic: z.string().min(3, { message: "Topic must be at least 3 characters" }),
   inputMode: z.enum(["webSearch", "manualInput"]).default("webSearch"),
   searchTerm: z.string().optional(),
-  manualInput: z.string().max(2000, "Manual input must be 2000 words or less").optional(),
+  manualInput: z.string()
+    .optional()
+    .refine(
+      value => wordCountValidator(value, 2000),
+      { message: "Manual input must be 2000 words or less" }
+    ),
   targetKeyword: z.string().optional(),
   articleType: z.enum([
     "informational", 
