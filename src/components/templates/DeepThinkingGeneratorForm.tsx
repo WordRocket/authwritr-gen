@@ -59,7 +59,6 @@ const wordCountValidator = (value: string | undefined, maxWords: number): boolea
 
 const deepThinkingFormSchema = z.object({
   topic: z.string().min(3, { message: "Topic must be at least 3 characters" }),
-  searchTerm: z.string().optional(),
   targetKeyword: z.string().optional(),
   articleType: z.enum([
     "informational", 
@@ -287,26 +286,6 @@ export function DeepThinkingGeneratorForm({ includeInternalLinks = false }: Deep
                           </FormControl>
                           <FormDescription>
                             What is the main topic of your blog post?
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="searchTerm"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Search Term *</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="e.g., latest coffee brewing techniques 2024"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            Enter a search term to find current information on the web
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
