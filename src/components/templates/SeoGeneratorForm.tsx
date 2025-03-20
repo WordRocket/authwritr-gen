@@ -71,9 +71,8 @@ const seoFormSchema = z.object({
   additionalContext: z.string().optional(),
   wordCount: z.number().min(500).max(5000),
   includeFirstPerson: z.boolean().default(false),
-  includeAnecdotes: z.boolean().default(false),
+  includeStoriesExamples: z.boolean().default(false),
   includeHook: z.boolean().default(true),
-  includeStories: z.boolean().default(false),
   includeHtmlElement: z.boolean().default(false),
   backgroundGeneration: z.boolean().default(false),
   model: z.string().optional(),
@@ -86,9 +85,8 @@ const defaultValues: Partial<SeoFormValues> = {
   toneOfArticle: "professional",
   wordCount: 1500,
   includeFirstPerson: false,
-  includeAnecdotes: false,
+  includeStoriesExamples: false,
   includeHook: true,
-  includeStories: false,
   includeHtmlElement: false,
   backgroundGeneration: false,
   model: "anthropic/claude-3-7-sonnet",
@@ -536,13 +534,13 @@ export function SeoGeneratorForm({ includeInternalLinks = false }: SeoGeneratorF
                         <div className="flex items-center justify-between">
                           <FormField
                             control={form.control}
-                            name="includeAnecdotes"
+                            name="includeStoriesExamples"
                             render={({ field }) => (
                               <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 w-full">
                                 <div className="space-y-0.5">
-                                  <FormLabel className="text-base">Anecdotes</FormLabel>
+                                  <FormLabel className="text-base">Stories & Examples</FormLabel>
                                   <FormDescription>
-                                    Include personal stories
+                                    Include personal stories or relevant examples
                                   </FormDescription>
                                 </div>
                                 <FormControl>
@@ -568,31 +566,6 @@ export function SeoGeneratorForm({ includeInternalLinks = false }: SeoGeneratorF
                                   <FormLabel className="text-base">Hook</FormLabel>
                                   <FormDescription>
                                     Start with an engaging hook
-                                  </FormDescription>
-                                </div>
-                                <FormControl>
-                                  <Switch
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
-                                  />
-                                </FormControl>
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <FormField
-                            control={form.control}
-                            name="includeStories"
-                            render={({ field }) => (
-                              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 w-full">
-                                <div className="space-y-0.5">
-                                  <FormLabel className="text-base">Stories</FormLabel>
-                                  <FormDescription>
-                                    Include relevant stories or examples
                                   </FormDescription>
                                 </div>
                                 <FormControl>
@@ -817,3 +790,4 @@ export function SeoGeneratorForm({ includeInternalLinks = false }: SeoGeneratorF
     </Tabs>
   );
 }
+
