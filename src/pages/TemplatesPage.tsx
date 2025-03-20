@@ -9,7 +9,8 @@ import {
   BookOpen,
   FileEdit,
   FileStack,
-  PanelLeft
+  PanelLeft,
+  BrainCircuit
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { 
@@ -32,9 +33,10 @@ export default function TemplatesPage() {
     { value: "seo", label: "SEO Content" },
     { value: "blog", label: "Blog Content" },
     { value: "article", label: "Article Content" },
+    { value: "thinking", label: "Deep Thinking" },
   ];
 
-  // Templates data - updated to only include long-form generators
+  // Templates data - updated to include deep thinking template
   const templatesData = [
     {
       id: "all-in-one-seo",
@@ -59,6 +61,14 @@ export default function TemplatesPage() {
       icon: FileEdit,
       category: "article",
       route: "/templates/article-generator"
+    },
+    {
+      id: "deep-thinking",
+      title: "Deep Thinking Enabled Blog Generator",
+      description: "Create thoughtful, detailed content using AI models that explicitly show their reasoning process",
+      icon: BrainCircuit,
+      category: "thinking",
+      route: "/templates/deep-thinking"
     },
   ];
 

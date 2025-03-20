@@ -14,6 +14,7 @@ import HistoryPage from "@/pages/HistoryPage";
 import SettingsPage from "@/pages/SettingsPage";
 import NotFound from "./pages/NotFound";
 import SeoGeneratorTemplate from "./pages/templates/SeoGeneratorTemplate";
+import DeepThinkingTemplate from "./pages/templates/DeepThinkingTemplate";
 
 const queryClient = new QueryClient();
 
@@ -37,6 +38,7 @@ const App = () => (
             <Route path="/templates/all-in-one-seo" element={<MainLayout><SeoGeneratorTemplate /></MainLayout>} />
             <Route path="/templates/article-generator" element={<MainLayout><SeoGeneratorTemplate /></MainLayout>} />
             <Route path="/templates/bulk-blog-post" element={<MainLayout><SeoGeneratorTemplate /></MainLayout>} />
+            <Route path="/templates/deep-thinking" element={<MainLayout><DeepThinkingTemplate /></MainLayout>} />
             
             <Route path="*" element={<NotFound />} />
           </Routes>

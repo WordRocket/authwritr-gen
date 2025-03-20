@@ -21,6 +21,7 @@ export interface SeoFormValues {
   includeInternalLinks: boolean;
   model?: string;
   backgroundGeneration?: boolean;
+  enableThinking?: boolean;
 }
 
 export async function generateSeoContent(formData: SeoFormValues, apiKey?: string): Promise<string> {
@@ -75,7 +76,8 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
       inputMode: formData.inputMode,
       manualInputLength: formData.manualInput ? formData.manualInput.split(/\s+/).length : 0,
       additionalContextLength: formData.additionalContext ? formData.additionalContext.split(/\s+/).length : 0,
-      backgroundGeneration: formData.backgroundGeneration
+      backgroundGeneration: formData.backgroundGeneration,
+      enableThinking: formData.enableThinking
     });
     
     const { data, error } = await supabase.functions.invoke("generate-seo-content", {
@@ -188,5 +190,20 @@ export const recommendedModels = [
     name: "Gemini 1.5 Pro", 
     description: "Strong general knowledge",
     recommended: false
+  }
+];
+
+export const thinkingModels = [
+  { 
+    id: "anthropic/claude-3.7-sonnet:thinking", 
+    name: "Claude 3.7 Sonnet (Thinking)", 
+    description: "High quality with visible reasoning process",
+    recommended: true
+  },
+  { 
+    id: "google/gemini-2.0-flash-thinking-exp:free", 
+    name: "Gemini 2.0 Flash (Thinking)", 
+    description: "Fast thinking model with visible reasoning",
+    recommended: true
   }
 ];
