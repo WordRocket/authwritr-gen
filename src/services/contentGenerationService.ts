@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -71,6 +72,9 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
       includeInternalLinks: formData.includeInternalLinks,
       internalLinksCount: internalLinks.length,
       topic: formData.topic,
+      inputMode: formData.inputMode,
+      manualInputLength: formData.manualInput ? formData.manualInput.split(/\s+/).length : 0,
+      additionalContextLength: formData.additionalContext ? formData.additionalContext.split(/\s+/).length : 0,
       backgroundGeneration: formData.backgroundGeneration
     });
     

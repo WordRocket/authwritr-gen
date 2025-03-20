@@ -7,23 +7,39 @@ export interface TextareaProps
   extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   showCount?: boolean;
   maxCount?: number;
+  countType?: "characters" | "words";
 }
 
 const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
-  ({ className, showCount, maxCount, onChange, value, ...props }, ref) => {
+  ({ className, showCount, maxCount, countType = "characters", onChange, value, ...props }, ref) => {
     const [count, setCount] = React.useState<number>(0);
     
     React.useEffect(() => {
       if (typeof value === 'string') {
-        setCount(value.length);
+        if (countType === "words") {
+          // Count words by splitting on whitespace and filtering out empty strings
+          const wordCount = value.trim() ? value.trim().split(/\s+/).length : 0;
+          setCount(wordCount);
+        } else {
+          // Default to character count
+          setCount(value.length);
+        }
       }
-    }, [value]);
+    }, [value, countType]);
     
     const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       if (onChange) {
         onChange(e);
       }
-      setCount(e.target.value.length);
+      
+      if (countType === "words") {
+        // Count words by splitting on whitespace and filtering out empty strings
+        const wordCount = e.target.value.trim() ? e.target.value.trim().split(/\s+/).length : 0;
+        setCount(wordCount);
+      } else {
+        // Default to character count
+        setCount(e.target.value.length);
+      }
     };
     
     return (
@@ -44,7 +60,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
               "text-xs text-muted-foreground",
               maxCount && count > maxCount ? "text-destructive font-medium" : ""
             )}>
-              {count}{maxCount ? `/${maxCount}` : ""} characters
+              {count}{maxCount ? `/${maxCount}` : ""} {countType === "words" ? "words" : "characters"}
             </span>
           </div>
         )}
