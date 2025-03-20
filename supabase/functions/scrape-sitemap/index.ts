@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -59,18 +58,25 @@ serve(async (req) => {
     // Fetch the sitemap XML with a longer timeout
     let response;
     try {
+      // Increase timeout to 60 seconds (from 30 seconds)
       response = await fetch(normalizedUrl, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (compatible; ContentGeniusBot/1.0; +https://contentgenius.com)'
         },
-        signal: AbortSignal.timeout(30000) // 30 second timeout
+        signal: AbortSignal.timeout(60000) // 60 second timeout (doubled)
       });
     } catch (error) {
       console.error("Fetch error:", error);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      // Provide a more helpful error message for timeout errors
+      const userFriendlyError = errorMsg.includes("timed out") 
+        ? "The server took too long to respond. The sitemap may be too large or the server may be slow. Try again later or use a more specific sitemap URL."
+        : `Failed to fetch sitemap: ${errorMsg}`;
+      
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: `Failed to fetch sitemap: ${error instanceof Error ? error.message : String(error)}` 
+          error: userFriendlyError
         }),
         { 
           status: 200, // Always return 200 for consistent client handling
@@ -166,7 +172,7 @@ serve(async (req) => {
       console.log(`Found ${sitemapUrls.length} sitemaps in the index`);
       
       if (sitemapUrls.length > 0) {
-        // Fetch first sitemap from the index
+        // Fetch first sitemap from the index with longer timeout
         const firstSitemapUrl = sitemapUrls[0];
         console.log(`Fetching first sitemap from index: ${firstSitemapUrl}`);
         
@@ -176,7 +182,7 @@ serve(async (req) => {
             headers: {
               'User-Agent': 'Mozilla/5.0 (compatible; ContentGeniusBot/1.0; +https://contentgenius.com)'
             },
-            signal: AbortSignal.timeout(30000) // 30 second timeout
+            signal: AbortSignal.timeout(60000) // 60 second timeout (doubled)
           });
         } catch (error) {
           console.error("Error fetching sitemap from index:", error);
