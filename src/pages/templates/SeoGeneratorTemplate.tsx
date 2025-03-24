@@ -12,6 +12,7 @@ export default function SeoGeneratorTemplate() {
   const isBulkBlogPost = location.pathname.includes("bulk-blog-post");
   const isDeepThinking = location.pathname.includes("deep-thinking");
   const [includeInternalLinks, setIncludeInternalLinks] = useState(false);
+  const [includeCitations, setIncludeCitations] = useState(true); // Default to true for citations
   
   useEffect(() => {
     if (isArticleGenerator) {
@@ -43,7 +44,22 @@ export default function SeoGeneratorTemplate() {
     if (savedPreference !== null) {
       setIncludeInternalLinks(savedPreference === 'true');
     }
+    
+    // Load citation preference if it exists
+    const savedCitationPreference = localStorage.getItem('includeCitations');
+    if (savedCitationPreference !== null) {
+      setIncludeCitations(savedCitationPreference === 'true');
+    }
   }, []);
+  
+  // Toggle citations feature
+  const handleCitationsToggle = (enabled: boolean) => {
+    setIncludeCitations(enabled);
+    console.log(`Citations ${enabled ? 'enabled' : 'disabled'}`);
+    
+    // Store the preference in localStorage
+    localStorage.setItem('includeCitations', enabled.toString());
+  };
 
   return (
     <div className="mx-auto container py-8">
@@ -75,7 +91,11 @@ export default function SeoGeneratorTemplate() {
       </div>
       
       {isArticleGenerator 
-        ? <RealTimeBlogGeneratorForm includeInternalLinks={includeInternalLinks} />
+        ? <RealTimeBlogGeneratorForm 
+            includeInternalLinks={includeInternalLinks} 
+            includeCitations={includeCitations} 
+            onCitationsToggle={handleCitationsToggle}
+          />
         : isDeepThinking
           ? <DeepThinkingGeneratorForm includeInternalLinks={includeInternalLinks} />
           : <SeoGeneratorForm includeInternalLinks={includeInternalLinks} />}

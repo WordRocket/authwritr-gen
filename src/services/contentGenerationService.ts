@@ -19,6 +19,7 @@ export interface SeoFormValues {
   includeStories: boolean;
   includeHtmlElement: boolean;
   includeInternalLinks: boolean;
+  includeCitations?: boolean;
   model?: string;
   finalContentModel?: string;
   backgroundGeneration?: boolean;
@@ -76,6 +77,7 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
     // Log the full request body for debugging
     console.log("Content generation request:", {
       includeInternalLinks: formData.includeInternalLinks,
+      includeCitations: formData.includeCitations,
       internalLinksCount: internalLinks.length,
       topic: formData.topic,
       inputMode: formData.inputMode,

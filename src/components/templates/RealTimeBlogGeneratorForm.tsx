@@ -27,7 +27,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "@/hooks/use-toast";
-import { ClipboardCopy, AlertCircle, InfoIcon, Code, Eye, Search, Globe, FileText } from "lucide-react";
+import { ClipboardCopy, AlertCircle, InfoIcon, Code, Eye, Search, Globe, FileText, Link2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { 
   generateSeoContent, 
@@ -91,6 +91,7 @@ const blogGeneratorSchema = z.object({
   includeHook: z.boolean().default(true),
   includeStories: z.boolean().default(false),
   includeHtmlElement: z.boolean().default(false),
+  includeCitations: z.boolean().default(true),
   model: z.string().optional(),
 });
 
@@ -106,6 +107,7 @@ const defaultValues: Partial<BlogGeneratorFormValues> = {
   includeHook: true,
   includeStories: false,
   includeHtmlElement: false,
+  includeCitations: true,
   model: "openai/gpt-4o-mini-search-preview",
 };
 
@@ -133,9 +135,15 @@ const webSearchModels = [
 
 interface RealTimeBlogGeneratorFormProps {
   includeInternalLinks?: boolean;
+  includeCitations?: boolean;
+  onCitationsToggle?: (enabled: boolean) => void;
 }
 
-export function RealTimeBlogGeneratorForm({ includeInternalLinks = false }: RealTimeBlogGeneratorFormProps) {
+export function RealTimeBlogGeneratorForm({ 
+  includeInternalLinks = false,
+  includeCitations = true,
+  onCitationsToggle
+}: RealTimeBlogGeneratorFormProps) {
   const { user, apiKey } = useAuth();
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [isSaving, setIsSaving] = React.useState(false);
@@ -147,10 +155,26 @@ export function RealTimeBlogGeneratorForm({ includeInternalLinks = false }: Real
 
   const form = useForm<BlogGeneratorFormValues>({
     resolver: zodResolver(blogGeneratorSchema),
-    defaultValues,
+    defaultValues: {
+      ...defaultValues,
+      includeCitations
+    },
   });
 
   const inputMode = form.watch("inputMode");
+  const includeLocalCitations = form.watch("includeCitations");
+
+  // Update parent state when local citations value changes
+  React.useEffect(() => {
+    if (onCitationsToggle && includeLocalCitations !== includeCitations) {
+      onCitationsToggle(includeLocalCitations);
+    }
+  }, [includeLocalCitations, includeCitations, onCitationsToggle]);
+
+  // Update local form when prop changes
+  React.useEffect(() => {
+    form.setValue("includeCitations", includeCitations);
+  }, [includeCitations, form]);
 
   React.useEffect(() => {
     setApiKeyMissing(!apiKey);
@@ -387,6 +411,30 @@ export function RealTimeBlogGeneratorForm({ includeInternalLinks = false }: Real
                               The term to research online for up-to-date information
                             </FormDescription>
                             <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="includeCitations"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                            <div className="space-y-0.5">
+                              <FormLabel className="text-base flex items-center">
+                                <Link2 className="mr-2 h-4 w-4" />
+                                Include Citations
+                              </FormLabel>
+                              <FormDescription>
+                                Copy sources and add citations to the end of the blog post
+                              </FormDescription>
+                            </div>
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
                           </FormItem>
                         )}
                       />
