@@ -2,50 +2,48 @@
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, BookTemplate, History, Plus, Sparkles, TrendingUp } from "lucide-react";
+import { 
+  FileText, 
+  Search, 
+  FileStack,
+  FileEdit,
+  BrainCircuit,
+  Plus
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export default function Dashboard() {
   const navigate = useNavigate();
 
-  // Stats for the dashboard
-  const stats = [
-    {
-      title: "Total Content",
-      value: "0",
-      icon: FileText,
-      description: "Articles generated",
-    },
-    {
-      title: "Templates Used",
-      value: "0",
-      icon: BookTemplate,
-      description: "Content templates",
-    },
-    {
-      title: "Generation History",
-      value: "0",
-      icon: History,
-      description: "Past generations",
-    },
-  ];
-
-  // Sample templates for quick access
+  // Templates that match the ones in our app
   const quickTemplates = [
     {
-      title: "Blog Post",
-      description: "SEO-optimized article with headers, bullets, and conclusion",
-      icon: FileText,
+      id: "all-in-one-seo",
+      title: "All In One SEO Generator",
+      description: "Complete SEO-optimized content with keywords, meta descriptions, and structured sections",
+      icon: Search,
+      route: "/templates/all-in-one-seo"
     },
     {
-      title: "Social Media Post",
-      description: "Engaging post optimized for social media platforms",
-      icon: TrendingUp,
+      id: "bulk-blog-post",
+      title: "Bulk Blog Post Generator",
+      description: "Generate multiple blog posts with consistent formatting and structure",
+      icon: FileStack,
+      route: "/templates/bulk-blog-post"
     },
     {
-      title: "Product Description",
-      description: "Compelling product descriptions that convert",
-      icon: Sparkles,
+      id: "article-generator",
+      title: "Real-Time Blog Generator",
+      description: "Create current, well-researched articles with live web search integration",
+      icon: FileEdit,
+      route: "/templates/article-generator"
+    },
+    {
+      id: "deep-thinking",
+      title: "Deep Thinking Blog Generator",
+      description: "Create thoughtful, detailed content using AI models that show their reasoning process",
+      icon: BrainCircuit,
+      route: "/templates/deep-thinking"
     },
   ];
 
@@ -58,38 +56,27 @@ export default function Dashboard() {
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        {stats.map((stat, i) => (
-          <Card key={i} className="dashboard-card">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-              <stat.icon className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
-              <p className="text-xs text-muted-foreground">{stat.description}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2>Quick Create</h2>
+          <h2>Templates</h2>
           <Button onClick={() => navigate("/templates")}>
-            <Plus className="mr-2 h-4 w-4" /> New Content
+            <Plus className="mr-2 h-4 w-4" /> View All Templates
           </Button>
         </div>
-        <div className="grid gap-4 md:grid-cols-3">
-          {quickTemplates.map((template, i) => (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {quickTemplates.map((template) => (
             <Card 
-              key={i} 
-              className="template-card"
-              onClick={() => navigate("/templates")}
+              key={template.id} 
+              className="template-card cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => navigate(template.route)}
             >
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{template.title}</CardTitle>
-                <template.icon className="h-4 w-4 text-primary" />
+              <CardHeader className="flex flex-row items-center space-y-0 pb-2">
+                <div className="mr-4 rounded-full bg-primary/10 p-2">
+                  <template.icon className="h-4 w-4 text-primary" />
+                </div>
+                <div>
+                  <CardTitle className="text-sm font-medium">{template.title}</CardTitle>
+                </div>
               </CardHeader>
               <CardContent>
                 <p className="text-xs text-muted-foreground">{template.description}</p>
@@ -97,27 +84,6 @@ export default function Dashboard() {
             </Card>
           ))}
         </div>
-      </div>
-
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2>Recent Content</h2>
-          <Button variant="outline" onClick={() => navigate("/content")}>
-            View All
-          </Button>
-        </div>
-        <Card>
-          <CardHeader>
-            <CardDescription>
-              You haven't created any content yet. Start by selecting a template.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex justify-center pb-6">
-            <Button onClick={() => navigate("/templates")}>
-              <Plus className="mr-2 h-4 w-4" /> Create Content
-            </Button>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
