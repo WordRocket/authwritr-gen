@@ -624,7 +624,8 @@ serve(async (req) => {
         console.log("Search completed. Now processing with Claude 3.7 Sonnet...");
         
         // STEP 2: Use Claude 3.7 Sonnet to create the final content
-        const claudeSystemPrompt = `You are an expert SEO content writer. Your task is to create a high-quality, 
+        // Important: Making sure we're using 'let' for system prompts here
+        let claudeSystemPrompt = `You are an expert SEO content writer. Your task is to create a high-quality, 
         SEO-optimized blog post based on the research information provided. The content should have a readability 
         level of grade 8, sound human-written, and follow best SEO practices to optimize for the keyword "${keyword}".
         
@@ -645,6 +646,7 @@ serve(async (req) => {
           claudeSystemPrompt += ` Include relevant internal links from the provided list of URLs. Select 3-7 of the most relevant URLs based on the content and link to them naturally within the text using anchor text that is relevant to both the linked page and the context of your article.`;
         }
         
+        // Important: Using 'let' instead of 'const' for userPrompt that might be appended to
         let claudeUserPrompt = `I have conducted extensive research on the topic "${topic}" optimized for the keyword "${keyword}". 
         Here is the research data:
         
@@ -724,7 +726,7 @@ serve(async (req) => {
               'X-Title': 'ContentGenius SEO Generator'
             },
             body: JSON.stringify({
-              model: "anthropic/claude-3.7-sonnet",
+              model: finalContentModelToUse, // Use the variable we defined at the beginning
               messages: [
                 { role: "system", content: claudeSystemPrompt },
                 { role: "user", content: claudeUserPrompt }
