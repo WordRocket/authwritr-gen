@@ -193,6 +193,18 @@ export const recommendedModels = [
     recommended: true
   },
   { 
+    id: "perplexity/sonar-reasoning-pro", 
+    name: "Perplexity Sonar Reasoning Pro", 
+    description: "Advanced reasoning with comprehensive citations",
+    recommended: true
+  },
+  { 
+    id: "perplexity/sonar-pro", 
+    name: "Perplexity Sonar Pro", 
+    description: "Handles complex queries with extensive citations",
+    recommended: true
+  },
+  { 
     id: "anthropic/claude-3.7-sonnet", 
     name: "Claude 3.7 Sonnet", 
     description: "High quality for SEO content",

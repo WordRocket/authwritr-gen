@@ -109,6 +109,28 @@ const defaultValues: Partial<BlogGeneratorFormValues> = {
   model: "openai/gpt-4o-mini-search-preview",
 };
 
+// Web search specific models
+const webSearchModels = [
+  { 
+    id: "openai/gpt-4o-mini-search-preview", 
+    name: "GPT-4o mini Search Preview", 
+    description: "Fastest web search with good quality",
+    recommended: true
+  },
+  { 
+    id: "perplexity/sonar-reasoning-pro", 
+    name: "Perplexity Sonar Reasoning Pro", 
+    description: "Advanced reasoning with comprehensive citations",
+    recommended: true
+  },
+  { 
+    id: "perplexity/sonar-pro", 
+    name: "Perplexity Sonar Pro", 
+    description: "Handles complex queries with extensive citations",
+    recommended: true
+  }
+];
+
 interface RealTimeBlogGeneratorFormProps {
   includeInternalLinks?: boolean;
 }
@@ -166,6 +188,15 @@ export function RealTimeBlogGeneratorForm({ includeInternalLinks = false }: Real
       setExtractedHtmlCode("");
     }
   }, [generatedContent]);
+
+  // Update the model when the input mode changes
+  React.useEffect(() => {
+    if (inputMode === "webSearch") {
+      form.setValue("model", "openai/gpt-4o-mini-search-preview");
+    } else {
+      form.setValue("model", "openai/o1-mini-2024-09-12");
+    }
+  }, [inputMode, form]);
 
   const onSubmit = async (data: BlogGeneratorFormValues) => {
     if (!apiKey) {
@@ -430,7 +461,7 @@ export function RealTimeBlogGeneratorForm({ includeInternalLinks = false }: Real
                               <TooltipContent>
                                 <p className="max-w-xs">
                                   {inputMode === "webSearch" 
-                                    ? "For web search, GPT-4o mini Search Preview is automatically selected."
+                                    ? "Select the AI model to use for web search and content generation."
                                     : "Select the AI model to use for content generation."}
                                 </p>
                               </TooltipContent>
@@ -440,7 +471,6 @@ export function RealTimeBlogGeneratorForm({ includeInternalLinks = false }: Real
                         <Select 
                           onValueChange={field.onChange} 
                           defaultValue={field.value}
-                          disabled={inputMode === "webSearch"}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -449,12 +479,14 @@ export function RealTimeBlogGeneratorForm({ includeInternalLinks = false }: Real
                           </FormControl>
                           <SelectContent>
                             {inputMode === "webSearch" ? (
-                              <SelectItem value="openai/gpt-4o-mini-search-preview">
-                                <div className="flex flex-col">
-                                  <span>GPT-4o mini Search Preview</span>
-                                  <span className="text-xs text-muted-foreground">Best for real-time web search</span>
-                                </div>
-                              </SelectItem>
+                              webSearchModels.map(model => (
+                                <SelectItem key={model.id} value={model.id}>
+                                  <div className="flex flex-col">
+                                    <span>{model.name} {model.recommended && "★"}</span>
+                                    <span className="text-xs text-muted-foreground">{model.description}</span>
+                                  </div>
+                                </SelectItem>
+                              ))
                             ) : (
                               recommendedModels.map(model => (
                                 <SelectItem key={model.id} value={model.id}>
@@ -469,7 +501,7 @@ export function RealTimeBlogGeneratorForm({ includeInternalLinks = false }: Real
                         </Select>
                         <FormDescription>
                           {inputMode === "webSearch" 
-                            ? "Web search requires GPT-4o mini Search Preview model."
+                            ? "Choose a model for web search capabilities."
                             : "Choose a model for your content generation."}
                         </FormDescription>
                         {apiKeyMissing && (
