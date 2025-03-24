@@ -33,6 +33,7 @@ serve(async (req) => {
       internalLinks,
       apiKey,
       model,
+      finalContentModel,
       backgroundGeneration,
       enableThinking
     } = await req.json();
@@ -46,7 +47,9 @@ serve(async (req) => {
       includeInternalLinks,
       internalLinksCount: internalLinks?.length || 0,
       backgroundGeneration: !!backgroundGeneration,
-      hasAdditionalContext: !!additionalContext
+      hasAdditionalContext: !!additionalContext,
+      model,
+      finalContentModel
     });
 
     if (includeInternalLinks && (!internalLinks || internalLinks.length === 0)) {
@@ -84,12 +87,7 @@ serve(async (req) => {
     const keyword = targetKeyword || topic;
     
     // Initialize model variables - using 'let' instead of 'const' since they might change
-    let requestedModel = "openai/gpt-4o-mini-search-preview";
-    
-    // If using manual input mode or no search term is provided, use the model specified or default to claude
-    if (inputMode === "manualInput" || !searchTerm) {
-      requestedModel = model || "anthropic/claude-3.7-sonnet";
-    }
+    let requestedModel = model || "openai/gpt-4o-mini-search-preview";
     
     console.log("Using model for initial phase:", requestedModel);
     console.log("Input mode:", inputMode);
@@ -105,22 +103,25 @@ serve(async (req) => {
 
     // Build the prompts for the OpenRouter API with the 3-part approach
     
-    // System prompt
+    // System prompt for web search
     let systemPrompt = "";
     
     if (inputMode === "webSearch" && searchTerm) {
-      // Part 1: Deep research & information gathering focus
-      systemPrompt = `You are an in-depth and extremely detailed researcher with access to real-time web search. 
-      Your task has two parts:
+      // For web search: Focus on deep research and information gathering
+      systemPrompt = `You are an in-depth and extremely detailed researcher with access to web search. 
+      Your task is to research "${searchTerm}" extensively and gather the most relevant information related to the blog post topic "${topic}".
       
-      PART 1: Conduct deep research on "${searchTerm}" using web search. Gather at least 1000+ words of detailed information.
-      Include tables, charts, up-to-date statistics, pricing if relevant, new techniques, recent findings, and as much relevant 
-      information as possible that relates to the blog topic "${topic}". Focus on information from the last 1-2 years when possible.
+      Focus on collecting:
+      - Relevant data, statistics, and facts
+      - Relevant expert opinions and insights
+      - Relevant sources (academic studies, industry reports, expert articles)
+      - Recent developments and trends
+      - Different perspectives on the topic
+      - Case studies or examples that illustrate key points
+      - Specific details that would make the blog post more authoritative and comprehensive
       
-      PART 2: Use this research to craft a comprehensive, SEO-optimized, human-sounding article with a readability 
-      level of grade 8 on "${topic}" optimized for the keyword "${keyword}". The article should follow best SEO practices while 
-      maintaining a natural, engaging flow. Write in the ${toneOfArticle || 'professional'} ${articleType || 'informational'} 
-      style, aiming for approximately ${wordCount} words for the intended audience of ${intendedAudience || 'general readers'}.`;
+      Always include the sources of your information. Be thorough and comprehensive in your research.
+      The information you gather will be used to write an in-depth blog post on "${topic}" optimized for the keyword "${keyword}".`;
     } else if (inputMode === "manualInput" && manualInput) {
       systemPrompt = `You are an expert SEO content writer. Your task is to create a high-quality, SEO-optimized blog post based
       on the research information provided by the user. The content should have a readability level of grade 8, sound human-written,
@@ -134,8 +135,11 @@ serve(async (req) => {
       systemPrompt = `You are an expert SEO content writer. Write an SEO-optimized in-depth blog post about ${topic} with a readability of grade 8.`;
     }
     
-    systemPrompt += ` Include lists, tables, charts, pull quotes, and emojis when it makes sense in the article.`;
-    systemPrompt += ` Aim for approximately ${wordCount} words.`;
+    // Only add these for direct content generation (not for search)
+    if (inputMode !== "webSearch" || !searchTerm) {
+      systemPrompt += ` Include lists, tables, charts, pull quotes, and emojis when it makes sense in the article.`;
+      systemPrompt += ` Aim for approximately ${wordCount} words.`;
+    }
     
     // Add additional context instructions if provided
     if (additionalContext) {
@@ -148,42 +152,38 @@ serve(async (req) => {
       systemPrompt += ` Include relevant internal links from the provided list of URLs. Select 3-7 of the most relevant URLs based on the content and link to them naturally within the text using anchor text that is relevant to both the linked page and the context of your article. Distribute the links evenly throughout the article.`;
     }
     
-    if (includeHtmlElement) {
-      systemPrompt += ` Also create an interactive HTML element that will be useful and relevant to the blog post content.`;
-      systemPrompt += ` The HTML element should be one of the following: interactive table, data visualization, comparison chart, timeline, infographic, calculator, quiz, or selector.`;
-      systemPrompt += ` Start the HTML code with <!DOCTYPE HTML> and ensure it's completely self-contained and compatible with WordPress.`;
-      systemPrompt += ` The HTML should include all necessary CSS within a <style> tag and JavaScript within a <script> tag.`;
-      systemPrompt += ` Make sure all IDs, classes, and selectors in the HTML are unique and prefixed with a specific namespace to avoid conflicts with the WordPress theme.`;
-      systemPrompt += ` The element should be responsive and not break the page layout when embedded in a WordPress post.`;
+    // Only add these for direct content generation (not for search)
+    if (inputMode !== "webSearch" || !searchTerm) {
+      if (includeHtmlElement) {
+        systemPrompt += ` Also create an interactive HTML element that will be useful and relevant to the blog post content.`;
+        systemPrompt += ` The HTML element should be one of the following: interactive table, data visualization, comparison chart, timeline, infographic, calculator, quiz, or selector.`;
+        systemPrompt += ` Start the HTML code with <!DOCTYPE HTML> and ensure it's completely self-contained and compatible with WordPress.`;
+        systemPrompt += ` The HTML should include all necessary CSS within a <style> tag and JavaScript within a <script> tag.`;
+        systemPrompt += ` Make sure all IDs, classes, and selectors in the HTML are unique and prefixed with a specific namespace to avoid conflicts with the WordPress theme.`;
+        systemPrompt += ` The element should be responsive and not break the page layout when embedded in a WordPress post.`;
+      }
+      
+      systemPrompt += ` When writing, follow the best SEO practices and include the target keyword "${keyword}" and variations of the keyword in the title, h1, h2, h3, etc. and the body of the article.`;
+      systemPrompt += ` Always end the article with an SEO title and meta description.`;
     }
-    
-    systemPrompt += ` When writing, follow the best SEO practices and include the target keyword "${keyword}" and variations of the keyword in the title, h1, h2, h3, etc. and the body of the article.`;
-    systemPrompt += ` Always end the article with an SEO title and meta description.`;
 
     // User prompt
     let userPrompt = "";
     
     if (inputMode === "webSearch" && searchTerm) {
-      userPrompt = `I need you to do deep, detailed research on "${searchTerm}" and provide me with at least 1000+ words of information on this topic.
+      userPrompt = `I need you to do deep, detailed research on "${searchTerm}" and gather the most relevant information related to the blog post topic "${topic}".
       
-      In your research, please include:
-      - Tables and charts where relevant
-      - Up-to-date and cutting-edge information (focus on the last 1-2 years)
-      - Pricing information if relevant
-      - New techniques and methodologies
-      - Recent findings and studies
-      - Expert opinions and quotes
-      - Statistical data and trends
-      - Comparative analyses
+      In your research, please focus on collecting:
+      - Relevant data, statistics, and facts
+      - Relevant expert opinions and insights
+      - Relevant sources (academic studies, industry reports, expert articles)
+      - Recent developments and trends
+      - Different perspectives on the topic
+      - Case studies or examples that illustrate key points
+      - Specific details that would make the blog post more authoritative
       
-      Once you've gathered this comprehensive research, use it to write a ${wordCount}-word 
-      SEO-optimized article about "${topic}" that's optimized for the keyword "${keyword}". 
-      
-      Make sure the article:
-      - Has a readability level of grade 8
-      - Sounds natural and human-written
-      - Follows best SEO practices
-      - Is written in a ${toneOfArticle || 'professional'} ${articleType || 'informational'} style`;
+      Be thorough and comprehensive in your research. Include the sources for all information you provide.
+      This research will be used to write an in-depth blog post on "${topic}" optimized for the keyword "${keyword}".`;
     } else if (inputMode === "manualInput" && manualInput) {
       userPrompt = `I've conducted research on the topic "${topic}" and I'd like you to use this research to write a comprehensive, ${toneOfArticle || 'professional'} ${articleType || 'informational'} blog post.
       
@@ -219,7 +219,9 @@ serve(async (req) => {
       Please weave this information naturally into the article where it makes sense. If it contains business or company information, use it sparingly and only when relevant. If appropriate, include subtle calls-to-action that feel natural within the content. Don't just dump all this information in one place - integrate it thoughtfully throughout the article.`;
     }
     
-    userPrompt += `. Make it approximately ${wordCount} words.`;
+    if (inputMode !== "webSearch" || !searchTerm) {
+      userPrompt += `. Make it approximately ${wordCount} words.`;
+    }
     
     // Add internal links if requested
     if (includeInternalLinks && internalLinks && internalLinks.length > 0) {
@@ -244,29 +246,31 @@ serve(async (req) => {
       userPrompt += ` Please write in ${stylePreferences.join(", ")} style.`;
     }
     
-    if (includeHtmlElement) {
-      userPrompt += ` 
-      
-      Additionally, create ONE highly relevant interactive HTML element that would significantly help readers understand or use the information in this article. The HTML element must:
-      
-      1. Start with <!DOCTYPE HTML> and be structured as a complete, self-contained document
-      2. Choose the most appropriate format based on the article content:
-         - Interactive table (for comparing options/data)
-         - Data visualization (for statistics/trends)
-         - Calculator (for financial/numeric concepts)
-         - Quiz (for educational content)
-         - Timeline (for historical/sequential information)
-         - Selector/filtering tool (for decision-making assistance)
-         - Infographic (for visual representation of complex concepts)
-      
-      3. Include all CSS within a <style> tag and all JavaScript within a <script> tag
-      4. Use prefixed class names (like "cg-element-") to avoid conflicts with WordPress themes
-      5. Be responsive and mobile-friendly
-      6. Not rely on external libraries or dependencies
-      7. Not affect the page layout or styling when embedded in a WordPress post
-      8. Be actually useful to the reader, not just decorative
-      
-      Ensure the HTML is valid, clean, and follows best practices for embedding in WordPress without breaking the layout.`;
+    if (inputMode !== "webSearch" || !searchTerm) {
+      if (includeHtmlElement) {
+        userPrompt += ` 
+        
+        Additionally, create ONE highly relevant interactive HTML element that would significantly help readers understand or use the information in this article. The HTML element must:
+        
+        1. Start with <!DOCTYPE HTML> and be structured as a complete, self-contained document
+        2. Choose the most appropriate format based on the article content:
+           - Interactive table (for comparing options/data)
+           - Data visualization (for statistics/trends)
+           - Calculator (for financial/numeric concepts)
+           - Quiz (for educational content)
+           - Timeline (for historical/sequential information)
+           - Selector/filtering tool (for decision-making assistance)
+           - Infographic (for visual representation of complex concepts)
+        
+        3. Include all CSS within a <style> tag and all JavaScript within a <script> tag
+        4. Use prefixed class names (like "cg-element-") to avoid conflicts with WordPress themes
+        5. Be responsive and mobile-friendly
+        6. Not rely on external libraries or dependencies
+        7. Not affect the page layout or styling when embedded in a WordPress post
+        8. Be actually useful to the reader, not just decorative
+        
+        Ensure the HTML is valid, clean, and follows best practices for embedding in WordPress without breaking the layout.`;
+      }
     }
 
     // If background generation is requested, return immediately with a job ID
@@ -283,7 +287,7 @@ serve(async (req) => {
           console.log("Starting background generation with job ID:", jobId);
           
           if (inputMode === "webSearch" && searchTerm) {
-            // STEP 1: Use search-capable model to gather information
+            // STEP 1: Use the selected model to gather research information
             let searchResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
               method: 'POST',
               headers: {
@@ -293,7 +297,7 @@ serve(async (req) => {
                 'X-Title': 'ContentGenius SEO Generator'
               },
               body: JSON.stringify({
-                model: "openai/gpt-4o-mini-search-preview",
+                model: requestedModel,
                 messages: [
                   { role: "system", content: systemPrompt },
                   { role: "user", content: userPrompt }
@@ -315,43 +319,49 @@ serve(async (req) => {
             }
             
             let searchResults = searchData.choices[0].message.content;
-            console.log("Search completed. Now processing with o1-mini...");
+            console.log("Search completed. Now processing with Claude 3.7 Sonnet...");
             
-            // STEP 2: Use o1-mini to create the final content
-            const o1SystemPrompt = `You are an expert SEO content writer. Your task is to create a high-quality, 
+            // STEP 2: Use Claude 3.7 Sonnet to create the final content
+            const claudeSystemPrompt = `You are an expert SEO content writer. Your task is to create a high-quality, 
             SEO-optimized blog post based on the research information provided. The content should have a readability 
             level of grade 8, sound human-written, and follow best SEO practices to optimize for the keyword "${keyword}".
             
             The blog post should be written in a ${toneOfArticle || 'professional'} ${articleType || 'informational'} style, 
             aiming for approximately ${wordCount} words for ${intendedAudience || 'general readers'}.
             
-            Include lists, tables, charts, pull quotes, and emojis when it makes sense. Always end with an SEO title and meta description.`;
+            Include lists, tables, charts, pull quotes, and emojis when it makes sense. Always end with an SEO title and meta description.
+            
+            Your writing should be in-depth, comprehensive, and extremely detailed, using all the relevant information from the research provided.`;
             
             // Add internal links instruction if requested
             if (includeInternalLinks && internalLinks && internalLinks.length > 0) {
-              o1SystemPrompt += ` Include relevant internal links from the provided list of URLs. Select 3-7 of the most relevant URLs based on the content and link to them naturally within the text using anchor text that is relevant to both the linked page and the context of your article.`;
+              claudeSystemPrompt += ` Include relevant internal links from the provided list of URLs. Select 3-7 of the most relevant URLs based on the content and link to them naturally within the text using anchor text that is relevant to both the linked page and the context of your article.`;
             }
             
-            const o1UserPrompt = `I have conducted extensive research on the topic "${topic}" optimized for the keyword "${keyword}". 
+            const claudeUserPrompt = `I have conducted extensive research on the topic "${topic}" optimized for the keyword "${keyword}". 
             Here is the research data:
             
             ${searchResults}
             
             Using this research, write a comprehensive ${wordCount}-word SEO-optimized blog post about "${topic}" that's optimized 
-            for the keyword "${keyword}". Ensure the content:
+            for the keyword "${keyword}". Make sure to include relevant sources from the research.
             
+            Ensure the content:
             - Has a readability level of grade 8
             - Sounds natural and human-written
             - Follows best SEO practices
-            - Is written in a ${toneOfArticle || 'professional'} ${articleType || 'informational'} style`;
+            - Is written in a ${toneOfArticle || 'professional'} ${articleType || 'informational'} style
+            - Includes all relevant information from the research
+            - Includes lists, tables, charts, and bold text where appropriate
+            - Cites sources from the research where appropriate`;
             
             if (stylePreferences.length > 0) {
-              o1UserPrompt += `\n- Uses ${stylePreferences.join(", ")} style`;
+              claudeUserPrompt += `\n- Uses ${stylePreferences.join(", ")} style`;
             }
             
             // Add internal links if requested
             if (includeInternalLinks && internalLinks && internalLinks.length > 0) {
-              o1UserPrompt += `
+              claudeUserPrompt += `
               
               Include 3-7 relevant internal links from this list of URLs. Choose the most appropriate URLs that relate to the content and incorporate them naturally in the article:
               
@@ -361,7 +371,7 @@ serve(async (req) => {
             }
             
             if (includeHtmlElement) {
-              o1UserPrompt += `
+              claudeUserPrompt += `
               
               Additionally, create ONE highly relevant interactive HTML element that would significantly help readers understand or use the information in this article. The HTML element must:
               
@@ -386,8 +396,8 @@ serve(async (req) => {
             }
             
             try {
-              // Call the o1-mini model
-              let o1Response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+              // Call the Claude 3.7 Sonnet model
+              let claudeResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
@@ -396,40 +406,40 @@ serve(async (req) => {
                   'X-Title': 'ContentGenius SEO Generator'
                 },
                 body: JSON.stringify({
-                  model: "openai/o1-mini-2024-09-12",
+                  model: "anthropic/claude-3.7-sonnet",
                   messages: [
-                    { role: "system", content: o1SystemPrompt },
-                    { role: "user", content: o1UserPrompt }
+                    { role: "system", content: claudeSystemPrompt },
+                    { role: "user", content: claudeUserPrompt }
                   ],
                   temperature: 0.7,
-                  max_tokens: 16000,
+                  max_tokens: 128000,
                 }),
               });
 
-              if (!o1Response.ok) {
-                const errorText = await o1Response.text();
-                console.error("Error from o1-mini:", errorText);
-                // Fall back to using the search results if o1-mini fails
+              if (!claudeResponse.ok) {
+                const errorText = await claudeResponse.text();
+                console.error("Error from Claude 3.7 Sonnet:", errorText);
+                // Fall back to using the search results if Claude fails
                 generatedContent = searchResults;
-                console.log("Falling back to search results due to o1-mini failure");
+                console.log("Falling back to search results due to Claude 3.7 Sonnet failure");
               } else {
-                let o1Data = await o1Response.json();
+                let claudeData = await claudeResponse.json();
                 
-                if (!o1Data || !o1Data.choices || !o1Data.choices[0] || !o1Data.choices[0].message) {
-                  console.error("Invalid response structure from o1-mini:", o1Data);
+                if (!claudeData || !claudeData.choices || !claudeData.choices[0] || !claudeData.choices[0].message) {
+                  console.error("Invalid response structure from Claude 3.7 Sonnet:", claudeData);
                   // Fall back to using the search results
                   generatedContent = searchResults;
-                  console.log("Falling back to search results due to invalid o1-mini response");
+                  console.log("Falling back to search results due to invalid Claude 3.7 Sonnet response");
                 } else {
-                  generatedContent = o1Data.choices[0].message.content;
-                  console.log("Successfully generated content with o1-mini");
+                  generatedContent = claudeData.choices[0].message.content;
+                  console.log("Successfully generated content with Claude 3.7 Sonnet");
                 }
               }
-            } catch (o1Error) {
-              console.error("Error during o1-mini call:", o1Error);
-              // Fall back to using the search results if o1-mini call fails
+            } catch (claudeError) {
+              console.error("Error during Claude 3.7 Sonnet call:", claudeError);
+              // Fall back to using the search results if Claude call fails
               generatedContent = searchResults;
-              console.log("Falling back to search results due to o1-mini call error:", o1Error.message);
+              console.log("Falling back to search results due to Claude 3.7 Sonnet call error:", claudeError.message);
             }
           } else {
             // For manual input or non-search requests, use the specified or default model directly
@@ -548,12 +558,12 @@ serve(async (req) => {
     // If not background generation, proceed with regular synchronous generation
     let generatedContent = "";
     
-    // Call the OpenRouter API with the search model if search term is provided
+    // Call the OpenRouter API with the selected model for search if search term is provided
     console.log("Calling OpenRouter API with initial model...");
     
     try {
       if (inputMode === "webSearch" && searchTerm) {
-        // STEP 1: Use search-capable model to gather information
+        // STEP 1: Use selected model to gather research information
         let searchResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -563,7 +573,7 @@ serve(async (req) => {
             'X-Title': 'ContentGenius SEO Generator'
           },
           body: JSON.stringify({
-            model: "openai/gpt-4o-mini-search-preview",
+            model: requestedModel,
             messages: [
               { role: "system", content: systemPrompt },
               { role: "user", content: userPrompt }
@@ -608,48 +618,54 @@ serve(async (req) => {
         }
         
         let searchResults = searchData.choices[0].message.content;
-        console.log("Search completed. Now processing with o1-mini...");
+        console.log("Search completed. Now processing with Claude 3.7 Sonnet...");
         
-        // STEP 2: Use o1-mini to create the final content
-        const o1SystemPrompt = `You are an expert SEO content writer. Your task is to create a high-quality, 
+        // STEP 2: Use Claude 3.7 Sonnet to create the final content
+        const claudeSystemPrompt = `You are an expert SEO content writer. Your task is to create a high-quality, 
         SEO-optimized blog post based on the research information provided. The content should have a readability 
         level of grade 8, sound human-written, and follow best SEO practices to optimize for the keyword "${keyword}".
         
         The blog post should be written in a ${toneOfArticle || 'professional'} ${articleType || 'informational'} style, 
         aiming for approximately ${wordCount} words for ${intendedAudience || 'general readers'}.
         
-        Include lists, tables, charts, pull quotes, and emojis when it makes sense. Always end with an SEO title and meta description.`;
+        Include lists, tables, charts, pull quotes, and emojis when it makes sense. Always end with an SEO title and meta description.
+        
+        Your writing should be in-depth, comprehensive, and extremely detailed, using all the relevant information from the research provided.`;
         
         // Add additional context instructions if provided
         if (additionalContext) {
-          o1SystemPrompt += ` I've provided you with additional context information. If it contains business or company information, use it sparingly and only when it makes sense in the flow of the article. If appropriate, include subtle calls-to-action that feel natural within the content. Don't just dump all the information in one place - integrate it naturally throughout the article where relevant to the surrounding content.`;
+          claudeSystemPrompt += ` I've provided you with additional context information. If it contains business or company information, use it sparingly and only when it makes sense in the flow of the article. If appropriate, include subtle calls-to-action that feel natural within the content. Don't just dump all the information in one place - integrate it naturally throughout the article where relevant to the surrounding content.`;
         }
         
         // Add internal links instruction if requested
         if (includeInternalLinks && internalLinks && internalLinks.length > 0) {
-          o1SystemPrompt += ` Include relevant internal links from the provided list of URLs. Select 3-7 of the most relevant URLs based on the content and link to them naturally within the text using anchor text that is relevant to both the linked page and the context of your article.`;
+          claudeSystemPrompt += ` Include relevant internal links from the provided list of URLs. Select 3-7 of the most relevant URLs based on the content and link to them naturally within the text using anchor text that is relevant to both the linked page and the context of your article.`;
         }
         
-        let o1UserPrompt = `I have conducted extensive research on the topic "${topic}" optimized for the keyword "${keyword}". 
+        let claudeUserPrompt = `I have conducted extensive research on the topic "${topic}" optimized for the keyword "${keyword}". 
         Here is the research data:
         
         ${searchResults}
         
         Using this research, write a comprehensive ${wordCount}-word SEO-optimized blog post about "${topic}" that's optimized 
-        for the keyword "${keyword}". Ensure the content:
+        for the keyword "${keyword}". Make sure to include relevant sources from the research.
         
+        Ensure the content:
         - Has a readability level of grade 8
         - Sounds natural and human-written
         - Follows best SEO practices
-        - Is written in a ${toneOfArticle || 'professional'} ${articleType || 'informational'} style`;
+        - Is written in a ${toneOfArticle || 'professional'} ${articleType || 'informational'} style
+        - Includes all relevant information from the research
+        - Includes lists, tables, charts, and bold text where appropriate
+        - Cites sources from the research where appropriate`;
         
         if (stylePreferences.length > 0) {
-          o1UserPrompt += `\n- Uses ${stylePreferences.join(", ")} style`;
+          claudeUserPrompt += `\n- Uses ${stylePreferences.join(", ")} style`;
         }
         
         // Add additional context with clear instructions
         if (additionalContext) {
-          o1UserPrompt += `
+          claudeUserPrompt += `
           
           Here is additional context information to incorporate throughout your article where relevant:
           
@@ -660,7 +676,7 @@ serve(async (req) => {
         
         // Add internal links if requested
         if (includeInternalLinks && internalLinks && internalLinks.length > 0) {
-          o1UserPrompt += `
+          claudeUserPrompt += `
           
           Include 3-7 relevant internal links from this list of URLs. Choose the most appropriate URLs that relate to the content and incorporate them naturally in the article:
           
@@ -670,7 +686,7 @@ serve(async (req) => {
         }
         
         if (includeHtmlElement) {
-          o1UserPrompt += `
+          claudeUserPrompt += `
           
           Additionally, create ONE highly relevant interactive HTML element that would significantly help readers understand or use the information in this article. The HTML element must:
           
@@ -695,8 +711,8 @@ serve(async (req) => {
         }
         
         try {
-          // Call the o1-mini model
-          let o1Response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          // Call the Claude 3.7 Sonnet model for final content generation
+          let claudeResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -705,72 +721,72 @@ serve(async (req) => {
               'X-Title': 'ContentGenius SEO Generator'
             },
             body: JSON.stringify({
-              model: "openai/o1-mini-2024-09-12",
+              model: "anthropic/claude-3.7-sonnet",
               messages: [
-                { role: "system", content: o1SystemPrompt },
-                { role: "user", content: o1UserPrompt }
+                { role: "system", content: claudeSystemPrompt },
+                { role: "user", content: claudeUserPrompt }
               ],
               temperature: 0.7,
-              max_tokens: 16000,
+              max_tokens: 128000,
             }),
           });
 
-          if (!o1Response.ok) {
-            const errorText = await o1Response.text();
-            console.error("Error from o1-mini:", errorText);
+          if (!claudeResponse.ok) {
+            const errorText = await claudeResponse.text();
+            console.error("Error from Claude 3.7 Sonnet:", errorText);
             
-            // Fall back to using the search results if o1-mini fails
+            // Fall back to using the search results if Claude fails
             generatedContent = searchResults;
-            console.log("Falling back to search results due to o1-mini failure");
+            console.log("Falling back to search results due to Claude 3.7 Sonnet failure");
             
             // Send a more detailed error message including the fallback
             return new Response(
               JSON.stringify({ 
                 success: true, 
                 content: generatedContent,
-                warning: "Used search results directly due to error generating final content."
+                warning: "Used search results directly due to error generating final content with Claude 3.7 Sonnet."
               }),
               { 
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
               }
             );
           } else {
-            let o1Data = await o1Response.json();
+            let claudeData = await claudeResponse.json();
             
-            if (!o1Data || !o1Data.choices || !o1Data.choices[0] || !o1Data.choices[0].message) {
-              console.error("Invalid response structure from o1-mini:", o1Data);
+            if (!claudeData || !claudeData.choices || !claudeData.choices[0] || !claudeData.choices[0].message) {
+              console.error("Invalid response structure from Claude 3.7 Sonnet:", claudeData);
               
               // Fall back to using the search results
               generatedContent = searchResults;
-              console.log("Falling back to search results due to invalid o1-mini response");
+              console.log("Falling back to search results due to invalid Claude 3.7 Sonnet response");
               
               return new Response(
                 JSON.stringify({ 
                   success: true, 
                   content: generatedContent,
-                  warning: "Used search results directly due to error formatting final content."
+                  warning: "Used search results directly due to error formatting final content with Claude 3.7 Sonnet."
                 }),
                 { 
                   headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
                 }
               );
             } else {
-              generatedContent = o1Data.choices[0].message.content;
-              console.log("Successfully generated content with o1-mini");
+              generatedContent = claudeData.choices[0].message.content;
+              console.log("Successfully generated content with Claude 3.7 Sonnet");
             }
           }
-        } catch (o1Error) {
-          console.error("Error during o1-mini call:", o1Error);
+        } catch (claudeError) {
+          console.error("Error during Claude 3.7 Sonnet call:", claudeError);
           
-          // Fall back to using the search results if o1-mini call fails
+          // Fall back to using the search results if Claude call fails
           generatedContent = searchResults;
-          console.log("Falling back to search results due to o1-mini call error:", o1Error.message);
+          console.log("Falling back to search results due to Claude 3.7 Sonnet call error:", claudeError.message);
           
           return new Response(
             JSON.stringify({ 
               success: true, 
               content: generatedContent,
-              warning: "Used search results directly due to processing error."
+              warning: "Used search results directly due to processing error with Claude 3.7 Sonnet."
             }),
             { 
               headers: { ...corsHeaders, 'Content-Type': 'application/json' } 

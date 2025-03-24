@@ -20,6 +20,7 @@ export interface SeoFormValues {
   includeHtmlElement: boolean;
   includeInternalLinks: boolean;
   model?: string;
+  finalContentModel?: string;
   backgroundGeneration?: boolean;
   enableThinking?: boolean;
 }
@@ -29,10 +30,10 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
     // Map the simplified model IDs to the OpenRouter format
     let modelId = formData.model || "anthropic/claude-3.7-sonnet";
     
-    // If search term is provided, models don't matter as we use gpt-4o-mini-search-preview for search and o1-mini for final content
+    // If search term is provided, models don't matter as we use specific model for search and claude for final content
     if (formData.searchTerm) {
-      // We'll handle the search model in the edge function automatically
-      console.log("Using search workflow with search model and o1-mini for final content");
+      // The search model will be the one selected by the user
+      console.log(`Using search workflow with ${modelId} for search and Claude 3.7 Sonnet for final content`);
     }
     // For models that need provider prefix, add it if missing
     else if (modelId && !modelId.includes('/')) {
@@ -68,6 +69,10 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
       }
     }
     
+    // Set the final content model for two-step process
+    // Always use Claude 3.7 Sonnet for the final content when using web search
+    const finalContentModel = formData.searchTerm ? "anthropic/claude-3.7-sonnet" : undefined;
+    
     // Log the full request body for debugging
     console.log("Content generation request:", {
       includeInternalLinks: formData.includeInternalLinks,
@@ -77,7 +82,9 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
       manualInputLength: formData.manualInput ? formData.manualInput.split(/\s+/).length : 0,
       additionalContextLength: formData.additionalContext ? formData.additionalContext.split(/\s+/).length : 0,
       backgroundGeneration: formData.backgroundGeneration,
-      enableThinking: formData.enableThinking
+      enableThinking: formData.enableThinking,
+      searchModel: modelId,
+      finalContentModel
     });
     
     const { data, error } = await supabase.functions.invoke("generate-seo-content", {
@@ -85,6 +92,7 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
         ...formData,
         apiKey,
         model: modelId,
+        finalContentModel,
         internalLinks: formData.includeInternalLinks ? internalLinks : []
       },
     });

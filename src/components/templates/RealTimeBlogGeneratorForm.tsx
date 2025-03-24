@@ -232,6 +232,8 @@ export function RealTimeBlogGeneratorForm({ includeInternalLinks = false }: Real
       const formDataWithInternalLinks = {
         ...data,
         includeInternalLinks,
+        // When using web search, we'll always use Claude 3.7 Sonnet for final content generation
+        finalContentModel: data.inputMode === "webSearch" ? "anthropic/claude-3.7-sonnet" : undefined
       };
       
       const content = await generateSeoContent(formDataWithInternalLinks as SeoServiceFormValues, apiKey);
@@ -359,25 +361,36 @@ export function RealTimeBlogGeneratorForm({ includeInternalLinks = false }: Real
                   />
 
                   {inputMode === "webSearch" && (
-                    <FormField
-                      control={form.control}
-                      name="searchTerm"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="flex items-center">
-                            <Search className="mr-2 h-4 w-4" />
-                            Web Search Term *
-                          </FormLabel>
-                          <FormControl>
-                            <Input placeholder="e.g., latest coffee brewing methods 2025" {...field} />
-                          </FormControl>
-                          <FormDescription>
-                            The term to research online for up-to-date information
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    <>
+                      <Alert className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+                        <InfoIcon className="h-4 w-4 text-blue-500" />
+                        <AlertTitle className="text-blue-700 dark:text-blue-300">Two-step generation process</AlertTitle>
+                        <AlertDescription className="text-blue-600 dark:text-blue-400">
+                          <p>1. We'll use the model you select below to research the web for relevant information</p>
+                          <p>2. Then we'll use Claude 3.7 Sonnet to craft the final blog post</p>
+                        </AlertDescription>
+                      </Alert>
+
+                      <FormField
+                        control={form.control}
+                        name="searchTerm"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="flex items-center">
+                              <Search className="mr-2 h-4 w-4" />
+                              Web Search Term *
+                            </FormLabel>
+                            <FormControl>
+                              <Input placeholder="e.g., latest coffee brewing methods 2025" {...field} />
+                            </FormControl>
+                            <FormDescription>
+                              The term to research online for up-to-date information
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </>
                   )}
 
                   {inputMode === "manualInput" && (
@@ -446,73 +459,115 @@ export function RealTimeBlogGeneratorForm({ includeInternalLinks = false }: Real
                     )}
                   />
 
-                  <FormField
-                    control={form.control}
-                    name="model"
-                    render={({ field }) => (
-                      <FormItem>
-                        <div className="flex items-center justify-between">
-                          <FormLabel>AI Model</FormLabel>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <InfoIcon className="h-4 w-4 text-muted-foreground" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="max-w-xs">
-                                  {inputMode === "webSearch" 
-                                    ? "Select the AI model to use for web search and content generation."
-                                    : "Select the AI model to use for content generation."}
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </div>
-                        <Select 
-                          onValueChange={field.onChange} 
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select AI model" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {inputMode === "webSearch" ? (
-                              webSearchModels.map(model => (
+                  {inputMode === "webSearch" && (
+                    <FormField
+                      control={form.control}
+                      name="model"
+                      render={({ field }) => (
+                        <FormItem>
+                          <div className="flex items-center justify-between">
+                            <FormLabel>Research Model</FormLabel>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <InfoIcon className="h-4 w-4 text-muted-foreground" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="max-w-xs">
+                                    Select the AI model to use for web research. Content will be generated with Claude 3.7 Sonnet.
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                          <Select 
+                            onValueChange={field.onChange} 
+                            defaultValue={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select research model" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {webSearchModels.map(model => (
                                 <SelectItem key={model.id} value={model.id}>
                                   <div className="flex flex-col">
                                     <span>{model.name} {model.recommended && "★"}</span>
                                     <span className="text-xs text-muted-foreground">{model.description}</span>
                                   </div>
                                 </SelectItem>
-                              ))
-                            ) : (
-                              recommendedModels.map(model => (
-                                <SelectItem key={model.id} value={model.id}>
-                                  <div className="flex flex-col">
-                                    <span>{model.name} {model.recommended && "★"}</span>
-                                    <span className="text-xs text-muted-foreground">{model.description}</span>
-                                  </div>
-                                </SelectItem>
-                              ))
-                            )}
-                          </SelectContent>
-                        </Select>
-                        <FormDescription>
-                          {inputMode === "webSearch" 
-                            ? "Choose a model for web search capabilities."
-                            : "Choose a model for your content generation."}
-                        </FormDescription>
-                        {apiKeyMissing && (
-                          <FormDescription className="text-destructive">
-                            API key required. Add it in Settings.
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormDescription>
+                            Choose a model for web research. Final content will be generated with Claude 3.7 Sonnet.
                           </FormDescription>
-                        )}
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                          {apiKeyMissing && (
+                            <FormDescription className="text-destructive">
+                              API key required. Add it in Settings.
+                            </FormDescription>
+                          )}
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+
+                  {inputMode === "manualInput" && (
+                    <FormField
+                      control={form.control}
+                      name="model"
+                      render={({ field }) => (
+                        <FormItem>
+                          <div className="flex items-center justify-between">
+                            <FormLabel>AI Model</FormLabel>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <InfoIcon className="h-4 w-4 text-muted-foreground" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="max-w-xs">
+                                    Select the AI model to use for content generation.
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                          <Select 
+                            onValueChange={field.onChange} 
+                            defaultValue={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select AI model" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {recommendedModels.map(model => (
+                                <SelectItem key={model.id} value={model.id}>
+                                  <div className="flex flex-col">
+                                    <span>{model.name} {model.recommended && "★"}</span>
+                                    <span className="text-xs text-muted-foreground">{model.description}</span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormDescription>
+                            Choose a model for your content generation.
+                          </FormDescription>
+                          {apiKeyMissing && (
+                            <FormDescription className="text-destructive">
+                              API key required. Add it in Settings.
+                            </FormDescription>
+                          )}
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
 
                   <FormField
                     control={form.control}
@@ -793,7 +848,7 @@ export function RealTimeBlogGeneratorForm({ includeInternalLinks = false }: Real
                 <AlertTitle>Note</AlertTitle>
                 <AlertDescription>
                   {inputMode === "webSearch"
-                    ? "Web search may use additional tokens and increase API costs compared to standard generation."
+                    ? "Web search uses a two-step process: research with your selected model, then final content generation with Claude 3.7 Sonnet."
                     : "Using your own research content may help save on API costs."}
                 </AlertDescription>
               </Alert>
