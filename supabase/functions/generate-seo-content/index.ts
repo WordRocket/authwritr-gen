@@ -88,8 +88,11 @@ serve(async (req) => {
     
     // Initialize model variables - using 'let' instead of 'const' since they might change
     let requestedModel = model || "openai/gpt-4o-mini-search-preview";
+    // For final content model, also use let instead of const
+    let finalContentModelToUse = finalContentModel || "anthropic/claude-3.7-sonnet";
     
     console.log("Using model for initial phase:", requestedModel);
+    console.log("Final content model:", finalContentModelToUse);
     console.log("Input mode:", inputMode);
     if (inputMode === "webSearch") {
       console.log("Search term:", searchTerm);
