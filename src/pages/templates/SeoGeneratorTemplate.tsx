@@ -4,11 +4,13 @@ import { SeoGeneratorForm } from "@/components/templates/SeoGeneratorForm";
 import { RealTimeBlogGeneratorForm } from "@/components/templates/RealTimeBlogGeneratorForm";
 import { useLocation } from "react-router-dom";
 import { SitemapUrlInput } from "@/components/templates/SitemapUrlInput";
+import { DeepThinkingGeneratorForm } from "@/components/templates/DeepThinkingGeneratorForm";
 
 export default function SeoGeneratorTemplate() {
   const location = useLocation();
   const isArticleGenerator = location.pathname.includes("article-generator");
   const isBulkBlogPost = location.pathname.includes("bulk-blog-post");
+  const isDeepThinking = location.pathname.includes("deep-thinking");
   const [includeInternalLinks, setIncludeInternalLinks] = useState(false);
   
   useEffect(() => {
@@ -16,10 +18,12 @@ export default function SeoGeneratorTemplate() {
       document.title = "AI Blog Generator With Web Research";
     } else if (isBulkBlogPost) {
       document.title = "Bulk Blog Post Generator | Content Genius";
+    } else if (isDeepThinking) {
+      document.title = "Deep Thinking AI Blog Generator | Content Genius";
     } else {
       document.title = "All In One SEO Generator | Content Genius";
     }
-  }, [isArticleGenerator, isBulkBlogPost]);
+  }, [isArticleGenerator, isBulkBlogPost, isDeepThinking]);
 
   const handleUrlsScraped = (count: number) => {
     console.log(`Successfully scraped ${count} URLs`);
@@ -48,14 +52,18 @@ export default function SeoGeneratorTemplate() {
           ? "AI Blog Generator With Web Research" 
           : isBulkBlogPost
             ? "Bulk Blog Post Generator"
-            : "All In One SEO Generator"}
+            : isDeepThinking
+              ? "Deep Thinking AI Blog Generator"
+              : "All In One SEO Generator"}
       </h1>
       <p className="text-muted-foreground mt-2">
         {isArticleGenerator 
           ? "Create high-quality blog posts with real-time web research using Perplexity, GPT, and Claude models"
           : isBulkBlogPost
             ? "Generate multiple blog posts with consistent formatting and structure"
-            : "Generate SEO-optimized content using AI with perfect formatting and structure"}
+            : isDeepThinking
+              ? "Create content with visible AI thinking process for more transparent reasoning"
+              : "Generate SEO-optimized content using AI with perfect formatting and structure"}
       </p>
       
       <div className="mt-6 mb-8">
@@ -67,8 +75,10 @@ export default function SeoGeneratorTemplate() {
       </div>
       
       {isArticleGenerator 
-        ? <RealTimeBlogGeneratorForm includeInternalLinks={includeInternalLinks} /> 
-        : <SeoGeneratorForm includeInternalLinks={includeInternalLinks} />}
+        ? <RealTimeBlogGeneratorForm includeInternalLinks={includeInternalLinks} />
+        : isDeepThinking
+          ? <DeepThinkingGeneratorForm includeInternalLinks={includeInternalLinks} />
+          : <SeoGeneratorForm includeInternalLinks={includeInternalLinks} />}
     </div>
   );
 }
