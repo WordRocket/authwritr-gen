@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -866,4 +867,67 @@ export default function ContentPage() {
       </Dialog>
     );
   };
+
+  // Return the actual JSX for the component
+  return (
+    <div className="content-page">
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold">My Content</h1>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => navigate("/templates")} variant="default">
+            <Plus className="mr-2 h-4 w-4" /> Create New
+          </Button>
+        </div>
+      </div>
+
+      <div className="mb-6 flex flex-col md:flex-row gap-4 justify-between">
+        <div className="relative w-full md:w-1/2">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Search content..."
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="w-full pl-10 pr-4 py-2 rounded-md border focus:outline-none focus:ring-2 focus:ring-primary/50"
+          />
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <select 
+            value={sortOrder} 
+            onChange={(e) => setSortOrder(e.target.value as "newest" | "oldest" | "alphabetical")}
+            className="px-3 py-2 rounded-md border focus:outline-none focus:ring-2 focus:ring-primary/50"
+          >
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+            <option value="alphabetical">Alphabetical</option>
+          </select>
+          
+          <div className="flex items-center border rounded-md overflow-hidden">
+            <Button 
+              variant={viewType === "grid" ? "default" : "ghost"} 
+              size="sm" 
+              onClick={() => setViewType("grid")}
+              className="rounded-none"
+            >
+              <Grid2X2 className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant={viewType === "list" ? "default" : "ghost"} 
+              size="sm" 
+              onClick={() => setViewType("list")}
+              className="rounded-none"
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {renderContent()}
+    </div>
+  );
 }
