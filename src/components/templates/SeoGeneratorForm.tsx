@@ -1,4 +1,3 @@
-
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -100,7 +99,7 @@ interface SeoGeneratorFormProps {
 
 export function SeoGeneratorForm({ 
   includeInternalLinks = false,
-  hideBackgroundGeneration = true // Changed default to true
+  hideBackgroundGeneration = true
 }: SeoGeneratorFormProps) {
   const { user, apiKey } = useAuth();
   const [isGenerating, setIsGenerating] = React.useState(false);
@@ -481,7 +480,7 @@ export function SeoGeneratorForm({
                     />
 
                     <div className="space-y-4 pt-4">
-                      <h3 className="font-medium">Article Options</h3>
+                      <h3 className="font-medium">Article Elements</h3>
                       
                       {!hideBackgroundGeneration && (
                         <div className="space-y-2">
@@ -509,8 +508,6 @@ export function SeoGeneratorForm({
                           </div>
                         </div>
                       )}
-                      
-                      <h3 className="font-medium mt-4">Article Elements</h3>
                       
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
