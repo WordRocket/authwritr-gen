@@ -105,18 +105,14 @@ export default function SeoGeneratorTemplate() {
             includeInternalLinks={includeInternalLinks} 
             includeCitations={includeCitations} 
             onCitationsToggle={handleCitationsToggle}
-            hideBackgroundGeneration={true}
           />
         : isDeepThinking
           ? <DeepThinkingGeneratorForm 
               includeInternalLinks={includeInternalLinks} 
               onGeneratingStateChange={handleGeneratingState}
-              hideBackgroundGeneration={true}
             />
           : <SeoGeneratorForm 
               includeInternalLinks={includeInternalLinks}
-              onGeneratingStateChange={handleGeneratingState}
-              hideBackgroundGeneration={true}
             />}
     </div>
   );
