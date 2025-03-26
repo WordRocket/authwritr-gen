@@ -5,26 +5,26 @@ import { RealTimeBlogGeneratorForm } from "@/components/templates/RealTimeBlogGe
 import { useLocation } from "react-router-dom";
 import { SitemapUrlInput } from "@/components/templates/SitemapUrlInput";
 import { DeepThinkingGeneratorForm } from "@/components/templates/DeepThinkingGeneratorForm";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { InfoIcon } from "lucide-react";
 
 export default function SeoGeneratorTemplate() {
   const location = useLocation();
   const isArticleGenerator = location.pathname.includes("article-generator");
-  const isBulkBlogPost = location.pathname.includes("bulk-blog-post");
   const isDeepThinking = location.pathname.includes("deep-thinking");
   const [includeInternalLinks, setIncludeInternalLinks] = useState(false);
   const [includeCitations, setIncludeCitations] = useState(true); // Default to true for citations
+  const [isGenerating, setIsGenerating] = useState(false);
   
   useEffect(() => {
     if (isArticleGenerator) {
       document.title = "AI Blog Generator With Web Research";
-    } else if (isBulkBlogPost) {
-      document.title = "Bulk Blog Post Generator | Content Genius";
     } else if (isDeepThinking) {
       document.title = "Deep Thinking AI Blog Generator | Content Genius";
     } else {
       document.title = "All In One SEO Generator | Content Genius";
     }
-  }, [isArticleGenerator, isBulkBlogPost, isDeepThinking]);
+  }, [isArticleGenerator, isDeepThinking]);
 
   const handleUrlsScraped = (count: number) => {
     console.log(`Successfully scraped ${count} URLs`);
@@ -60,27 +60,37 @@ export default function SeoGeneratorTemplate() {
     // Store the preference in localStorage
     localStorage.setItem('includeCitations', enabled.toString());
   };
+  
+  // Handler for setting the generating state
+  const handleGeneratingState = (generating: boolean) => {
+    setIsGenerating(generating);
+  };
 
   return (
     <div className="mx-auto container py-8">
       <h1 className="text-3xl font-bold tracking-tight">
         {isArticleGenerator 
           ? "AI Blog Generator With Web Research" 
-          : isBulkBlogPost
-            ? "Bulk Blog Post Generator"
-            : isDeepThinking
-              ? "Deep Thinking AI Blog Generator"
-              : "All In One SEO Generator"}
+          : isDeepThinking
+            ? "Deep Thinking AI Blog Generator"
+            : "All In One SEO Generator"}
       </h1>
       <p className="text-muted-foreground mt-2">
         {isArticleGenerator 
           ? "Create high-quality blog posts with real-time web research using Perplexity, GPT, and Claude models"
-          : isBulkBlogPost
-            ? "Generate multiple blog posts with consistent formatting and structure"
-            : isDeepThinking
-              ? "Create content with visible AI thinking process for more transparent reasoning"
-              : "Generate SEO-optimized content using AI with perfect formatting and structure"}
+          : isDeepThinking
+            ? "Create content with visible AI thinking process for more transparent reasoning"
+            : "Generate SEO-optimized content using AI with perfect formatting and structure"}
       </p>
+      
+      {isGenerating && (
+        <Alert className="mt-4 border-amber-500 bg-amber-50 dark:bg-amber-950/20">
+          <InfoIcon className="h-4 w-4 text-amber-500" />
+          <AlertDescription className="text-amber-800 dark:text-amber-300">
+            Content is being generated. Please do not leave this page. It may take a few minutes to complete.
+          </AlertDescription>
+        </Alert>
+      )}
       
       <div className="mt-6 mb-8">
         <SitemapUrlInput 
@@ -95,10 +105,20 @@ export default function SeoGeneratorTemplate() {
             includeInternalLinks={includeInternalLinks} 
             includeCitations={includeCitations} 
             onCitationsToggle={handleCitationsToggle}
+            onGeneratingStateChange={handleGeneratingState}
+            hideBackgroundGeneration={true}
           />
         : isDeepThinking
-          ? <DeepThinkingGeneratorForm includeInternalLinks={includeInternalLinks} />
-          : <SeoGeneratorForm includeInternalLinks={includeInternalLinks} />}
+          ? <DeepThinkingGeneratorForm 
+              includeInternalLinks={includeInternalLinks} 
+              onGeneratingStateChange={handleGeneratingState}
+              hideBackgroundGeneration={true}
+            />
+          : <SeoGeneratorForm 
+              includeInternalLinks={includeInternalLinks}
+              onGeneratingStateChange={handleGeneratingState}
+              hideBackgroundGeneration={true}
+            />}
     </div>
   );
 }

@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,7 +16,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Templates that match the ones in our app
+  // Templates that match the ones in our app - Removed bulk blog post generator
   const quickTemplates = [
     {
       id: "all-in-one-seo",
@@ -25,13 +24,6 @@ export default function Dashboard() {
       description: "Complete SEO-optimized content with keywords, meta descriptions, and structured sections",
       icon: Search,
       route: "/templates/all-in-one-seo"
-    },
-    {
-      id: "bulk-blog-post",
-      title: "Bulk Blog Post Generator",
-      description: "Generate multiple blog posts with consistent formatting and structure",
-      icon: FileStack,
-      route: "/templates/bulk-blog-post"
     },
     {
       id: "article-generator",

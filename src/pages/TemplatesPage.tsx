@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,7 +35,7 @@ export default function TemplatesPage() {
     { value: "thinking", label: "Deep Thinking" },
   ];
 
-  // Templates data - updated to include deep thinking template
+  // Templates data - updated to include deep thinking template but remove bulk blog post
   const templatesData = [
     {
       id: "all-in-one-seo",
@@ -45,14 +44,6 @@ export default function TemplatesPage() {
       icon: Search,
       category: "seo",
       route: "/templates/all-in-one-seo"
-    },
-    {
-      id: "bulk-blog-post",
-      title: "Bulk Blog Post Generator",
-      description: "Generate multiple blog posts with consistent formatting and structure",
-      icon: FileStack,
-      category: "blog",
-      route: "/templates/bulk-blog-post"
     },
     {
       id: "article-generator",

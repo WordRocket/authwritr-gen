@@ -50,7 +50,6 @@ import ReactMarkdown from "react-markdown";
 import { HtmlPreviewComponent } from "./HtmlPreviewComponent";
 import { useNavigate } from "react-router-dom";
 
-// Custom validator for word count
 const wordCountValidator = (value: string | undefined, maxWords: number): boolean => {
   if (!value) return true;
   const wordCount = value.trim() ? value.trim().split(/\s+/).length : 0;
@@ -108,9 +107,15 @@ const defaultValues: Partial<DeepThinkingFormValues> = {
 
 interface DeepThinkingGeneratorFormProps {
   includeInternalLinks?: boolean;
+  onGeneratingStateChange?: (isGenerating: boolean) => void;
+  hideBackgroundGeneration?: boolean;
 }
 
-export function DeepThinkingGeneratorForm({ includeInternalLinks = false }: DeepThinkingGeneratorFormProps) {
+export function DeepThinkingGeneratorForm({ 
+  includeInternalLinks = false,
+  onGeneratingStateChange,
+  hideBackgroundGeneration = false
+}: DeepThinkingGeneratorFormProps) {
   const { user, apiKey } = useAuth();
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [isSaving, setIsSaving] = React.useState(false);
@@ -174,6 +179,9 @@ export function DeepThinkingGeneratorForm({ includeInternalLinks = false }: Deep
     }
     
     setIsGenerating(true);
+    if (onGeneratingStateChange) {
+      onGeneratingStateChange(true);
+    }
     
     try {
       const formDataWithInternalLinks = {
@@ -186,6 +194,9 @@ export function DeepThinkingGeneratorForm({ includeInternalLinks = false }: Deep
       
       if (data.backgroundGeneration || content === "BACKGROUND_GENERATION_STARTED") {
         setIsGenerating(false);
+        if (onGeneratingStateChange) {
+          onGeneratingStateChange(false);
+        }
         navigate("/content");
         return;
       }
@@ -205,6 +216,9 @@ export function DeepThinkingGeneratorForm({ includeInternalLinks = false }: Deep
       });
     } finally {
       setIsGenerating(false);
+      if (onGeneratingStateChange) {
+        onGeneratingStateChange(false);
+      }
     }
   };
 
@@ -490,30 +504,32 @@ export function DeepThinkingGeneratorForm({ includeInternalLinks = false }: Deep
                     <div className="space-y-4 pt-4">
                       <h3 className="font-medium">Article Options</h3>
                       
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <FormField
-                            control={form.control}
-                            name="backgroundGeneration"
-                            render={({ field }) => (
-                              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 w-full">
-                                <div className="space-y-0.5">
-                                  <FormLabel className="text-base">Background Generation</FormLabel>
-                                  <FormDescription>
-                                    Generate in background and save to My Content
-                                  </FormDescription>
-                                </div>
-                                <FormControl>
-                                  <Switch
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
-                                  />
-                                </FormControl>
-                              </FormItem>
-                            )}
-                          />
+                      {!hideBackgroundGeneration && (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <FormField
+                              control={form.control}
+                              name="backgroundGeneration"
+                              render={({ field }) => (
+                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 w-full">
+                                  <div className="space-y-0.5">
+                                    <FormLabel className="text-base">Background Generation</FormLabel>
+                                    <FormDescription>
+                                      Generate in background and save to My Content
+                                    </FormDescription>
+                                  </div>
+                                  <FormControl>
+                                    <Switch
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
+                                    />
+                                  </FormControl>
+                                </FormItem>
+                              )}
+                            />
+                          </div>
                         </div>
-                      </div>
+                      )}
                       
                       <h3 className="font-medium mt-4">Article Elements</h3>
                       
@@ -775,7 +791,6 @@ export function DeepThinkingGeneratorForm({ includeInternalLinks = false }: Deep
                         <h4 className="text-lg font-medium mt-4 mb-2 scroll-m-20" {...props} />
                       ),
                       blockquote: ({ node, ...props }) => {
-                        // Style thinking blocks differently
                         if (props.children && typeof props.children === 'string' && 
                             (props.children.includes('Thinking:') || props.children.includes('THINKING:'))) {
                           return (

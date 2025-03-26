@@ -2,9 +2,12 @@
 import { useEffect, useState } from "react";
 import { DeepThinkingGeneratorForm } from "@/components/templates/DeepThinkingGeneratorForm";
 import { SitemapUrlInput } from "@/components/templates/SitemapUrlInput";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { InfoIcon } from "lucide-react";
 
 export default function DeepThinkingTemplate() {
   const [includeInternalLinks, setIncludeInternalLinks] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   
   useEffect(() => {
     document.title = "Deep Thinking Enabled Blog Generator | Content Genius";
@@ -29,6 +32,11 @@ export default function DeepThinkingTemplate() {
       setIncludeInternalLinks(savedPreference === 'true');
     }
   }, []);
+  
+  // Handler for setting the generating state
+  const handleGeneratingState = (generating: boolean) => {
+    setIsGenerating(generating);
+  };
 
   return (
     <div className="mx-auto container py-8">
@@ -39,6 +47,15 @@ export default function DeepThinkingTemplate() {
         Create thoughtful, detailed content with AI models that explicitly show their reasoning process
       </p>
       
+      {isGenerating && (
+        <Alert className="mt-4 border-amber-500 bg-amber-50 dark:bg-amber-950/20">
+          <InfoIcon className="h-4 w-4 text-amber-500" />
+          <AlertDescription className="text-amber-800 dark:text-amber-300">
+            Content is being generated. Please do not leave this page. It may take a few minutes to complete.
+          </AlertDescription>
+        </Alert>
+      )}
+      
       <div className="mt-6 mb-8">
         <SitemapUrlInput 
           onUrlsScraped={handleUrlsScraped} 
@@ -47,7 +64,11 @@ export default function DeepThinkingTemplate() {
         />
       </div>
       
-      <DeepThinkingGeneratorForm includeInternalLinks={includeInternalLinks} />
+      <DeepThinkingGeneratorForm 
+        includeInternalLinks={includeInternalLinks}
+        onGeneratingStateChange={handleGeneratingState}
+        hideBackgroundGeneration={true}
+      />
     </div>
   );
 }
