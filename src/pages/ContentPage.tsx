@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, FileText, Loader2, Code, Eye, Search, Filter, Grid2X2, List, Calendar, Download, ExternalLink, Copy, Edit, Trash2 } from "lucide-react";
+import { Plus, FileText, Loader2, Code, Eye, Search, Filter, Grid2X2, List, Calendar, Download, ExternalLink, Copy, Edit, Trash2, Maximize, Minimize } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -777,90 +777,93 @@ export default function ContentPage() {
     );
   };
 
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1>My Content</h1>
-          <p className="text-muted-foreground">View and manage your generated content</p>
-        </div>
-        
-        <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
-          {isAuthenticated && (
-            <Button onClick={() => navigate("/templates")} className="w-full sm:w-auto">
-              <Plus className="mr-2 h-4 w-4" /> Create New Content
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {isAuthenticated && contentItems.length > 0 && (
-        <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-          <div className="relative w-full sm:w-72">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Search content..."
-              className="w-full h-10 pl-9 pr-4 rounded-md border border-input bg-background"
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setCurrentPage(1); // Reset to first page on new search
-              }}
-            />
-          </div>
+  // Modify the dialog content to use our enhanced fullscreen capability
+  const renderContentDialog = (item: ContentItem) => {
+    return (
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button 
+            variant="outline" 
+            className="w-full" 
+            onClick={() => handleViewContent(item)}
+          >
+            <FileText className="mr-2 h-4 w-4" /> View Content
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden" showFullscreenButton>
+          <DialogHeader>
+            <div className="flex items-center justify-between">
+              <DialogTitle>{item.title}</DialogTitle>
+              <div className="flex items-center gap-2">
+                <div className="border rounded-md overflow-hidden flex">
+                  <Button 
+                    variant={viewMode === "rendered" ? "default" : "ghost"} 
+                    size="sm"
+                    onClick={() => setViewMode("rendered")}
+                    className="rounded-none px-3"
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    Preview
+                  </Button>
+                  <Button 
+                    variant={viewMode === "markdown" ? "default" : "ghost"} 
+                    size="sm"
+                    onClick={() => setViewMode("markdown")}
+                    className="rounded-none px-3"
+                  >
+                    <Code className="h-4 w-4 mr-2" />
+                    Markdown
+                  </Button>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={copyToClipboard}
+                >
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={downloadAsMarkdown}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Download
+                </Button>
+              </div>
+            </div>
+          </DialogHeader>
           
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
-            <div className="flex items-center border rounded-md overflow-hidden">
-              <Button
-                variant={sortOrder === "newest" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setSortOrder("newest")}
-                className="rounded-none text-xs h-9 px-3"
-              >
-                Newest
-              </Button>
-              <Button
-                variant={sortOrder === "oldest" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setSortOrder("oldest")}
-                className="rounded-none text-xs h-9 px-3"
-              >
-                Oldest
-              </Button>
-              <Button
-                variant={sortOrder === "alphabetical" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setSortOrder("alphabetical")}
-                className="rounded-none text-xs h-9 px-3"
-              >
-                A-Z
-              </Button>
-            </div>
-            
-            <div className="flex items-center border rounded-md overflow-hidden">
-              <Button
-                variant={viewType === "grid" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setViewType("grid")}
-                className="rounded-none px-2 h-9"
-              >
-                <Grid2X2 className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={viewType === "list" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setViewType("list")}
-                className="rounded-none px-2 h-9"
-              >
-                <List className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {renderContent()}
-    </div>
-  );
-}
+          <Tabs value={viewMode} className="mt-2" onValueChange={(value) => setViewMode(value as "rendered" | "markdown")}>
+            <TabsContent value="rendered" className="h-[calc(90vh-180px)] overflow-y-auto">
+              <div className="content-container prose dark:prose-invert max-w-none">
+                <ReactMarkdown components={{
+                  p: ({ node, ...props }) => {
+                    const content = props.children;
+                    // Check if content contains HTML elements
+                    if (typeof content === 'string' && (content.includes('<') && content.includes('>'))) {
+                      return <div dangerouslySetInnerHTML={{ __html: content }} />;
+                    }
+                    return <p {...props} />;
+                  },
+                  // Handle tables properly
+                  table: ({ node, ...props }) => (
+                    <div className="overflow-x-auto my-6">
+                      <table className="w-full border-collapse border border-border" {...props} />
+                    </div>
+                  ),
+                  thead: ({ node, ...props }) => (
+                    <thead className="bg-muted" {...props} />
+                  ),
+                  tbody: ({ node, ...props }) => (
+                    <tbody className="divide-y divide-border" {...props} />
+                  ),
+                  tr: ({ node, ...props }) => (
+                    <tr className="hover:bg-muted/50" {...props} />
+                  ),
+                  th: ({ node, ...props }) => (
+                    <th className="border border-border px-4 py-2 text-left font-semibold" {...props} />
+                  ),
+                  td: ({ node, ...props }) => (
+                    <td className="border border-border px-4 py-2" {...props} />

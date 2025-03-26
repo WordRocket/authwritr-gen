@@ -1,5 +1,7 @@
+
 import * as React from "react"
 import { Drawer as DrawerPrimitive } from "vaul"
+import { Maximize2, Minimize2 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
@@ -32,25 +34,56 @@ const DrawerOverlay = React.forwardRef<
 ))
 DrawerOverlay.displayName = DrawerPrimitive.Overlay.displayName
 
+interface DrawerContentProps extends React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Content> {
+  showFullscreenButton?: boolean;
+}
+
 const DrawerContent = React.forwardRef<
   React.ElementRef<typeof DrawerPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Content>
->(({ className, children, ...props }, ref) => (
-  <DrawerPortal>
-    <DrawerOverlay />
-    <DrawerPrimitive.Content
-      ref={ref}
-      className={cn(
-        "fixed inset-x-0 bottom-0 z-50 mt-24 flex h-auto flex-col rounded-t-[10px] border bg-background",
-        className
-      )}
-      {...props}
-    >
-      <div className="mx-auto mt-4 h-2 w-[100px] rounded-full bg-muted" />
-      {children}
-    </DrawerPrimitive.Content>
-  </DrawerPortal>
-))
+  DrawerContentProps
+>(({ className, children, showFullscreenButton = false, ...props }, ref) => {
+  const [isFullscreen, setIsFullscreen] = React.useState(false);
+
+  const toggleFullscreen = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsFullscreen(!isFullscreen);
+  };
+
+  return (
+    <DrawerPortal>
+      <DrawerOverlay />
+      <DrawerPrimitive.Content
+        ref={ref}
+        className={cn(
+          "fixed z-50 mt-24 flex flex-col border bg-background",
+          isFullscreen 
+            ? "inset-0 mt-0 h-screen rounded-none" 
+            : "inset-x-0 bottom-0 h-auto rounded-t-[10px]",
+          className
+        )}
+        {...props}
+      >
+        {!isFullscreen && <div className="mx-auto mt-4 h-2 w-[100px] rounded-full bg-muted" />}
+        
+        {showFullscreenButton && (
+          <button
+            onClick={toggleFullscreen}
+            className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
+          >
+            {isFullscreen ? (
+              <Minimize2 className="h-4 w-4" />
+            ) : (
+              <Maximize2 className="h-4 w-4" />
+            )}
+            <span className="sr-only">{isFullscreen ? "Exit Fullscreen" : "Fullscreen"}</span>
+          </button>
+        )}
+        
+        {children}
+      </DrawerPrimitive.Content>
+    </DrawerPortal>
+  )
+})
 DrawerContent.displayName = "DrawerContent"
 
 const DrawerHeader = ({
