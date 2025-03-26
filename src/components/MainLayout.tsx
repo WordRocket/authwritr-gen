@@ -23,8 +23,7 @@ import {
   History, 
   Settings, 
   LogOut, 
-  PenTool, 
-  BookTemplate,
+  PenTool,
   User
 } from "lucide-react";
 
@@ -44,17 +43,12 @@ export default function MainLayout({ children }: MainLayoutProps) {
     }
   }, [isAuthenticated, navigate]);
 
-  // Menu items
+  // Menu items - removed Templates as it's now incorporated in Dashboard
   const menuItems = [
     {
       title: "Dashboard",
       path: "/",
       icon: Home,
-    },
-    {
-      title: "Templates",
-      path: "/templates",
-      icon: BookTemplate,
     },
     {
       title: "My Content",

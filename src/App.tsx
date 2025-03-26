@@ -8,7 +8,6 @@ import { AuthProvider } from "@/context/AuthContext";
 import MainLayout from "@/components/MainLayout";
 import AuthPage from "@/pages/AuthPage";
 import Dashboard from "@/pages/Dashboard";
-import TemplatesPage from "@/pages/TemplatesPage";
 import ContentPage from "@/pages/ContentPage";
 import HistoryPage from "@/pages/HistoryPage";
 import SettingsPage from "@/pages/SettingsPage";
@@ -29,7 +28,7 @@ const App = () => (
             <Route path="/auth" element={<AuthPage />} />
             
             <Route path="/" element={<MainLayout><Dashboard /></MainLayout>} />
-            <Route path="/templates" element={<MainLayout><TemplatesPage /></MainLayout>} />
+            <Route path="/templates" element={<Navigate to="/" replace />} />
             <Route path="/content" element={<MainLayout><ContentPage /></MainLayout>} />
             <Route path="/history" element={<MainLayout><HistoryPage /></MainLayout>} />
             <Route path="/settings" element={<MainLayout><SettingsPage /></MainLayout>} />
@@ -37,7 +36,6 @@ const App = () => (
             {/* Template Routes */}
             <Route path="/templates/all-in-one-seo" element={<MainLayout><SeoGeneratorTemplate /></MainLayout>} />
             <Route path="/templates/article-generator" element={<MainLayout><SeoGeneratorTemplate /></MainLayout>} />
-            <Route path="/templates/bulk-blog-post" element={<MainLayout><SeoGeneratorTemplate /></MainLayout>} />
             <Route path="/templates/deep-thinking" element={<MainLayout><DeepThinkingTemplate /></MainLayout>} />
             
             <Route path="*" element={<NotFound />} />
