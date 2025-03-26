@@ -20,7 +20,6 @@ import { Button } from "@/components/ui/button";
 import { 
   Home, 
   FileText, 
-  History, 
   Settings, 
   LogOut, 
   PenTool,
@@ -43,7 +42,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
     }
   }, [isAuthenticated, navigate]);
 
-  // Menu items - removed Templates as it's now incorporated in Dashboard
+  // Menu items - removed History tab
   const menuItems = [
     {
       title: "Dashboard",
@@ -54,11 +53,6 @@ export default function MainLayout({ children }: MainLayoutProps) {
       title: "My Content",
       path: "/content",
       icon: FileText,
-    },
-    {
-      title: "History",
-      path: "/history",
-      icon: History,
     },
   ];
 
