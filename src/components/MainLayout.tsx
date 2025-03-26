@@ -1,5 +1,5 @@
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import {
@@ -25,15 +25,17 @@ import {
   PenTool,
   User
 } from "lucide-react";
+import { OnboardingModal } from "./OnboardingModal";
 
 interface MainLayoutProps {
   children: React.ReactNode;
 }
 
 export default function MainLayout({ children }: MainLayoutProps) {
-  const { isAuthenticated, logout, user } = useAuth();
+  const { isAuthenticated, logout, user, apiKey } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -41,6 +43,13 @@ export default function MainLayout({ children }: MainLayoutProps) {
       navigate("/auth");
     }
   }, [isAuthenticated, navigate]);
+
+  // Show onboarding modal when a user logs in and doesn't have an API key
+  useEffect(() => {
+    if (isAuthenticated && !apiKey && location.pathname !== "/settings") {
+      setShowOnboarding(true);
+    }
+  }, [isAuthenticated, apiKey, location.pathname]);
 
   // Menu items - removed History tab
   const menuItems = [
@@ -148,6 +157,12 @@ export default function MainLayout({ children }: MainLayoutProps) {
             {children}
           </div>
         </main>
+        
+        {/* Onboarding Modal */}
+        <OnboardingModal 
+          open={showOnboarding} 
+          onOpenChange={setShowOnboarding} 
+        />
       </div>
     </SidebarProvider>
   );

@@ -8,6 +8,8 @@ import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
+import { ExternalLink } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function SettingsPage() {
   const { apiKey, login, user } = useAuth();
@@ -132,6 +134,14 @@ export default function SettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {!apiKey && (
+            <Alert className="mb-4">
+              <AlertDescription>
+                You need an OpenRouter API key to use WordRocket's AI-powered content generation features.
+              </AlertDescription>
+            </Alert>
+          )}
+          
           <div className="space-y-2">
             <Label htmlFor="openrouter-api-key">OpenRouter API Key</Label>
             <Input
@@ -141,9 +151,31 @@ export default function SettingsPage() {
               onChange={(e) => setNewApiKey(e.target.value)}
               placeholder="Enter your OpenRouter API key"
             />
-            <p className="text-sm text-muted-foreground">
-              Your API key is stored locally and never sent to our servers.
-            </p>
+            <div className="text-sm text-muted-foreground space-y-2">
+              <p>
+                Your API key is stored locally and never sent to our servers.
+              </p>
+              <div className="pt-2">
+                <a 
+                  href="https://openrouter.ai/keys" 
+                  target="_blank" 
+                  rel="noreferrer"
+                  className="flex items-center text-primary hover:underline text-sm"
+                >
+                  Get your OpenRouter API key
+                  <ExternalLink className="h-3 w-3 ml-1 inline" />
+                </a>
+                <a 
+                  href="https://docs.openrouter.ai/introduction" 
+                  target="_blank" 
+                  rel="noreferrer" 
+                  className="flex items-center text-primary hover:underline text-sm mt-1"
+                >
+                  Learn more about OpenRouter
+                  <ExternalLink className="h-3 w-3 ml-1 inline" />
+                </a>
+              </div>
+            </div>
           </div>
         </CardContent>
         <CardFooter>
