@@ -191,6 +191,18 @@ export async function saveGeneratedContent(title: string, content: string, userI
 
 export const recommendedModels = [
   { 
+    id: "google/gemini-2.5-pro-exp-03-25:free", 
+    name: "Gemini Pro 2.5 Experimental", 
+    description: "Google's state-of-the-art AI model (free)",
+    recommended: true
+  },
+  { 
+    id: "deepseek/deepseek-chat-v3-0324:free", 
+    name: "DeepSeek V3 0324", 
+    description: "685B-parameter model for advanced content creation (free)",
+    recommended: true
+  },
+  { 
     id: "openai/o1-mini-2024-09-12", 
     name: "O1 Mini", 
     description: "Best for high-quality content generation",
@@ -224,7 +236,7 @@ export const recommendedModels = [
     id: "anthropic/claude-3-opus", 
     name: "Claude 3 Opus", 
     description: "Highest quality for premium content",
-    recommended: true
+    recommended: false
   },
   { 
     id: "anthropic/claude-3-haiku", 

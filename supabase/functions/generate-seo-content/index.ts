@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -31,6 +30,7 @@ serve(async (req) => {
       includeHtmlElement,
       includeInternalLinks,
       internalLinks,
+      includeCitations,
       apiKey,
       model,
       finalContentModel,
@@ -46,6 +46,7 @@ serve(async (req) => {
       hasManualInput: !!manualInput,
       includeInternalLinks,
       internalLinksCount: internalLinks?.length || 0,
+      includeCitations: !!includeCitations,
       backgroundGeneration: !!backgroundGeneration,
       hasAdditionalContext: !!additionalContext,
       model,
@@ -100,6 +101,7 @@ serve(async (req) => {
       console.log("Manual input length:", manualInput?.length || 0);
     }
     console.log("Internal links:", includeInternalLinks ? "Enabled" : "Disabled");
+    console.log("Citations:", includeCitations ? "Enabled" : "Disabled");
     if (includeInternalLinks && internalLinks) {
       console.log(`${internalLinks.length} internal links provided`);
     }
@@ -462,7 +464,7 @@ serve(async (req) => {
                 ],
                 temperature: 0.7,
                 // Set max_tokens to 128000 specifically for Claude 3.7 Sonnet
-                max_tokens: requestedModel.includes("claude-3.7-sonnet") ? 128000 : 16000,
+                max_tokens: 16000,
               }),
             });
 
@@ -582,7 +584,7 @@ serve(async (req) => {
               { role: "user", content: userPrompt }
             ],
             temperature: 0.7,
-            max_tokens: 16000,
+            max_tokens: requestedModel.includes("gemini-2.5") || requestedModel.includes("deepseek") ? 32000 : 16000,
           }),
         });
 
@@ -621,9 +623,9 @@ serve(async (req) => {
         }
         
         let searchResults = searchData.choices[0].message.content;
-        console.log("Search completed. Now processing with Claude 3.7 Sonnet...");
+        console.log("Search completed. Now processing with final content model...");
         
-        // STEP 2: Use Claude 3.7 Sonnet to create the final content
+        // STEP 2: Use Claude 3.7 Sonnet or other selected model to create the final content
         // Important: Making sure we're using 'let' for system prompts here
         let claudeSystemPrompt = `You are an expert SEO content writer. Your task is to create a high-quality, 
         SEO-optimized blog post based on the research information provided. The content should have a readability 
@@ -646,6 +648,11 @@ serve(async (req) => {
           claudeSystemPrompt += ` Include relevant internal links from the provided list of URLs. Select 3-7 of the most relevant URLs based on the content and link to them naturally within the text using anchor text that is relevant to both the linked page and the context of your article.`;
         }
         
+        // Add citations instruction if requested
+        if (includeCitations) {
+          claudeSystemPrompt += ` Make sure to include all sources and citations from the research in the final blog post. List all sources and citations at the end of the article in a "Sources" or "References" section.`;
+        }
+        
         // Important: Using 'let' instead of 'const' for userPrompt that might be appended to
         let claudeUserPrompt = `I have conducted extensive research on the topic "${topic}" optimized for the keyword "${keyword}". 
         Here is the research data:
@@ -663,6 +670,10 @@ serve(async (req) => {
         - Includes all relevant information from the research
         - Includes lists, tables, charts, and bold text where appropriate
         - Cites sources from the research where appropriate`;
+        
+        if (includeCitations) {
+          claudeUserPrompt += `\n- Includes all sources and citations from the research in a "Sources" or "References" section at the end of the article`;
+        }
         
         if (stylePreferences.length > 0) {
           claudeUserPrompt += `\n- Uses ${stylePreferences.join(", ")} style`;
@@ -716,7 +727,7 @@ serve(async (req) => {
         }
         
         try {
-          // Call the Claude 3.7 Sonnet model for final content generation
+          // Call the final content model for content generation
           let claudeResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -732,7 +743,8 @@ serve(async (req) => {
                 { role: "user", content: claudeUserPrompt }
               ],
               temperature: 0.7,
-              max_tokens: 128000,
+              max_tokens: finalContentModelToUse.includes("gemini-2.5") || finalContentModelToUse.includes("deepseek") ? 32000 : 
+                        finalContentModelToUse.includes("claude-3.7-sonnet") ? 128000 : 16000,
             }),
           });
 
@@ -815,8 +827,9 @@ serve(async (req) => {
               { role: "user", content: userPrompt }
             ],
             temperature: 0.7,
-            // Set max_tokens to 128000 specifically for Claude 3.7 Sonnet
-            max_tokens: requestedModel.includes("claude-3.7-sonnet") ? 128000 : 16000,
+            // Set max_tokens based on model type
+            max_tokens: requestedModel.includes("gemini-2.5") || requestedModel.includes("deepseek") ? 32000 :
+                      requestedModel.includes("claude-3.7-sonnet") ? 128000 : 16000,
           }),
         });
 
