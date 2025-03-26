@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -28,6 +29,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setApiKey(storedApiKey);
     }
 
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUser(session?.user || null);
+        setIsAuthenticated(!!session);
+      }
+    );
+
+    // THEN check for existing session
     const getSession = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
@@ -50,13 +60,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     getSession();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setUser(session?.user || null);
-        setIsAuthenticated(!!session);
-      }
-    );
 
     return () => {
       subscription.unsubscribe();
@@ -133,7 +136,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   if (loading) {
-    return <div>Loading authentication...</div>;
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-secondary to-background">
+        <div className="flex flex-col items-center gap-4">
+          <LoadingSpinner size="lg" />
+          <p className="text-muted-foreground">Loading authentication...</p>
+        </div>
+      </div>
+    );
   }
 
   return (

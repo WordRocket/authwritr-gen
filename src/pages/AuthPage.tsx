@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PenTool, ArrowRight, Info, Mail, Lock, UserPlus, LogIn } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 export default function AuthPage() {
   const [activeTab, setActiveTab] = useState<string>("signin");
@@ -16,11 +17,18 @@ export default function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isPageLoading, setIsPageLoading] = useState(true);
   
   const { signIn, signUp, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
-  React.useEffect(() => {
+  useEffect(() => {
+    // Short timeout to prevent flash of loading state
+    const timer = setTimeout(() => setIsPageLoading(false), 500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
     if (isAuthenticated) {
       navigate("/");
     }
@@ -51,6 +59,11 @@ export default function AuthPage() {
       toast.error("Please fill in all fields");
       return;
     }
+    
+    if (password.length < 6) {
+      toast.error("Password must be at least 6 characters long");
+      return;
+    }
 
     setIsLoading(true);
     try {
@@ -68,6 +81,17 @@ export default function AuthPage() {
     e.preventDefault();
     // This is kept for backwards compatibility
   };
+
+  if (isPageLoading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-secondary to-background">
+        <div className="flex flex-col items-center gap-4">
+          <LoadingSpinner size="lg" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-secondary to-background p-4">
@@ -113,6 +137,7 @@ export default function AuthPage() {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         className="w-full"
+                        disabled={isLoading}
                       />
                     </div>
                     <div className="space-y-2">
@@ -129,6 +154,7 @@ export default function AuthPage() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         className="w-full"
+                        disabled={isLoading}
                       />
                     </div>
                   </div>
@@ -139,8 +165,17 @@ export default function AuthPage() {
                     className="w-full"
                     disabled={isLoading || !email || !password}
                   >
-                    {isLoading ? "Signing in..." : "Sign In"}
-                    <LogIn className="ml-2 h-4 w-4" />
+                    {isLoading ? (
+                      <span className="flex items-center">
+                        <LoadingSpinner size="sm" className="mr-2" />
+                        Signing in...
+                      </span>
+                    ) : (
+                      <>
+                        Sign In
+                        <LogIn className="ml-2 h-4 w-4" />
+                      </>
+                    )}
                   </Button>
                 </CardFooter>
               </form>
@@ -172,6 +207,7 @@ export default function AuthPage() {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         className="w-full"
+                        disabled={isLoading}
                       />
                     </div>
                     <div className="space-y-2">
@@ -188,6 +224,7 @@ export default function AuthPage() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         className="w-full"
+                        disabled={isLoading}
                       />
                       <p className="text-xs text-muted-foreground">
                         Password must be at least 6 characters long
@@ -201,8 +238,17 @@ export default function AuthPage() {
                     className="w-full"
                     disabled={isLoading || !email || !password}
                   >
-                    {isLoading ? "Creating account..." : "Create Account"}
-                    <UserPlus className="ml-2 h-4 w-4" />
+                    {isLoading ? (
+                      <span className="flex items-center">
+                        <LoadingSpinner size="sm" className="mr-2" />
+                        Creating account...
+                      </span>
+                    ) : (
+                      <>
+                        Create Account
+                        <UserPlus className="ml-2 h-4 w-4" />
+                      </>
+                    )}
                   </Button>
                 </CardFooter>
               </form>
@@ -248,6 +294,7 @@ export default function AuthPage() {
                         value={apiKey}
                         onChange={(e) => setApiKey(e.target.value)}
                         className="w-full"
+                        disabled={isLoading}
                       />
                     </div>
                   </div>
