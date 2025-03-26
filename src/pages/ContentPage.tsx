@@ -14,7 +14,7 @@ import { HtmlPreviewComponent } from "@/components/templates/HtmlPreviewComponen
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious, PaginationLink } from "@/components/ui/pagination";
-import { useMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ContentItem {
   id: string;
@@ -36,7 +36,7 @@ export default function ContentPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest" | "alphabetical">("newest");
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();
   
   const itemsPerPage = 6;
 
