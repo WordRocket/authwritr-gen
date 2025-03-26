@@ -110,9 +110,11 @@ export default function SeoGeneratorTemplate() {
           ? <DeepThinkingGeneratorForm 
               includeInternalLinks={includeInternalLinks} 
               onGeneratingStateChange={handleGeneratingState}
+              hideBackgroundGeneration={true}
             />
           : <SeoGeneratorForm 
               includeInternalLinks={includeInternalLinks}
+              hideBackgroundGeneration={true}
             />}
     </div>
   );

@@ -1,3 +1,4 @@
+
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -94,9 +95,13 @@ const defaultValues: Partial<SeoFormValues> = {
 
 interface SeoGeneratorFormProps {
   includeInternalLinks?: boolean;
+  hideBackgroundGeneration?: boolean;
 }
 
-export function SeoGeneratorForm({ includeInternalLinks = false }: SeoGeneratorFormProps) {
+export function SeoGeneratorForm({ 
+  includeInternalLinks = false,
+  hideBackgroundGeneration = true // Changed default to true
+}: SeoGeneratorFormProps) {
   const { user, apiKey } = useAuth();
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [isSaving, setIsSaving] = React.useState(false);
@@ -478,30 +483,32 @@ export function SeoGeneratorForm({ includeInternalLinks = false }: SeoGeneratorF
                     <div className="space-y-4 pt-4">
                       <h3 className="font-medium">Article Options</h3>
                       
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <FormField
-                            control={form.control}
-                            name="backgroundGeneration"
-                            render={({ field }) => (
-                              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 w-full">
-                                <div className="space-y-0.5">
-                                  <FormLabel className="text-base">Background Generation</FormLabel>
-                                  <FormDescription>
-                                    Generate in background and save to My Content
-                                  </FormDescription>
-                                </div>
-                                <FormControl>
-                                  <Switch
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
-                                  />
-                                </FormControl>
-                              </FormItem>
-                            )}
-                          />
+                      {!hideBackgroundGeneration && (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <FormField
+                              control={form.control}
+                              name="backgroundGeneration"
+                              render={({ field }) => (
+                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 w-full">
+                                  <div className="space-y-0.5">
+                                    <FormLabel className="text-base">Background Generation</FormLabel>
+                                    <FormDescription>
+                                      Generate in background and save to My Content
+                                    </FormDescription>
+                                  </div>
+                                  <FormControl>
+                                    <Switch
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
+                                    />
+                                  </FormControl>
+                                </FormItem>
+                              )}
+                            />
+                          </div>
                         </div>
-                      </div>
+                      )}
                       
                       <h3 className="font-medium mt-4">Article Elements</h3>
                       
@@ -790,4 +797,3 @@ export function SeoGeneratorForm({ includeInternalLinks = false }: SeoGeneratorF
     </Tabs>
   );
 }
-

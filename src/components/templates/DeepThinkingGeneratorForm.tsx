@@ -1,3 +1,4 @@
+
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -114,7 +115,7 @@ interface DeepThinkingGeneratorFormProps {
 export function DeepThinkingGeneratorForm({ 
   includeInternalLinks = false,
   onGeneratingStateChange,
-  hideBackgroundGeneration = false
+  hideBackgroundGeneration = true // Changed default to true
 }: DeepThinkingGeneratorFormProps) {
   const { user, apiKey } = useAuth();
   const [isGenerating, setIsGenerating] = React.useState(false);
