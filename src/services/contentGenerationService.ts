@@ -109,11 +109,13 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
       }
 
       if (!data) {
+        console.error("No data returned from content generation service");
         throw new Error("No data returned from content generation service");
       }
       
       if (!data.success) {
         const errorMessage = data.error || "Failed to generate content";
+        console.error("Content generation returned error:", errorMessage, data);
         throw new Error(errorMessage);
       }
 
@@ -158,11 +160,21 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
       }
 
       return data.content;
-    } catch (invokeError) {
+    } catch (invokeError: any) {
       console.error("Error in supabase.functions.invoke:", invokeError);
+      
+      // Improved error handling for different types of errors
+      if (invokeError.message && invokeError.message.includes("API")) {
+        if (modelId.includes("gemini") || modelId.includes("deepseek")) {
+          throw new Error(`The selected model (${modelId.split('/')[1]}) may be temporarily unavailable. Please try a different model or try again later.`);
+        } else {
+          throw new Error(`Failed to communicate with content generation service: ${invokeError.message}`);
+        }
+      }
+      
       throw new Error(`Failed to communicate with content generation service: ${invokeError.message}`);
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error in generateSeoContent:", error);
     throw error;
   }
