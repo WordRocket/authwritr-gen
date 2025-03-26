@@ -44,7 +44,6 @@ export default function ContentPage() {
     if (isAuthenticated && user) {
       fetchUserContent();
       
-      // Set up real-time subscription for new content
       const channel = supabase
         .channel('public:content')
         .on('postgres_changes', { 
@@ -53,19 +52,16 @@ export default function ContentPage() {
           table: 'content',
           filter: `user_id=eq.${user.id}`
         }, (payload) => {
-          // Show a notification
           toast({
             title: "New Content Available",
             description: "Your background content generation is complete!",
           });
           
-          // Add the new content to the list
           const newContent = payload.new as ContentItem;
           setContentItems(prev => [newContent, ...prev]);
         })
         .subscribe();
       
-      // Cleanup function
       return () => {
         supabase.removeChannel(channel);
       };
@@ -74,24 +70,20 @@ export default function ContentPage() {
     }
   }, [isAuthenticated, user]);
 
-  // Extract HTML when content is selected
   useEffect(() => {
     if (selectedContent?.content) {
-      // Look for code blocks that appear to contain HTML
       const htmlCodeBlockRegex = /```(?:html)?\s*(<[\s\S]*?>[\s\S]*?<\/[\s\S]*?>)```/g;
       const htmlInlineRegex = /<(!DOCTYPE|html|div|section|article|header|footer|table|form|button|input|iframe)[\s\S]*?<\/\1>/g;
       
       let matches = [];
       let match;
       
-      // First try to find code blocks with HTML
       while ((match = htmlCodeBlockRegex.exec(selectedContent.content)) !== null) {
         if (match[1] && match[1].trim()) {
           matches.push(match[1].trim());
         }
       }
       
-      // If no code blocks found, try to find inline HTML
       if (matches.length === 0) {
         while ((match = htmlInlineRegex.exec(selectedContent.content)) !== null) {
           if (match[0] && match[0].trim()) {
@@ -100,7 +92,6 @@ export default function ContentPage() {
         }
       }
       
-      // Use the longest match as it's likely the most complete HTML
       if (matches.length > 0) {
         matches.sort((a, b) => b.length - a.length);
         setExtractedHtmlCode(matches[0]);
@@ -182,10 +173,8 @@ export default function ContentPage() {
         description: "The content has been successfully deleted",
       });
       
-      // Close the alert dialog
       setDeleteId(null);
       
-      // If selected content is the one being deleted, clear it
       if (selectedContent && selectedContent.id === deleteId) {
         setSelectedContent(null);
       }
@@ -201,11 +190,9 @@ export default function ContentPage() {
     }
   };
 
-  // Sort and filter content
   const getSortedAndFilteredContent = () => {
     let filtered = [...contentItems];
     
-    // Apply search filter
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(item => 
@@ -214,7 +201,6 @@ export default function ContentPage() {
       );
     }
     
-    // Apply sorting
     switch (sortOrder) {
       case "newest":
         filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
@@ -229,14 +215,13 @@ export default function ContentPage() {
     
     return filtered;
   };
-  
-  // Pagination
+
   const paginatedContent = () => {
     const sorted = getSortedAndFilteredContent();
     const startIndex = (currentPage - 1) * itemsPerPage;
     return sorted.slice(startIndex, startIndex + itemsPerPage);
   };
-  
+
   const totalPages = Math.ceil(getSortedAndFilteredContent().length / itemsPerPage);
 
   const downloadAsMarkdown = () => {
@@ -259,10 +244,9 @@ export default function ContentPage() {
   };
 
   const getContentPreview = (content: string) => {
-    // Remove markdown formatting for preview
     return content
       .replace(/[#*`]/g, '')
-      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Replace links with just the text
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
       .substring(0, 150) + "...";
   };
 
@@ -331,7 +315,6 @@ export default function ContentPage() {
     }
 
     if (getSortedAndFilteredContent().length === 0) {
-      // Empty state
       return (
         <Card className="border-dashed bg-card/50">
           <CardHeader className="text-center">
@@ -460,13 +443,11 @@ export default function ContentPage() {
                                 <ReactMarkdown components={{
                                   p: ({ node, ...props }) => {
                                     const content = props.children;
-                                    // Check if content contains HTML elements
                                     if (typeof content === 'string' && (content.includes('<') && content.includes('>'))) {
                                       return <div dangerouslySetInnerHTML={{ __html: content }} />;
                                     }
                                     return <p {...props} />;
                                   },
-                                  // Handle tables properly
                                   table: ({ node, ...props }) => (
                                     <div className="overflow-x-auto my-6">
                                       <table className="w-full border-collapse border border-border" {...props} />
@@ -487,7 +468,6 @@ export default function ContentPage() {
                                   td: ({ node, ...props }) => (
                                     <td className="border border-border px-4 py-2" {...props} />
                                   ),
-                                  // Handle lists properly
                                   ul: ({ node, ...props }) => (
                                     <ul className="list-disc pl-6 my-4 space-y-2" {...props} />
                                   ),
@@ -497,7 +477,6 @@ export default function ContentPage() {
                                   li: ({ node, ...props }) => (
                                     <li className="pl-1" {...props} />
                                   ),
-                                  // Properly style headings
                                   h1: ({ node, ...props }) => (
                                     <h1 className="text-3xl font-bold mt-8 mb-4" {...props} />
                                   ),
@@ -510,11 +489,9 @@ export default function ContentPage() {
                                   h4: ({ node, ...props }) => (
                                     <h4 className="text-lg font-medium mt-4 mb-2" {...props} />
                                   ),
-                                  // Handle blockquotes
                                   blockquote: ({ node, ...props }) => (
                                     <blockquote className="border-l-4 border-primary/50 pl-4 italic my-4" {...props} />
                                   ),
-                                  // Handle code blocks properly
                                   code: ({ className, children, ...props }) => {
                                     const match = /language-(\w+)/.exec(className || '');
                                     const isInline = !match && (className || '').indexOf('language-') !== 0;
@@ -533,7 +510,6 @@ export default function ContentPage() {
                                   {selectedContent?.content || ""}
                                 </ReactMarkdown>
                                 
-                                {/* Add HTML Preview below content if HTML is found */}
                                 {extractedHtmlCode && (
                                   <HtmlPreviewComponent 
                                     htmlCode={extractedHtmlCode} 
@@ -777,7 +753,6 @@ export default function ContentPage() {
     );
   };
 
-  // Modify the dialog content to use our enhanced fullscreen capability
   const renderContentDialog = (item: ContentItem) => {
     return (
       <Dialog>
@@ -841,13 +816,11 @@ export default function ContentPage() {
                 <ReactMarkdown components={{
                   p: ({ node, ...props }) => {
                     const content = props.children;
-                    // Check if content contains HTML elements
                     if (typeof content === 'string' && (content.includes('<') && content.includes('>'))) {
                       return <div dangerouslySetInnerHTML={{ __html: content }} />;
                     }
                     return <p {...props} />;
                   },
-                  // Handle tables properly
                   table: ({ node, ...props }) => (
                     <div className="overflow-x-auto my-6">
                       <table className="w-full border-collapse border border-border" {...props} />
@@ -867,3 +840,30 @@ export default function ContentPage() {
                   ),
                   td: ({ node, ...props }) => (
                     <td className="border border-border px-4 py-2" {...props} />
+                  ),
+                }}>
+                  {selectedContent?.content || ""}
+                </ReactMarkdown>
+                
+                {extractedHtmlCode && (
+                  <HtmlPreviewComponent 
+                    htmlCode={extractedHtmlCode} 
+                    className="mt-8 border-t pt-8" 
+                  />
+                )}
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="markdown" className="h-[calc(90vh-180px)]">
+              <Textarea 
+                value={selectedContent?.content || ""} 
+                readOnly 
+                className="w-full h-full min-h-[400px] font-mono text-sm"
+              />
+            </TabsContent>
+          </Tabs>
+        </DialogContent>
+      </Dialog>
+    );
+  };
+}
