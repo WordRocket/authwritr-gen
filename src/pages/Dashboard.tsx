@@ -71,7 +71,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1>ContentGenius Dashboard</h1>
+        <h1>WordRocket 🚀 Dashboard</h1>
         <p className="text-muted-foreground">
           Choose a template to start creating professional long-form content
         </p>

@@ -9,7 +9,6 @@ import MainLayout from "@/components/MainLayout";
 import AuthPage from "@/pages/AuthPage";
 import Dashboard from "@/pages/Dashboard";
 import ContentPage from "@/pages/ContentPage";
-import HistoryPage from "@/pages/HistoryPage";
 import SettingsPage from "@/pages/SettingsPage";
 import NotFound from "./pages/NotFound";
 import SeoGeneratorTemplate from "./pages/templates/SeoGeneratorTemplate";
@@ -30,7 +29,6 @@ const App = () => (
             <Route path="/" element={<MainLayout><Dashboard /></MainLayout>} />
             <Route path="/templates" element={<Navigate to="/" replace />} />
             <Route path="/content" element={<MainLayout><ContentPage /></MainLayout>} />
-            <Route path="/history" element={<MainLayout><HistoryPage /></MainLayout>} />
             <Route path="/settings" element={<MainLayout><SettingsPage /></MainLayout>} />
             
             {/* Template Routes */}

@@ -74,7 +74,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
         <Sidebar>
           <SidebarHeader className="flex flex-row items-center px-4 py-2">
             <PenTool className="h-6 w-6 text-primary mr-2" />
-            <h1 className="text-xl font-bold">ContentGenius</h1>
+            <h1 className="text-xl font-bold">WordRocket 🚀</h1>
           </SidebarHeader>
           <SidebarContent>
             <SidebarGroup>
@@ -140,7 +140,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
             <div className="flex items-center">
               <SidebarTrigger />
               <h2 className="ml-4 font-semibold">
-                {menuItems.find(item => item.path === location.pathname)?.title || "ContentGenius"}
+                {menuItems.find(item => item.path === location.pathname)?.title || "WordRocket 🚀"}
               </h2>
             </div>
           </div>

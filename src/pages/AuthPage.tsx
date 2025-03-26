@@ -100,7 +100,7 @@ export default function AuthPage() {
           <div className="flex items-center justify-center mb-4">
             <PenTool className="h-10 w-10 text-primary" />
           </div>
-          <h1 className="gradient-heading mb-2">ContentGenius</h1>
+          <h1 className="gradient-heading mb-2">WordRocket 🚀</h1>
           <p className="text-muted-foreground">
             AI-powered blog post & article generator
           </p>
