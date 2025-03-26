@@ -105,7 +105,6 @@ export default function SeoGeneratorTemplate() {
             includeInternalLinks={includeInternalLinks} 
             includeCitations={includeCitations} 
             onCitationsToggle={handleCitationsToggle}
-            onGeneratingStateChange={handleGeneratingState}
             hideBackgroundGeneration={true}
           />
         : isDeepThinking
