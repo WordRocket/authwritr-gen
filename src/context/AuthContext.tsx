@@ -68,9 +68,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signUp({ 
+      const { error, data } = await supabase.auth.signUp({ 
         email, 
         password,
+        options: {
+          emailRedirectTo: window.location.origin,
+          data: {
+            email_confirmed: true
+          }
+        }
       });
       
       if (error) {
@@ -78,7 +84,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw error;
       }
       
-      toast.success("Signup successful! Please check your email for verification.");
+      // Auto sign-in the user after successful sign-up
+      if (data.user) {
+        await signIn(email, password);
+        toast.success("Account created and logged in successfully!");
+      } else {
+        toast.success("Signup successful! Please check your email for verification.");
+      }
     } catch (error: any) {
       console.error("Signup error:", error);
       throw error;
