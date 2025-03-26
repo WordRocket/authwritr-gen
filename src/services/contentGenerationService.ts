@@ -89,74 +89,79 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
       finalContentModel
     });
     
-    const { data, error } = await supabase.functions.invoke("generate-seo-content", {
-      body: {
-        ...formData,
-        apiKey,
-        model: modelId,
-        finalContentModel,
-        internalLinks: formData.includeInternalLinks ? internalLinks : []
-      },
-    });
-
-    // Improved error handling
-    if (error) {
-      console.error("Error invoking generate-seo-content function:", error);
-      const errorMessage = error.message || "Failed to connect to the content generation service";
-      console.log("Error details:", error);
-      throw new Error(`Failed to generate content: ${errorMessage}`);
-    }
-
-    if (!data) {
-      throw new Error("No data returned from content generation service");
-    }
-    
-    if (!data.success) {
-      const errorMessage = data.error || "Failed to generate content";
-      throw new Error(errorMessage);
-    }
-
-    // Handle background generation
-    if (data.backgroundGeneration) {
-      toast({
-        title: "Content Generation Started",
-        description: "Your content is being generated in the background. You'll find it in 'My Content' when it's ready.",
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-seo-content", {
+        body: {
+          ...formData,
+          apiKey,
+          model: modelId,
+          finalContentModel,
+          internalLinks: formData.includeInternalLinks ? internalLinks : []
+        },
       });
-      
-      return "BACKGROUND_GENERATION_STARTED";
-    }
 
-    // Auto-save content to the database
-    if (data.content) {
-      try {
-        // Extract title from the content (usually the first heading)
-        const titleMatch = data.content.match(/^#\s*(.*?)(\n|$)/);
-        const title = titleMatch ? titleMatch[1].trim() : formData.topic;
-        
-        // Get the current user
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (user) {
-          // Save to database
-          await saveGeneratedContent(title, data.content, user.id);
-          toast({
-            title: "Content Saved",
-            description: "Your generated content has been automatically saved to 'My Content'.",
-          });
-        } else {
-          console.warn("Content not auto-saved: No authenticated user found");
-        }
-      } catch (saveError) {
-        console.error("Error auto-saving content:", saveError);
-        toast({
-          title: "Auto-Save Failed",
-          description: "We couldn't automatically save your content. You might need to save it manually.",
-          variant: "destructive",
-        });
+      // Improved error handling
+      if (error) {
+        console.error("Error invoking generate-seo-content function:", error);
+        const errorMessage = error.message || "Failed to connect to the content generation service";
+        console.log("Error details:", error);
+        throw new Error(`Failed to generate content: ${errorMessage}`);
       }
-    }
 
-    return data.content;
+      if (!data) {
+        throw new Error("No data returned from content generation service");
+      }
+      
+      if (!data.success) {
+        const errorMessage = data.error || "Failed to generate content";
+        throw new Error(errorMessage);
+      }
+
+      // Handle background generation
+      if (data.backgroundGeneration) {
+        toast({
+          title: "Content Generation Started",
+          description: "Your content is being generated in the background. You'll find it in 'My Content' when it's ready.",
+        });
+        
+        return "BACKGROUND_GENERATION_STARTED";
+      }
+
+      // Auto-save content to the database
+      if (data.content) {
+        try {
+          // Extract title from the content (usually the first heading)
+          const titleMatch = data.content.match(/^#\s*(.*?)(\n|$)/);
+          const title = titleMatch ? titleMatch[1].trim() : formData.topic;
+          
+          // Get the current user
+          const { data: { user } } = await supabase.auth.getUser();
+          
+          if (user) {
+            // Save to database
+            await saveGeneratedContent(title, data.content, user.id);
+            toast({
+              title: "Content Saved",
+              description: "Your generated content has been automatically saved to 'My Content'.",
+            });
+          } else {
+            console.warn("Content not auto-saved: No authenticated user found");
+          }
+        } catch (saveError) {
+          console.error("Error auto-saving content:", saveError);
+          toast({
+            title: "Auto-Save Failed",
+            description: "We couldn't automatically save your content. You might need to save it manually.",
+            variant: "destructive",
+          });
+        }
+      }
+
+      return data.content;
+    } catch (invokeError) {
+      console.error("Error in supabase.functions.invoke:", invokeError);
+      throw new Error(`Failed to communicate with content generation service: ${invokeError.message}`);
+    }
   } catch (error) {
     console.error("Error in generateSeoContent:", error);
     throw error;
