@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { SeoGeneratorForm } from "@/components/templates/SeoGeneratorForm";
 import { RealTimeBlogGeneratorForm } from "@/components/templates/RealTimeBlogGeneratorForm";
@@ -38,7 +37,6 @@ export default function SeoGeneratorTemplate() {
     localStorage.setItem('includeInternalLinks', enabled.toString());
   };
 
-  // Load the preference from localStorage on component mount
   useEffect(() => {
     const savedPreference = localStorage.getItem('includeInternalLinks');
     if (savedPreference !== null) {
@@ -52,7 +50,6 @@ export default function SeoGeneratorTemplate() {
     }
   }, []);
   
-  // Toggle citations feature
   const handleCitationsToggle = (enabled: boolean) => {
     setIncludeCitations(enabled);
     console.log(`Citations ${enabled ? 'enabled' : 'disabled'}`);
@@ -61,7 +58,6 @@ export default function SeoGeneratorTemplate() {
     localStorage.setItem('includeCitations', enabled.toString());
   };
   
-  // Handler for setting the generating state
   const handleGeneratingState = (generating: boolean) => {
     setIsGenerating(generating);
   };
