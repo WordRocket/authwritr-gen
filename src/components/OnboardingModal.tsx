@@ -1,16 +1,10 @@
 
 import React from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
-import { ExternalLink } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useAuth } from "@/context/AuthContext";
 
 export interface OnboardingModalProps {
   open: boolean;
@@ -18,54 +12,53 @@ export interface OnboardingModalProps {
 }
 
 export function OnboardingModal({ open, onOpenChange }: OnboardingModalProps) {
-  const navigate = useNavigate();
+  const { setApiKey } = useAuth();
+  const [key, setKey] = React.useState("");
 
-  const handleSettingsClick = () => {
-    navigate("/settings");
-    onOpenChange(false);
+  const handleSave = () => {
+    if (key.trim()) {
+      setApiKey(key.trim());
+      onOpenChange(false);
+    }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Welcome to WordRocket 🚀</DialogTitle>
+          <DialogTitle>Welcome to WordRocket</DialogTitle>
           <DialogDescription>
-            Let's set up your content generation environment
+            To get started, please enter your OpenRouter API key. This will allow you to generate content using various AI models.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <h3 className="text-lg font-medium">OpenRouter API Key</h3>
-            <p className="text-sm text-muted-foreground">
-              WordRocket uses OpenRouter to access AI models for content generation. 
-              You'll need an API key to use all features.
-            </p>
-            <div className="rounded-md bg-muted p-4 space-y-3">
-              <ol className="list-decimal list-inside space-y-2 text-sm">
-                <li>
-                  <a 
-                    href="https://openrouter.ai/keys" 
-                    target="_blank" 
-                    rel="noreferrer"
-                    className="font-medium text-primary hover:underline flex items-center"
-                  >
-                    Create an OpenRouter account
-                    <ExternalLink className="h-3 w-3 ml-1" />
-                  </a>
-                </li>
-                <li>Generate an API key for WordRocket</li>
-                <li>Add your API key in the Settings page</li>
-              </ol>
-            </div>
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="apiKey" className="col-span-4">
+              OpenRouter API Key
+            </Label>
+            <Input
+              id="apiKey"
+              value={key}
+              onChange={(e) => setKey(e.target.value)}
+              placeholder="Enter your API key"
+              className="col-span-4"
+            />
+          </div>
+          <div className="col-span-4 text-sm text-muted-foreground">
+            You can get an API key from{" "}
+            <a 
+              href="https://openrouter.ai/keys" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-primary hover:underline"
+            >
+              OpenRouter.ai
+            </a>
           </div>
         </div>
-        <DialogFooter className="flex justify-between sm:justify-between">
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
-            Skip for now
-          </Button>
-          <Button onClick={handleSettingsClick}>
-            Go to Settings
+        <DialogFooter>
+          <Button type="submit" onClick={handleSave} disabled={!key.trim()}>
+            Save API Key
           </Button>
         </DialogFooter>
       </DialogContent>
