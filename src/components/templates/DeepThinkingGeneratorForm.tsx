@@ -119,12 +119,14 @@ interface DeepThinkingGeneratorFormProps {
   includeInternalLinks?: boolean;
   onGeneratingStateChange?: (isGenerating: boolean) => void;
   hideBackgroundGeneration?: boolean;
+  customOutline?: string;
 }
 
 export function DeepThinkingGeneratorForm({ 
   includeInternalLinks = false,
   onGeneratingStateChange,
-  hideBackgroundGeneration = true
+  hideBackgroundGeneration = true,
+  customOutline = ""
 }: DeepThinkingGeneratorFormProps) {
   const { user, apiKey } = useAuth();
   const [isGenerating, setIsGenerating] = React.useState(false);
