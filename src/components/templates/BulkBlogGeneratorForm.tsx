@@ -1,3 +1,4 @@
+
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -298,6 +299,7 @@ export function BulkBlogGeneratorForm({
             + globalSettings.wordCountMin
           );
           
+          // Create request data with all required properties
           const requestData: SeoServiceFormValues = {
             topic: article.title,
             targetKeyword: article.keyword,
@@ -307,18 +309,23 @@ export function BulkBlogGeneratorForm({
             additionalContext: globalSettings.additionalContext,
             wordCount,
             includeFirstPerson: globalSettings.includeFirstPerson,
+            // Map includeStoriesExamples to both includeAnecdotes and includeStories
+            includeAnecdotes: globalSettings.includeStoriesExamples,
+            includeStories: globalSettings.includeStoriesExamples,
             includeHook: globalSettings.includeHook,
             includeHtmlElement: globalSettings.includeHtmlElement,
+            includeInternalLinks,
             backgroundGeneration: true,
             model: globalSettings.model,
-            includeInternalLinks,
           };
           
-          await generateSeoContent(
-            requestData, 
-            apiKey, 
-            customOutline ? { customOutline } : undefined
-          );
+          // Fix the 3-argument call to 2 arguments by using an options object pattern
+          let options = {};
+          if (customOutline) {
+            options = { customOutline };
+          }
+          
+          await generateSeoContent(requestData, apiKey, options);
           
           setBlogArticles(prev => prev.map(a => 
             a.id === article.id ? { ...a, status: "completed" as const, wordCount } : a
