@@ -11,7 +11,8 @@ import {
   FileStack,
   PanelLeft,
   BrainCircuit,
-  FilesIcon
+  FilesIcon,
+  Globe
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { 
@@ -38,7 +39,7 @@ export default function TemplatesPage() {
     { value: "bulk", label: "Bulk Generation" },
   ];
 
-  // Templates data - updated to include deep thinking template but remove bulk blog post
+  // Templates data - added back real-time web search template
   const templatesData = [
     {
       id: "all-in-one-seo",
@@ -55,6 +56,14 @@ export default function TemplatesPage() {
       icon: FileEdit,
       category: "article",
       route: "/templates/article-generator"
+    },
+    {
+      id: "web-search",
+      title: "Real-Time Web Search Article Generator",
+      description: "Research topics online and generate comprehensive articles with real-time web search. Perfect for current events and trending topics.",
+      icon: Globe,
+      category: "article",
+      route: "/templates/web-search"
     },
     {
       id: "deep-thinking",

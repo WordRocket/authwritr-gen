@@ -16,6 +16,7 @@ import Dashboard from "@/pages/Dashboard";
 import TemplatesPage from "@/pages/TemplatesPage";
 import SeoGeneratorTemplate from "@/pages/templates/SeoGeneratorTemplate";
 import DeepThinkingTemplate from "@/pages/templates/DeepThinkingTemplate";
+import WebSearchTemplate from "@/pages/templates/WebSearchTemplate";
 import ContentPage from "@/pages/ContentPage";
 import HistoryPage from "@/pages/HistoryPage";
 import SettingsPage from "@/pages/SettingsPage";
@@ -46,6 +47,10 @@ function App() {
                 <Route
                   path="templates/article-generator"
                   element={<SeoGeneratorTemplate />}
+                />
+                <Route
+                  path="templates/web-search"
+                  element={<WebSearchTemplate />}
                 />
                 <Route
                   path="templates/deep-thinking"

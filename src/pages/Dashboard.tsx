@@ -8,6 +8,7 @@ import {
   PanelLeft,
   FileEdit,
   BrainCircuit,
+  Globe
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -32,7 +33,7 @@ export default function Dashboard() {
     { value: "thinking", label: "Deep Thinking" },
   ];
 
-  // Templates data - updated to include deep thinking template but remove bulk blog post
+  // Templates data - added back real-time web search template
   const templatesData = [
     {
       id: "all-in-one-seo",
@@ -49,6 +50,14 @@ export default function Dashboard() {
       icon: FileEdit,
       category: "article",
       route: "/templates/article-generator"
+    },
+    {
+      id: "web-search",
+      title: "Real-Time Web Search Article Generator",
+      description: "Research and write articles with live web search capabilities for up-to-date content",
+      icon: Globe,
+      category: "article",
+      route: "/templates/web-search"
     },
     {
       id: "deep-thinking",
