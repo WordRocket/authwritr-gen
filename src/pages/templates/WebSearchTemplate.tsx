@@ -100,7 +100,6 @@ export default function WebSearchTemplate() {
         includeCitations={includeCitations} 
         onCitationsToggle={handleCitationsToggle}
         customOutline={customOutline}
-        onGeneratingStateChange={handleGeneratingState}
         forceWebSearch={true}
       />
     </div>
