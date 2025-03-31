@@ -26,6 +26,7 @@ import {
   User
 } from "lucide-react";
 import { OnboardingModal } from "./OnboardingModal";
+import { ThemeToggle } from "./ThemeToggle";
 
 export default function MainLayout() {
   const { isAuthenticated, logout, user, apiKey } = useAuth();
@@ -147,6 +148,9 @@ export default function MainLayout() {
               <h2 className="ml-4 font-semibold">
                 {menuItems.find(item => item.path === location.pathname)?.title || "WordRocket 🚀"}
               </h2>
+            </div>
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
             </div>
           </div>
           <div className="p-6">
