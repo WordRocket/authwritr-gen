@@ -6,6 +6,7 @@ import { Toaster as SonnerToaster } from "@/components/ui/sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import { AuthProvider } from "@/context/AuthContext";
+import { OnboardingModal } from "@/components/OnboardingModal";
 
 import MainLayout from "@/components/MainLayout";
 import IndexPage from "@/pages/Index";

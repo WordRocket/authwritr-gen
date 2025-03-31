@@ -64,7 +64,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-// Define types for blog post articles
 interface BlogArticle {
   id: string;
   title: string;
@@ -73,7 +72,6 @@ interface BlogArticle {
   wordCount?: number;
 }
 
-// Schema for the global settings form
 const globalSettingsSchema = z.object({
   articleType: z.enum([
     "informational", 
@@ -102,7 +100,6 @@ const globalSettingsSchema = z.object({
 
 type GlobalSettingsFormValues = z.infer<typeof globalSettingsSchema>;
 
-// Schema for the bulk articles input
 const bulkArticleSchema = z.object({
   articles: z.array(
     z.object({
@@ -145,13 +142,11 @@ export function BulkBlogGeneratorForm({
   const [blogArticles, setBlogArticles] = React.useState<BlogArticle[]>([]);
   const navigate = useNavigate();
 
-  // For global settings
   const globalSettingsForm = useForm<GlobalSettingsFormValues>({
     resolver: zodResolver(globalSettingsSchema),
     defaultValues: defaultGlobalSettings,
   });
 
-  // For articles list
   const bulkArticleForm = useForm<BulkArticleFormValues>({
     resolver: zodResolver(bulkArticleSchema),
     defaultValues: {
@@ -199,7 +194,6 @@ export function BulkBlogGeneratorForm({
       return;
     }
 
-    // First try CSV format (title, keyword)
     try {
       const lines = bulkText.split('\n');
       const newArticles = lines
@@ -222,7 +216,6 @@ export function BulkBlogGeneratorForm({
         });
       }
     } catch (error) {
-      // If CSV parsing fails, treat each line as a title/topic
       const lines = bulkText.split('\n');
       const newArticles = lines
         .filter(line => line.trim())
@@ -254,7 +247,6 @@ export function BulkBlogGeneratorForm({
     }
 
     try {
-      // Validate both forms before proceeding
       await globalSettingsForm.trigger();
       await bulkArticleForm.trigger();
       
@@ -284,7 +276,6 @@ export function BulkBlogGeneratorForm({
         onGeneratingStateChange(true);
       }
       
-      // Create articles list with pending status
       const articles = articlesToGenerate.map((article, index) => ({
         id: `article-${Date.now()}-${index}`,
         title: article.title,
@@ -294,26 +285,19 @@ export function BulkBlogGeneratorForm({
       
       setBlogArticles(articles);
       
-      // Start background generation process
-      // This would normally use a service worker or edge function
-      // For now, we'll use a simple for loop with setTimeout to simulate background processing
-      
       for (let i = 0; i < articles.length; i++) {
         const article = articles[i];
         
-        // Update status to generating
         setBlogArticles(prev => prev.map(a => 
           a.id === article.id ? { ...a, status: "generating" as const } : a
         ));
         
         try {
-          // Generate random word count between min and max
           const wordCount = Math.floor(
             Math.random() * (globalSettings.wordCountMax - globalSettings.wordCountMin + 1) 
             + globalSettings.wordCountMin
           );
           
-          // Prepare request data
           const requestData: SeoServiceFormValues = {
             topic: article.title,
             targetKeyword: article.keyword,
@@ -328,13 +312,14 @@ export function BulkBlogGeneratorForm({
             backgroundGeneration: true,
             model: globalSettings.model,
             includeInternalLinks,
-            customOutline: customOutline || undefined
           };
           
-          // Generate and save content
-          await generateSeoContent(requestData, apiKey);
+          await generateSeoContent(
+            requestData, 
+            apiKey, 
+            customOutline ? { customOutline } : undefined
+          );
           
-          // Update status to completed
           setBlogArticles(prev => prev.map(a => 
             a.id === article.id ? { ...a, status: "completed" as const, wordCount } : a
           ));
@@ -342,7 +327,6 @@ export function BulkBlogGeneratorForm({
         } catch (error) {
           console.error(`Error generating article ${article.title}:`, error);
           
-          // Update status to error
           setBlogArticles(prev => prev.map(a => 
             a.id === article.id ? { ...a, status: "error" as const } : a
           ));
@@ -355,13 +339,11 @@ export function BulkBlogGeneratorForm({
         }
       }
       
-      // All articles processed, redirect to content page
       toast({
         title: "Bulk generation completed",
         description: `Generated ${articles.length} articles. View them in My Content.`,
       });
       
-      // Navigate to content page after a brief delay
       setTimeout(() => {
         navigate("/content");
       }, 3000);
@@ -390,7 +372,6 @@ export function BulkBlogGeneratorForm({
           <TabsTrigger value="bulk-import">Bulk Import</TabsTrigger>
         </TabsList>
         
-        {/* Global Settings Tab */}
         <TabsContent value="global-settings">
           <Form {...globalSettingsForm}>
             <form className="space-y-6">
@@ -732,7 +713,6 @@ export function BulkBlogGeneratorForm({
           </Form>
         </TabsContent>
         
-        {/* Article List Tab */}
         <TabsContent value="article-list">
           <Form {...bulkArticleForm}>
             <form className="space-y-6">
@@ -830,7 +810,6 @@ export function BulkBlogGeneratorForm({
                 </CardFooter>
               </Card>
               
-              {/* Articles Status */}
               {blogArticles.length > 0 && (
                 <Card>
                   <CardHeader>
@@ -908,7 +887,6 @@ export function BulkBlogGeneratorForm({
           </Form>
         </TabsContent>
         
-        {/* Bulk Import Tab */}
         <TabsContent value="bulk-import">
           <Form {...bulkArticleForm}>
             <form className="space-y-6">
