@@ -33,7 +33,7 @@ export default function Dashboard() {
     { value: "thinking", label: "Deep Thinking" },
   ];
 
-  // Templates data - added back real-time web search template
+  // Templates data - reordered as requested
   const templatesData = [
     {
       id: "all-in-one-seo",
@@ -42,14 +42,6 @@ export default function Dashboard() {
       icon: Search,
       category: "seo",
       route: "/templates/all-in-one-seo"
-    },
-    {
-      id: "article-generator",
-      title: "Real-Time Blog Generator With Web Search",
-      description: "Create current, well-researched articles with live web search integration",
-      icon: FileEdit,
-      category: "article",
-      route: "/templates/article-generator"
     },
     {
       id: "web-search",
@@ -67,6 +59,14 @@ export default function Dashboard() {
       category: "thinking",
       route: "/templates/deep-thinking"
     },
+    {
+      id: "article-generator",
+      title: "Real-Time Blog Generator With Web Search",
+      description: "Create current, well-researched articles with live web search integration",
+      icon: FileEdit,
+      category: "article",
+      route: "/templates/article-generator"
+    }
   ];
 
   // Filter templates based on search and category
