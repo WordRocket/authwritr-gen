@@ -13,12 +13,13 @@ interface AuthContextType {
   logout: () => void;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
+  setApiKey: (apiKey: string) => void; // Added this property
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [apiKey, setApiKey] = useState<string | null>(null);
+  const [apiKey, setApiKeyState] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -26,7 +27,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const storedApiKey = localStorage.getItem("openrouter_api_key");
     if (storedApiKey) {
-      setApiKey(storedApiKey);
+      setApiKeyState(storedApiKey);
     }
 
     // Set up auth state listener FIRST
@@ -123,7 +124,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     
     localStorage.setItem("openrouter_api_key", apiKey);
-    setApiKey(apiKey);
+    setApiKeyState(apiKey);
+    toast.success("API key updated successfully");
+  };
+
+  // Function to set the API key directly
+  const setApiKey = (apiKey: string) => {
+    if (apiKey.trim().length < 10) {
+      toast.error("Please enter a valid API key");
+      return;
+    }
+    
+    localStorage.setItem("openrouter_api_key", apiKey);
+    setApiKeyState(apiKey);
     toast.success("API key updated successfully");
   };
 
@@ -137,7 +150,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       localStorage.removeItem("openrouter_api_key");
-      setApiKey(null);
+      setApiKeyState(null);
       setUser(null);
       setIsAuthenticated(false);
       toast.info("Logged out successfully");
@@ -159,7 +172,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, apiKey, user, login, logout, signIn, signUp }}>
+    <AuthContext.Provider value={{ 
+      isAuthenticated, 
+      apiKey, 
+      user, 
+      login, 
+      logout, 
+      signIn, 
+      signUp,
+      setApiKey // Added this to the context value
+    }}>
       {children}
     </AuthContext.Provider>
   );
