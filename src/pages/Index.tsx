@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { PenTool, FileText, Search, Code } from "lucide-react";
+import { PenTool, FileText, Search, Globe } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Index = () => {
@@ -14,7 +14,7 @@ const Index = () => {
         </p>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader>
             <PenTool className="h-8 w-8 text-primary mb-2" />
@@ -43,6 +43,22 @@ const Index = () => {
           <CardFooter>
             <Button asChild className="w-full">
               <Link to="/templates/deep-thinking">Try It</Link>
+            </Button>
+          </CardFooter>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <Globe className="h-8 w-8 text-primary mb-2" />
+            <CardTitle>Web Search</CardTitle>
+            <CardDescription>Real-Time web search content</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p>Research topics and create current, relevant content with real-time web search capabilities.</p>
+          </CardContent>
+          <CardFooter>
+            <Button asChild className="w-full">
+              <Link to="/templates/web-search">Research Now</Link>
             </Button>
           </CardFooter>
         </Card>
