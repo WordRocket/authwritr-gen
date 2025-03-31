@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -91,6 +92,15 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
     // Extract customOutline from options if provided
     const customOutline = options?.customOutline;
     
+    // If we're in the Bulk Blog Generator and background generation is true,
+    // force it to false to ensure content is generated and saved immediately
+    // This is a temporary fix until the background generation issues are resolved
+    const useBackgroundGeneration = 
+      (window.location.pathname.includes('bulk-blog-generator')) ? false : formData.backgroundGeneration;
+    
+    console.log("Background generation setting:", 
+      useBackgroundGeneration ? "enabled" : "disabled (forced foreground generation)");
+    
     try {
       const { data, error } = await supabase.functions.invoke("generate-seo-content", {
         body: {
@@ -99,7 +109,8 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
           model: modelId,
           finalContentModel,
           internalLinks: formData.includeInternalLinks ? internalLinks : [],
-          customOutline
+          customOutline,
+          backgroundGeneration: useBackgroundGeneration
         },
       });
 
@@ -151,6 +162,7 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
             });
           } else {
             console.warn("Content not auto-saved: No authenticated user found");
+            throw new Error("Could not save content: User not authenticated");
           }
         } catch (saveError) {
           console.error("Error auto-saving content:", saveError);
@@ -159,6 +171,9 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
             description: "We couldn't automatically save your content. You might need to save it manually.",
             variant: "destructive",
           });
+          
+          // Rethrow for better error handling in the caller
+          throw new Error(`Auto-save failed: ${saveError instanceof Error ? saveError.message : 'Unknown error'}`);
         }
       }
 
@@ -185,6 +200,8 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
 
 export async function saveGeneratedContent(title: string, content: string, userId: string) {
   try {
+    console.log(`Saving content "${title}" to database for user ${userId}`);
+    
     const { data, error } = await supabase
       .from('content')
       .insert([
@@ -202,6 +219,7 @@ export async function saveGeneratedContent(title: string, content: string, userI
       throw new Error(`Failed to save content: ${error.message}`);
     }
 
+    console.log("Content saved successfully:", data);
     return data;
   } catch (error) {
     console.error("Error in saveGeneratedContent:", error);

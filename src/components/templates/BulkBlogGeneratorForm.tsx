@@ -1,4 +1,3 @@
-
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -286,6 +285,14 @@ export function BulkBlogGeneratorForm({
       
       setBlogArticles(articles);
       
+      toast({
+        title: "Bulk generation starting",
+        description: `Starting generation of ${articles.length} articles. This may take a few minutes.`,
+      });
+      
+      let successCount = 0;
+      let errorCount = 0;
+      
       for (let i = 0; i < articles.length; i++) {
         const article = articles[i];
         
@@ -299,7 +306,6 @@ export function BulkBlogGeneratorForm({
             + globalSettings.wordCountMin
           );
           
-          // Create request data with all required properties
           const requestData: SeoServiceFormValues = {
             topic: article.title,
             targetKeyword: article.keyword,
@@ -309,27 +315,43 @@ export function BulkBlogGeneratorForm({
             additionalContext: globalSettings.additionalContext,
             wordCount,
             includeFirstPerson: globalSettings.includeFirstPerson,
-            // Map includeStoriesExamples to both includeAnecdotes and includeStories
             includeAnecdotes: globalSettings.includeStoriesExamples,
             includeStories: globalSettings.includeStoriesExamples,
             includeHook: globalSettings.includeHook,
             includeHtmlElement: globalSettings.includeHtmlElement,
             includeInternalLinks,
-            backgroundGeneration: true,
+            backgroundGeneration: false,
             model: globalSettings.model,
           };
           
-          // Fix the 3-argument call to 2 arguments by using an options object pattern
           let options = {};
           if (customOutline) {
             options = { customOutline };
           }
           
-          await generateSeoContent(requestData, apiKey, options);
+          const content = await generateSeoContent(requestData, apiKey, options);
           
-          setBlogArticles(prev => prev.map(a => 
-            a.id === article.id ? { ...a, status: "completed" as const, wordCount } : a
-          ));
+          if (content && content !== "BACKGROUND_GENERATION_STARTED") {
+            const { data: { user } } = await supabase.auth.getUser();
+            
+            if (user) {
+              await saveGeneratedContent(article.title, content, user.id);
+              
+              setBlogArticles(prev => prev.map(a => 
+                a.id === article.id ? { ...a, status: "completed" as const, wordCount } : a
+              ));
+              
+              successCount++;
+            } else {
+              throw new Error("User not authenticated");
+            }
+          } else {
+            setBlogArticles(prev => prev.map(a => 
+              a.id === article.id ? { ...a, status: "completed" as const, wordCount } : a
+            ));
+            
+            successCount++;
+          }
           
         } catch (error) {
           console.error(`Error generating article ${article.title}:`, error);
@@ -338,22 +360,35 @@ export function BulkBlogGeneratorForm({
             a.id === article.id ? { ...a, status: "error" as const } : a
           ));
           
+          errorCount++;
+          
           toast({
             variant: "destructive",
             title: `Failed to generate "${article.title}"`,
             description: error instanceof Error ? error.message : "An unknown error occurred",
           });
         }
+        
+        if (i < articles.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
       }
+      
+      const finalMessage = 
+        errorCount > 0 
+          ? `Generated ${successCount} articles with ${errorCount} failures. View successful articles in My Content.`
+          : `Generated ${successCount} articles. View them in My Content.`;
       
       toast({
         title: "Bulk generation completed",
-        description: `Generated ${articles.length} articles. View them in My Content.`,
+        description: finalMessage,
       });
       
-      setTimeout(() => {
-        navigate("/content");
-      }, 3000);
+      if (successCount > 0) {
+        setTimeout(() => {
+          navigate("/content");
+        }, 3000);
+      }
       
     } catch (error) {
       console.error("Bulk generation error:", error);
