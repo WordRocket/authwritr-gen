@@ -10,7 +10,8 @@ import {
   FileEdit,
   FileStack,
   PanelLeft,
-  BrainCircuit
+  BrainCircuit,
+  FilesIcon
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { 
@@ -34,6 +35,7 @@ export default function TemplatesPage() {
     { value: "blog", label: "Blog Content" },
     { value: "article", label: "Article Content" },
     { value: "thinking", label: "Deep Thinking" },
+    { value: "bulk", label: "Bulk Generation" },
   ];
 
   // Templates data - updated to include deep thinking template but remove bulk blog post
@@ -61,6 +63,14 @@ export default function TemplatesPage() {
       icon: BrainCircuit,
       category: "thinking",
       route: "/templates/deep-thinking"
+    },
+    {
+      id: "bulk-blog-generator",
+      title: "Bulk Blog Post Generator",
+      description: "Generate multiple blog posts at once with shared settings. Perfect for content batching and topic clusters.",
+      icon: FilesIcon,
+      category: "bulk",
+      route: "/templates/bulk-blog-generator"
     },
   ];
 
