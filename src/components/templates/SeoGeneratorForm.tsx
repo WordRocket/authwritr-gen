@@ -1,3 +1,4 @@
+
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -95,11 +96,13 @@ const defaultValues: Partial<SeoFormValues> = {
 interface SeoGeneratorFormProps {
   includeInternalLinks?: boolean;
   hideBackgroundGeneration?: boolean;
+  customOutline?: string;
 }
 
 export function SeoGeneratorForm({ 
   includeInternalLinks = false,
-  hideBackgroundGeneration = true
+  hideBackgroundGeneration = true,
+  customOutline = ""
 }: SeoGeneratorFormProps) {
   const { user, apiKey } = useAuth();
   const [isGenerating, setIsGenerating] = React.useState(false);

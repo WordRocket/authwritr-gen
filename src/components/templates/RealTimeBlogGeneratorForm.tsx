@@ -137,12 +137,14 @@ interface RealTimeBlogGeneratorFormProps {
   includeInternalLinks?: boolean;
   includeCitations?: boolean;
   onCitationsToggle?: (enabled: boolean) => void;
+  customOutline?: string;
 }
 
 export function RealTimeBlogGeneratorForm({ 
   includeInternalLinks = false,
   includeCitations = true,
-  onCitationsToggle
+  onCitationsToggle,
+  customOutline = ""
 }: RealTimeBlogGeneratorFormProps) {
   const { user, apiKey } = useAuth();
   const [isGenerating, setIsGenerating] = React.useState(false);
