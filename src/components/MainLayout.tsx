@@ -17,13 +17,15 @@ import {
   SidebarFooter,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { 
   Home, 
   FileText, 
   Settings, 
   LogOut, 
   PenTool,
-  User
+  User,
+  AlertCircle
 } from "lucide-react";
 import { OnboardingModal } from "./OnboardingModal";
 import { ThemeToggle } from "./ThemeToggle";
@@ -153,6 +155,18 @@ export default function MainLayout() {
               <ThemeToggle />
             </div>
           </div>
+          
+          {/* Beta Banner */}
+          <Alert className="rounded-none border-l-4 border-primary bg-primary/10 my-0">
+            <AlertCircle className="h-4 w-4 text-primary" />
+            <AlertDescription className="text-sm">
+              WordRocket is still in beta. For any issues or recommendations, please email{" "}
+              <a href="mailto:support@wordrocket.ai" className="font-medium underline text-primary hover:text-primary/80">
+                support@wordrocket.ai
+              </a>
+            </AlertDescription>
+          </Alert>
+          
           <div className="p-6">
             <Outlet />
           </div>
