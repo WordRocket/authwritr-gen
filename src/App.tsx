@@ -4,7 +4,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "@/components/ui/sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { OnboardingModal } from "@/components/OnboardingModal";
+import { useState } from "react";
 import { AuthProvider } from "@/context/AuthContext";
 
 import MainLayout from "@/components/MainLayout";
@@ -26,6 +26,8 @@ import "./App.css";
 const queryClient = new QueryClient();
 
 function App() {
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="system" storageKey="ui-theme">
@@ -46,7 +48,7 @@ function App() {
                 />
                 <Route
                   path="templates/deep-thinking"
-                  element={<SeoGeneratorTemplate />}
+                  element={<DeepThinkingTemplate />}
                 />
                 <Route
                   path="templates/bulk-blog-generator"
@@ -62,7 +64,10 @@ function App() {
           </Router>
           <Toaster />
           <SonnerToaster position="bottom-right" />
-          <OnboardingModal />
+          <OnboardingModal 
+            open={showOnboarding} 
+            onOpenChange={setShowOnboarding}
+          />
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>

@@ -1,4 +1,3 @@
-
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -324,7 +323,6 @@ export function BulkBlogGeneratorForm({
             additionalContext: globalSettings.additionalContext,
             wordCount,
             includeFirstPerson: globalSettings.includeFirstPerson,
-            includeStoriesExamples: globalSettings.includeStoriesExamples,
             includeHook: globalSettings.includeHook,
             includeHtmlElement: globalSettings.includeHtmlElement,
             backgroundGeneration: true,
@@ -934,7 +932,7 @@ export function BulkBlogGeneratorForm({
                               placeholder="Enter one topic per line or paste CSV data in 'title,keyword' format" 
                               className="min-h-[240px]"
                               showCount
-                              countType="lines"
+                              countType="characters"
                               maxCount={100}
                               {...field} 
                             />

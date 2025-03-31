@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { useNavigate, Link, useLocation } from "react-router-dom";
+import { useNavigate, Link, useLocation, Outlet } from "react-router-dom";
 import {
   SidebarProvider,
   SidebarTrigger,
@@ -27,11 +27,7 @@ import {
 } from "lucide-react";
 import { OnboardingModal } from "./OnboardingModal";
 
-interface MainLayoutProps {
-  children: React.ReactNode;
-}
-
-export default function MainLayout({ children }: MainLayoutProps) {
+export default function MainLayout() {
   const { isAuthenticated, logout, user, apiKey } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -154,7 +150,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
             </div>
           </div>
           <div className="p-6">
-            {children}
+            <Outlet />
           </div>
         </main>
         

@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { ExternalLink } from "lucide-react";
 
-interface OnboardingModalProps {
+export interface OnboardingModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
