@@ -13,7 +13,7 @@ interface AuthContextType {
   logout: () => void;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
-  setApiKey: (apiKey: string) => void; // Added this property
+  setApiKey: (apiKey: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -69,11 +69,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = async (email: string, password: string) => {
     try {
-      // Modified to auto-confirm email by adding the property
       const { error, data } = await supabase.auth.signUp({ 
         email, 
         password,
         options: {
+          emailRedirectTo: window.location.origin,
           data: {
             email_confirmed: true
           }
@@ -87,8 +87,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       // If we have a user, sign them in right away
       if (data.user) {
-        await signIn(email, password);
-        toast.success("Account created and logged in successfully!");
+        try {
+          // Sign in immediately after signup
+          const { error: signInError } = await supabase.auth.signInWithPassword({ 
+            email, 
+            password 
+          });
+          
+          if (signInError) {
+            console.error("Auto sign-in error:", signInError);
+            toast.error("Account created, but couldn't automatically log you in. Please sign in manually.");
+            return;
+          }
+          
+          toast.success("Account created and logged in successfully!");
+        } catch (signInError: any) {
+          console.error("Auto sign-in error:", signInError);
+          toast.error("Account created, but couldn't automatically log you in. Please sign in manually.");
+        }
       } else {
         toast.success("Signup successful! Please check your email for verification.");
       }
@@ -180,7 +196,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       logout, 
       signIn, 
       signUp,
-      setApiKey // Added this to the context value
+      setApiKey
     }}>
       {children}
     </AuthContext.Provider>
