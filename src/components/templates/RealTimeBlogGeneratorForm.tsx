@@ -1,4 +1,3 @@
-
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -51,7 +50,6 @@ import ReactMarkdown from "react-markdown";
 import { HtmlPreviewComponent } from "./HtmlPreviewComponent";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
-// Custom validator for word count
 const wordCountValidator = (value: string | undefined, maxWords: number): boolean => {
   if (!value) return true;
   const wordCount = value.trim() ? value.trim().split(/\s+/).length : 0;
@@ -111,7 +109,6 @@ const defaultValues: Partial<BlogGeneratorFormValues> = {
   model: "openai/gpt-4o-mini-search-preview",
 };
 
-// Web search specific models
 const webSearchModels = [
   { 
     id: "openai/gpt-4o-mini-search-preview", 
@@ -138,13 +135,15 @@ interface RealTimeBlogGeneratorFormProps {
   includeCitations?: boolean;
   onCitationsToggle?: (enabled: boolean) => void;
   customOutline?: string;
+  forceWebSearch?: boolean;
 }
 
 export function RealTimeBlogGeneratorForm({ 
   includeInternalLinks = false,
   includeCitations = true,
   onCitationsToggle,
-  customOutline = ""
+  customOutline = "",
+  forceWebSearch = false
 }: RealTimeBlogGeneratorFormProps) {
   const { user, apiKey } = useAuth();
   const [isGenerating, setIsGenerating] = React.useState(false);
@@ -166,14 +165,18 @@ export function RealTimeBlogGeneratorForm({
   const inputMode = form.watch("inputMode");
   const includeLocalCitations = form.watch("includeCitations");
 
-  // Update parent state when local citations value changes
+  React.useEffect(() => {
+    if (forceWebSearch) {
+      form.setValue("inputMode", "webSearch");
+    }
+  }, [forceWebSearch, form]);
+
   React.useEffect(() => {
     if (onCitationsToggle && includeLocalCitations !== includeCitations) {
       onCitationsToggle(includeLocalCitations);
     }
   }, [includeLocalCitations, includeCitations, onCitationsToggle]);
 
-  // Update local form when prop changes
   React.useEffect(() => {
     form.setValue("includeCitations", includeCitations);
   }, [includeCitations, form]);
@@ -215,7 +218,6 @@ export function RealTimeBlogGeneratorForm({
     }
   }, [generatedContent]);
 
-  // Update the model when the input mode changes
   React.useEffect(() => {
     if (inputMode === "webSearch") {
       form.setValue("model", "openai/gpt-4o-mini-search-preview");
@@ -258,7 +260,6 @@ export function RealTimeBlogGeneratorForm({
       const formDataWithInternalLinks = {
         ...data,
         includeInternalLinks,
-        // When using web search, we'll always use Claude 3.7 Sonnet for final content generation
         finalContentModel: data.inputMode === "webSearch" ? "anthropic/claude-3.7-sonnet" : undefined
       };
       
