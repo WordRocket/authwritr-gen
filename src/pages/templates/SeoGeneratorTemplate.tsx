@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { SeoGeneratorForm } from "@/components/templates/SeoGeneratorForm";
 import { RealTimeBlogGeneratorForm } from "@/components/templates/RealTimeBlogGeneratorForm";
@@ -6,6 +7,7 @@ import { SitemapUrlInput } from "@/components/templates/SitemapUrlInput";
 import { DeepThinkingGeneratorForm } from "@/components/templates/DeepThinkingGeneratorForm";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { InfoIcon } from "lucide-react";
+import { CustomOutlineSection } from "@/components/templates/CustomOutlineSection";
 
 export default function SeoGeneratorTemplate() {
   const location = useLocation();
@@ -14,6 +16,7 @@ export default function SeoGeneratorTemplate() {
   const [includeInternalLinks, setIncludeInternalLinks] = useState(false);
   const [includeCitations, setIncludeCitations] = useState(true); // Default to true for citations
   const [isGenerating, setIsGenerating] = useState(false);
+  const [customOutline, setCustomOutline] = useState("");
   
   useEffect(() => {
     if (isArticleGenerator) {
@@ -48,6 +51,12 @@ export default function SeoGeneratorTemplate() {
     if (savedCitationPreference !== null) {
       setIncludeCitations(savedCitationPreference === 'true');
     }
+    
+    // Load custom outline if it exists
+    const savedOutline = localStorage.getItem('customOutline');
+    if (savedOutline !== null) {
+      setCustomOutline(savedOutline);
+    }
   }, []);
   
   const handleCitationsToggle = (enabled: boolean) => {
@@ -60,6 +69,11 @@ export default function SeoGeneratorTemplate() {
   
   const handleGeneratingState = (generating: boolean) => {
     setIsGenerating(generating);
+  };
+  
+  const handleOutlineChange = (outline: string) => {
+    setCustomOutline(outline);
+    localStorage.setItem('customOutline', outline);
   };
 
   return (
@@ -96,21 +110,29 @@ export default function SeoGeneratorTemplate() {
         />
       </div>
       
+      <CustomOutlineSection 
+        outline={customOutline} 
+        onChange={handleOutlineChange} 
+      />
+      
       {isArticleGenerator 
         ? <RealTimeBlogGeneratorForm 
             includeInternalLinks={includeInternalLinks} 
             includeCitations={includeCitations} 
             onCitationsToggle={handleCitationsToggle}
+            customOutline={customOutline}
           />
         : isDeepThinking
           ? <DeepThinkingGeneratorForm 
               includeInternalLinks={includeInternalLinks} 
               onGeneratingStateChange={handleGeneratingState}
               hideBackgroundGeneration={true}
+              customOutline={customOutline}
             />
           : <SeoGeneratorForm 
               includeInternalLinks={includeInternalLinks}
               hideBackgroundGeneration={true}
+              customOutline={customOutline}
             />}
     </div>
   );

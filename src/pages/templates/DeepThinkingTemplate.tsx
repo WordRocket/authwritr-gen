@@ -4,10 +4,12 @@ import { DeepThinkingGeneratorForm } from "@/components/templates/DeepThinkingGe
 import { SitemapUrlInput } from "@/components/templates/SitemapUrlInput";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { InfoIcon } from "lucide-react";
+import { CustomOutlineSection } from "@/components/templates/CustomOutlineSection";
 
 export default function DeepThinkingTemplate() {
   const [includeInternalLinks, setIncludeInternalLinks] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [customOutline, setCustomOutline] = useState("");
   
   useEffect(() => {
     document.title = "Deep Thinking Enabled Blog Generator | Content Genius";
@@ -31,11 +33,22 @@ export default function DeepThinkingTemplate() {
     if (savedPreference !== null) {
       setIncludeInternalLinks(savedPreference === 'true');
     }
+    
+    // Load custom outline if it exists
+    const savedOutline = localStorage.getItem('customOutline');
+    if (savedOutline !== null) {
+      setCustomOutline(savedOutline);
+    }
   }, []);
   
   // Handler for setting the generating state
   const handleGeneratingState = (generating: boolean) => {
     setIsGenerating(generating);
+  };
+  
+  const handleOutlineChange = (outline: string) => {
+    setCustomOutline(outline);
+    localStorage.setItem('customOutline', outline);
   };
 
   return (
@@ -64,10 +77,16 @@ export default function DeepThinkingTemplate() {
         />
       </div>
       
+      <CustomOutlineSection 
+        outline={customOutline} 
+        onChange={handleOutlineChange} 
+      />
+      
       <DeepThinkingGeneratorForm 
         includeInternalLinks={includeInternalLinks}
         onGeneratingStateChange={handleGeneratingState}
         hideBackgroundGeneration={true}
+        customOutline={customOutline}
       />
     </div>
   );

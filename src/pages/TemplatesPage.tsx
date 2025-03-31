@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -40,7 +41,7 @@ export default function TemplatesPage() {
     {
       id: "all-in-one-seo",
       title: "All In One SEO Generator",
-      description: "Complete SEO-optimized content with keywords, meta descriptions, and structured sections",
+      description: "Complete SEO-optimized content with keywords, meta descriptions, and structured sections. Add custom outlines to guide the AI.",
       icon: Search,
       category: "seo",
       route: "/templates/all-in-one-seo"
@@ -48,7 +49,7 @@ export default function TemplatesPage() {
     {
       id: "article-generator",
       title: "Real-Time Blog Generator With Web Search",
-      description: "Create current, well-researched articles with live web search integration",
+      description: "Create current, well-researched articles with live web search integration and custom outline guidance.",
       icon: FileEdit,
       category: "article",
       route: "/templates/article-generator"
@@ -56,7 +57,7 @@ export default function TemplatesPage() {
     {
       id: "deep-thinking",
       title: "Deep Thinking Enabled Blog Generator",
-      description: "Create thoughtful, detailed content using AI models that explicitly show their reasoning process",
+      description: "Create thoughtful, detailed content using AI models that explicitly show their reasoning process. Supports custom outlines.",
       icon: BrainCircuit,
       category: "thinking",
       route: "/templates/deep-thinking"
