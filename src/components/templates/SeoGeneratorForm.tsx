@@ -1,4 +1,3 @@
-
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -50,6 +49,7 @@ import {
 import ReactMarkdown from "react-markdown";
 import { HtmlPreviewComponent } from "./HtmlPreviewComponent";
 import { useNavigate } from "react-router-dom";
+import { CustomOutlineSection } from "./CustomOutlineSection";
 
 const seoFormSchema = z.object({
   topic: z.string().min(3, { message: "Topic must be at least 3 characters" }),
@@ -97,12 +97,14 @@ interface SeoGeneratorFormProps {
   includeInternalLinks?: boolean;
   hideBackgroundGeneration?: boolean;
   customOutline?: string;
+  onCustomOutlineChange?: (outline: string) => void;
 }
 
 export function SeoGeneratorForm({ 
   includeInternalLinks = false,
   hideBackgroundGeneration = true,
-  customOutline = ""
+  customOutline = "",
+  onCustomOutlineChange
 }: SeoGeneratorFormProps) {
   const { user, apiKey } = useAuth();
   const [isGenerating, setIsGenerating] = React.useState(false);
@@ -240,6 +242,12 @@ export function SeoGeneratorForm({
       title: "Copied to clipboard",
       description: "Content has been copied to your clipboard",
     });
+  };
+
+  const handleOutlineChange = (outline: string) => {
+    if (onCustomOutlineChange) {
+      onCustomOutlineChange(outline);
+    }
   };
 
   return (
@@ -426,6 +434,15 @@ export function SeoGeneratorForm({
                         </FormItem>
                       )}
                     />
+                    
+                    {onCustomOutlineChange && (
+                      <div className="mt-2">
+                        <CustomOutlineSection 
+                          outline={customOutline} 
+                          onChange={handleOutlineChange} 
+                        />
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
