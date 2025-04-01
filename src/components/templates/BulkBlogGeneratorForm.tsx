@@ -64,6 +64,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
+import { CustomOutlineSection } from "./CustomOutlineSection";
 
 interface BlogArticle {
   id: string;
@@ -128,12 +129,14 @@ const defaultGlobalSettings: GlobalSettingsFormValues = {
 interface BulkBlogGeneratorFormProps {
   includeInternalLinks?: boolean;
   customOutline?: string;
+  onCustomOutlineChange?: (outline: string) => void;
   onGeneratingStateChange?: (generating: boolean) => void;
 }
 
 export function BulkBlogGeneratorForm({ 
   includeInternalLinks = false,
   customOutline = "",
+  onCustomOutlineChange,
   onGeneratingStateChange
 }: BulkBlogGeneratorFormProps) {
   const { user, apiKey } = useAuth();
@@ -406,6 +409,12 @@ export function BulkBlogGeneratorForm({
     }
   };
 
+  const handleOutlineChange = (outline: string) => {
+    if (onCustomOutlineChange) {
+      onCustomOutlineChange(outline);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -645,6 +654,13 @@ export function BulkBlogGeneratorForm({
                         </FormItem>
                       )}
                     />
+                    
+                    {onCustomOutlineChange && (
+                      <CustomOutlineSection 
+                        outline={customOutline} 
+                        onChange={handleOutlineChange} 
+                      />
+                    )}
                   </CardContent>
                 </Card>
               </div>
