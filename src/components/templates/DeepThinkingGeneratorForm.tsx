@@ -57,6 +57,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { CustomOutlineSection } from "./CustomOutlineSection";
 
 const wordCountValidator = (value: string | undefined, maxWords: number): boolean => {
   if (!value) return true;
@@ -120,13 +121,15 @@ interface DeepThinkingGeneratorFormProps {
   onGeneratingStateChange?: (isGenerating: boolean) => void;
   hideBackgroundGeneration?: boolean;
   customOutline?: string;
+  onCustomOutlineChange?: (outline: string) => void;
 }
 
 export function DeepThinkingGeneratorForm({ 
   includeInternalLinks = false,
   onGeneratingStateChange,
   hideBackgroundGeneration = true,
-  customOutline = ""
+  customOutline = "",
+  onCustomOutlineChange
 }: DeepThinkingGeneratorFormProps) {
   const { user, apiKey } = useAuth();
   const [isGenerating, setIsGenerating] = React.useState(false);
@@ -136,17 +139,19 @@ export function DeepThinkingGeneratorForm({
   const [apiKeyMissing, setApiKeyMissing] = React.useState(!apiKey);
   const [viewMode, setViewMode] = React.useState<"rendered" | "markdown">("rendered");
   const [extractedHtmlCode, setExtractedHtmlCode] = React.useState<string>("");
-  const [outlineDialogOpen, setOutlineDialogOpen] = React.useState(false);
   const navigate = useNavigate();
 
   const form = useForm<DeepThinkingFormValues>({
     resolver: zodResolver(deepThinkingFormSchema),
-    defaultValues,
+    defaultValues: {
+      ...defaultValues,
+      customOutline: customOutline,
+    },
   });
 
   React.useEffect(() => {
-    setApiKeyMissing(!apiKey);
-  }, [apiKey]);
+    form.setValue('customOutline', customOutline);
+  }, [customOutline, form]);
 
   React.useEffect(() => {
     if (generatedContent) {
@@ -200,7 +205,7 @@ export function DeepThinkingGeneratorForm({
       const formDataWithInternalLinks = {
         ...data,
         includeInternalLinks,
-        enableThinking: true, // Add thinking flag for the API
+        enableThinking: true,
       };
       
       const content = await generateSeoContent(formDataWithInternalLinks as SeoServiceFormValues, apiKey);
@@ -277,20 +282,11 @@ export function DeepThinkingGeneratorForm({
     });
   };
 
-  const handleOutlineDialogOpen = () => {
-    setOutlineDialogOpen(true);
-  };
-
-  const handleOutlineDialogClose = () => {
-    setOutlineDialogOpen(false);
-  };
-
-  const handleOutlineSave = () => {
-    toast({
-      title: "Custom outline saved",
-      description: "Your custom outline will be used in content generation",
-    });
-    setOutlineDialogOpen(false);
+  const handleOutlineChange = (outline: string) => {
+    if (onCustomOutlineChange) {
+      onCustomOutlineChange(outline);
+    }
+    form.setValue('customOutline', outline);
   };
 
   return (
@@ -486,19 +482,7 @@ export function DeepThinkingGeneratorForm({
                       name="additionalContext"
                       render={({ field }) => (
                         <FormItem>
-                          <div className="flex items-center justify-between">
-                            <FormLabel>Additional Context</FormLabel>
-                            <Button 
-                              type="button" 
-                              variant="outline" 
-                              size="sm"
-                              onClick={handleOutlineDialogOpen}
-                              className="h-8 px-2 text-xs"
-                            >
-                              <List className="h-3.5 w-3.5 mr-1" />
-                              Add Custom Outline
-                            </Button>
-                          </div>
+                          <FormLabel>Additional Context</FormLabel>
                           <FormControl>
                             <Textarea 
                               placeholder="Include any specific information, business details, or context you want in the article" 
@@ -510,15 +494,19 @@ export function DeepThinkingGeneratorForm({
                             />
                           </FormControl>
                           <FormDescription>
-                            Business information will be used sparingly and only when relevant. 
-                            {form.getValues("customOutline") && (
-                              <span className="text-primary font-medium"> Custom outline added!</span>
-                            )}
+                            Business information will be used sparingly and only when relevant.
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
+                    
+                    <div className="mt-4">
+                      <CustomOutlineSection
+                        outline={customOutline || form.getValues("customOutline") || ""}
+                        onChange={handleOutlineChange}
+                      />
+                    </div>
 
                     <FormField
                       control={form.control}
@@ -891,60 +879,6 @@ export function DeepThinkingGeneratorForm({
           </div>
         )}
       </TabsContent>
-
-      <Dialog open={outlineDialogOpen} onOpenChange={setOutlineDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center">
-              <List className="h-5 w-5 mr-2" />
-              Add Custom Content Outline
-            </DialogTitle>
-            <DialogDescription>
-              Provide a custom outline structure that will be incorporated into the AI-generated content
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <FormField
-              control={form.control}
-              name="customOutline"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Custom Outline</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      placeholder="# Introduction
-## What is [Topic]
-## Why [Topic] Matters
-
-# Main Point 1
-## Subpoint 1.1
-## Subpoint 1.2
-
-# Main Point 2
-## Subpoint 2.1
-## Subpoint 2.2
-
-# Conclusion
-## Summary
-## Next Steps" 
-                      className="min-h-[250px] font-mono text-sm"
-                      {...field} 
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Use markdown-style headings for structure. Example: # Main Heading, ## Subheading
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={handleOutlineDialogClose}>Cancel</Button>
-            <Button onClick={handleOutlineSave}>Save Outline</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </Tabs>
   );
 }

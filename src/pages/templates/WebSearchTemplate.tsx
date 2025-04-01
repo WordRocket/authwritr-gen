@@ -4,7 +4,6 @@ import { RealTimeBlogGeneratorForm } from "@/components/templates/RealTimeBlogGe
 import { SitemapUrlInput } from "@/components/templates/SitemapUrlInput";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { InfoIcon, Globe } from "lucide-react";
-import { CustomOutlineSection } from "@/components/templates/CustomOutlineSection";
 
 export default function WebSearchTemplate() {
   const [includeInternalLinks, setIncludeInternalLinks] = useState(false);
@@ -90,16 +89,12 @@ export default function WebSearchTemplate() {
         />
       </div>
       
-      <CustomOutlineSection 
-        outline={customOutline} 
-        onChange={handleOutlineChange} 
-      />
-      
       <RealTimeBlogGeneratorForm 
         includeInternalLinks={includeInternalLinks} 
         includeCitations={includeCitations} 
         onCitationsToggle={handleCitationsToggle}
         customOutline={customOutline}
+        onCustomOutlineChange={handleOutlineChange}
         forceWebSearch={true}
       />
     </div>

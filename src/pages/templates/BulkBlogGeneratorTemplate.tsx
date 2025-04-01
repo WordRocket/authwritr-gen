@@ -4,7 +4,6 @@ import { useLocation } from "react-router-dom";
 import { SitemapUrlInput } from "@/components/templates/SitemapUrlInput";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { InfoIcon } from "lucide-react";
-import { CustomOutlineSection } from "@/components/templates/CustomOutlineSection";
 import { BulkBlogGeneratorForm } from "@/components/templates/BulkBlogGeneratorForm";
 
 export default function BulkBlogGeneratorTemplate() {
@@ -77,14 +76,10 @@ export default function BulkBlogGeneratorTemplate() {
         />
       </div>
       
-      <CustomOutlineSection 
-        outline={customOutline} 
-        onChange={handleOutlineChange} 
-      />
-      
       <BulkBlogGeneratorForm 
         includeInternalLinks={includeInternalLinks}
         customOutline={customOutline}
+        onCustomOutlineChange={handleOutlineChange}
         onGeneratingStateChange={handleGeneratingState}
       />
     </div>

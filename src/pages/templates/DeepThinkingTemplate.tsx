@@ -4,7 +4,6 @@ import { DeepThinkingGeneratorForm } from "@/components/templates/DeepThinkingGe
 import { SitemapUrlInput } from "@/components/templates/SitemapUrlInput";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { InfoIcon } from "lucide-react";
-import { CustomOutlineSection } from "@/components/templates/CustomOutlineSection";
 
 export default function DeepThinkingTemplate() {
   const [includeInternalLinks, setIncludeInternalLinks] = useState(false);
@@ -77,16 +76,12 @@ export default function DeepThinkingTemplate() {
         />
       </div>
       
-      <CustomOutlineSection 
-        outline={customOutline} 
-        onChange={handleOutlineChange} 
-      />
-      
       <DeepThinkingGeneratorForm 
         includeInternalLinks={includeInternalLinks}
         onGeneratingStateChange={handleGeneratingState}
         hideBackgroundGeneration={true}
         customOutline={customOutline}
+        onCustomOutlineChange={handleOutlineChange}
       />
     </div>
   );
