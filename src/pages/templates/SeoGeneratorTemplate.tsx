@@ -7,7 +7,6 @@ import { SitemapUrlInput } from "@/components/templates/SitemapUrlInput";
 import { DeepThinkingGeneratorForm } from "@/components/templates/DeepThinkingGeneratorForm";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { InfoIcon } from "lucide-react";
-import { CustomOutlineSection } from "@/components/templates/CustomOutlineSection";
 
 export default function SeoGeneratorTemplate() {
   const location = useLocation();

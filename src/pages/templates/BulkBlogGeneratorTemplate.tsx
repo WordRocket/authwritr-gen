@@ -79,6 +79,7 @@ export default function BulkBlogGeneratorTemplate() {
       <BulkBlogGeneratorForm 
         includeInternalLinks={includeInternalLinks}
         customOutline={customOutline}
+        onCustomOutlineChange={handleOutlineChange}
         onGeneratingStateChange={handleGeneratingState}
       />
     </div>

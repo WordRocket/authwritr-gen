@@ -49,6 +49,7 @@ import {
 import ReactMarkdown from "react-markdown";
 import { HtmlPreviewComponent } from "./HtmlPreviewComponent";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { CustomOutlineSection } from "./CustomOutlineSection";
 
 const wordCountValidator = (value: string | undefined, maxWords: number): boolean => {
   if (!value) return true;
@@ -135,6 +136,7 @@ interface RealTimeBlogGeneratorFormProps {
   includeCitations?: boolean;
   onCitationsToggle?: (enabled: boolean) => void;
   customOutline?: string;
+  onCustomOutlineChange?: (outline: string) => void;
   forceWebSearch?: boolean;
 }
 
@@ -143,6 +145,7 @@ export function RealTimeBlogGeneratorForm({
   includeCitations = true,
   onCitationsToggle,
   customOutline = "",
+  onCustomOutlineChange,
   forceWebSearch = false
 }: RealTimeBlogGeneratorFormProps) {
   const { user, apiKey } = useAuth();
@@ -324,6 +327,12 @@ export function RealTimeBlogGeneratorForm({
       title: "Copied to clipboard",
       description: "Content has been copied to your clipboard",
     });
+  };
+
+  const handleOutlineChange = (outline: string) => {
+    if (onCustomOutlineChange) {
+      onCustomOutlineChange(outline);
+    }
   };
 
   return (
@@ -718,6 +727,13 @@ export function RealTimeBlogGeneratorForm({
                         </FormItem>
                       )}
                     />
+
+                    {onCustomOutlineChange && (
+                      <CustomOutlineSection 
+                        outline={customOutline} 
+                        onChange={handleOutlineChange} 
+                      />
+                    )}
 
                     <FormField
                       control={form.control}
