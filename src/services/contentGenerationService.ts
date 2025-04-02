@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -24,19 +23,16 @@ export interface SeoFormValues {
   finalContentModel?: string;
   backgroundGeneration?: boolean;
   enableThinking?: boolean;
+  bulkGeneration?: boolean;
 }
 
 export async function generateSeoContent(formData: SeoFormValues, apiKey?: string, options?: Record<string, any>): Promise<string> {
   try {
-    // Map the simplified model IDs to the OpenRouter format
     let modelId = formData.model || "anthropic/claude-3.7-sonnet";
     
-    // If search term is provided, models don't matter as we use specific model for search and claude for final content
     if (formData.searchTerm) {
-      // The search model will be the one selected by the user
       console.log(`Using search workflow with ${modelId} for search and Claude 3.7 Sonnet for final content`);
     }
-    // For models that need provider prefix, add it if missing
     else if (modelId && !modelId.includes('/')) {
       const modelMap: Record<string, string> = {
         "claude-3.7-sonnet": "anthropic/claude-3.7-sonnet",
@@ -54,7 +50,6 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
     
     console.log("Using model ID:", modelId);
     
-    // Get internal links if needed
     let internalLinks: string[] = [];
     if (formData.includeInternalLinks) {
       try {
@@ -70,31 +65,25 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
       }
     }
     
-    // Set the final content model for two-step process
-    // Always use Claude 3.7 Sonnet for the final content when using web search
     const finalContentModel = formData.searchTerm ? "anthropic/claude-3.7-sonnet" : undefined;
     
-    // Log the full request body for debugging
     console.log("Content generation request:", {
       includeInternalLinks: formData.includeInternalLinks,
       includeCitations: formData.includeCitations,
-      internalLinksCount: internalLinks.length,
+      internalLinksCount: internalLinks?.length || 0,
       topic: formData.topic,
       inputMode: formData.inputMode,
       manualInputLength: formData.manualInput ? formData.manualInput.split(/\s+/).length : 0,
       additionalContextLength: formData.additionalContext ? formData.additionalContext.split(/\s+/).length : 0,
       backgroundGeneration: formData.backgroundGeneration,
       enableThinking: formData.enableThinking,
+      bulkGeneration: formData.bulkGeneration,
       searchModel: modelId,
       finalContentModel
     });
 
-    // Extract customOutline from options if provided
     const customOutline = options?.customOutline;
     
-    // If we're in the Bulk Blog Generator and background generation is true,
-    // force it to false to ensure content is generated and saved immediately
-    // This is a temporary fix until the background generation issues are resolved
     const useBackgroundGeneration = 
       (window.location.pathname.includes('bulk-blog-generator')) ? false : formData.backgroundGeneration;
     
@@ -110,11 +99,11 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
           finalContentModel,
           internalLinks: formData.includeInternalLinks ? internalLinks : [],
           customOutline,
-          backgroundGeneration: useBackgroundGeneration
+          backgroundGeneration: useBackgroundGeneration,
+          bulkGeneration: formData.bulkGeneration
         },
       });
 
-      // Improved error handling
       if (error) {
         console.error("Error invoking generate-seo-content function:", error);
         const errorMessage = error.message || "Failed to connect to the content generation service";
@@ -133,7 +122,6 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
         throw new Error(errorMessage);
       }
 
-      // Handle background generation
       if (data.backgroundGeneration) {
         toast({
           title: "Content Generation Started",
@@ -143,18 +131,14 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
         return "BACKGROUND_GENERATION_STARTED";
       }
 
-      // Auto-save content to the database
       if (data.content) {
         try {
-          // Extract title from the content (usually the first heading)
           const titleMatch = data.content.match(/^#\s*(.*?)(\n|$)/);
           const title = titleMatch ? titleMatch[1].trim() : formData.topic;
           
-          // Get the current user
           const { data: { user } } = await supabase.auth.getUser();
           
           if (user) {
-            // Save to database
             await saveGeneratedContent(title, data.content, user.id);
             toast({
               title: "Content Saved",
@@ -172,7 +156,6 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
             variant: "destructive",
           });
           
-          // Rethrow for better error handling in the caller
           throw new Error(`Auto-save failed: ${saveError instanceof Error ? saveError.message : 'Unknown error'}`);
         }
       }
@@ -181,7 +164,6 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
     } catch (invokeError: any) {
       console.error("Error in supabase.functions.invoke:", invokeError);
       
-      // Improved error handling for different types of errors
       if (invokeError.message && invokeError.message.includes("API")) {
         if (modelId.includes("gemini") || modelId.includes("deepseek")) {
           throw new Error(`The selected model (${modelId.split('/')[1]}) may be temporarily unavailable. Please try a different model or try again later.`);

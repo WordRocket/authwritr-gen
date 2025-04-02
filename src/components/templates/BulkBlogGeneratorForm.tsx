@@ -326,6 +326,7 @@ export function BulkBlogGeneratorForm({
             includeInternalLinks,
             backgroundGeneration: false,
             model: globalSettings.model,
+            bulkGeneration: true
           };
           
           let options = {};
