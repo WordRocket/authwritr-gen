@@ -12,7 +12,8 @@ import {
   PanelLeft,
   BrainCircuit,
   FilesIcon,
-  Globe
+  Globe,
+  Sparkles
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { 
@@ -37,9 +38,10 @@ export default function TemplatesPage() {
     { value: "article", label: "Article Content" },
     { value: "thinking", label: "Deep Thinking" },
     { value: "bulk", label: "Bulk Generation" },
+    { value: "free", label: "Free Models" },
   ];
 
-  // Templates data - added back real-time web search template
+  // Templates data - added free SEO generator template
   const templatesData = [
     {
       id: "all-in-one-seo",
@@ -48,6 +50,14 @@ export default function TemplatesPage() {
       icon: Search,
       category: "seo",
       route: "/templates/all-in-one-seo"
+    },
+    {
+      id: "free-seo-generator",
+      title: "Free SEO Blog Post Generator",
+      description: "Generate SEO-optimized content using free AI models like Gemini. No paid API keys required.",
+      icon: Sparkles,
+      category: "free",
+      route: "/templates/free-seo-generator"
     },
     {
       id: "article-generator",

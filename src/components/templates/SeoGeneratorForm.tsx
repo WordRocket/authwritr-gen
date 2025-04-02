@@ -1,3 +1,4 @@
+
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -32,7 +33,8 @@ import {
   generateSeoContent, 
   saveGeneratedContent, 
   type SeoFormValues as SeoServiceFormValues,
-  recommendedModels 
+  recommendedModels,
+  freeModels 
 } from "@/services/contentGenerationService";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -77,6 +79,8 @@ const seoFormSchema = z.object({
   includeHtmlElement: z.boolean().default(false),
   backgroundGeneration: z.boolean().default(false),
   model: z.string().optional(),
+  useGeminiDirectly: z.boolean().default(false),
+  geminiApiKey: z.string().optional(),
 });
 
 type SeoFormValues = z.infer<typeof seoFormSchema>;
@@ -90,7 +94,8 @@ const defaultValues: Partial<SeoFormValues> = {
   includeHook: true,
   includeHtmlElement: false,
   backgroundGeneration: false,
-  model: "anthropic/claude-3-7-sonnet",
+  model: "google/gemini-2.5-pro-exp-03-25:free",
+  useGeminiDirectly: false,
 };
 
 interface SeoGeneratorFormProps {
@@ -98,13 +103,15 @@ interface SeoGeneratorFormProps {
   hideBackgroundGeneration?: boolean;
   customOutline?: string;
   onCustomOutlineChange?: (outline: string) => void;
+  onlyShowFreeModels?: boolean;
 }
 
 export function SeoGeneratorForm({ 
   includeInternalLinks = false,
   hideBackgroundGeneration = true,
   customOutline = "",
-  onCustomOutlineChange
+  onCustomOutlineChange,
+  onlyShowFreeModels = false
 }: SeoGeneratorFormProps) {
   const { user, apiKey } = useAuth();
   const [isGenerating, setIsGenerating] = React.useState(false);
@@ -114,16 +121,52 @@ export function SeoGeneratorForm({
   const [apiKeyMissing, setApiKeyMissing] = React.useState(!apiKey);
   const [viewMode, setViewMode] = React.useState<"rendered" | "markdown">("rendered");
   const [extractedHtmlCode, setExtractedHtmlCode] = React.useState<string>("");
+  const [showGeminiKeyInput, setShowGeminiKeyInput] = React.useState(false);
+  const [geminiKeyError, setGeminiKeyError] = React.useState("");
   const navigate = useNavigate();
 
   const form = useForm<SeoFormValues>({
     resolver: zodResolver(seoFormSchema),
-    defaultValues,
+    defaultValues: onlyShowFreeModels 
+      ? {...defaultValues, model: "google/gemini-2.5-pro-exp-03-25:free", useGeminiDirectly: true} 
+      : defaultValues,
   });
 
   React.useEffect(() => {
     setApiKeyMissing(!apiKey);
   }, [apiKey]);
+
+  React.useEffect(() => {
+    // Check for saved Gemini key
+    const savedGeminiKey = localStorage.getItem('geminiApiKey');
+    if (savedGeminiKey) {
+      form.setValue('geminiApiKey', savedGeminiKey);
+    }
+    
+    // Update useGeminiDirectly based on the selected model
+    const currentModel = form.getValues('model');
+    if (currentModel && currentModel.includes('gemini')) {
+      form.setValue('useGeminiDirectly', true);
+      setShowGeminiKeyInput(true);
+    }
+  }, [form]);
+
+  React.useEffect(() => {
+    const subscription = form.watch((value, { name }) => {
+      if (name === 'model') {
+        const modelValue = value.model;
+        if (modelValue && modelValue.includes('gemini')) {
+          form.setValue('useGeminiDirectly', true);
+          setShowGeminiKeyInput(true);
+        } else {
+          form.setValue('useGeminiDirectly', false);
+          setShowGeminiKeyInput(false);
+        }
+      }
+    });
+    
+    return () => subscription.unsubscribe();
+  }, [form]);
 
   React.useEffect(() => {
     if (generatedContent) {
@@ -159,7 +202,22 @@ export function SeoGeneratorForm({
   }, [generatedContent]);
 
   const onSubmit = async (data: SeoFormValues) => {
-    if (!apiKey) {
+    // Check if we're using Gemini and have a Gemini API key
+    if (data.useGeminiDirectly) {
+      if (!data.geminiApiKey) {
+        setGeminiKeyError("Please enter your Gemini API key to generate content");
+        toast({
+          variant: "destructive",
+          title: "Gemini API Key Required",
+          description: "Please enter your Gemini API key to generate content.",
+        });
+        return;
+      }
+      
+      // Save Gemini API key to localStorage
+      localStorage.setItem('geminiApiKey', data.geminiApiKey);
+      setGeminiKeyError("");
+    } else if (!apiKey && !data.useGeminiDirectly) {
       toast({
         variant: "destructive",
         title: "API Key Required",
@@ -313,7 +371,7 @@ export function SeoGeneratorForm({
                                   <InfoIcon className="h-4 w-4 text-muted-foreground" />
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                  <p className="max-w-xs">Select the AI model that will generate your content. Different models have different capabilities and costs.</p>
+                                  <p className="max-w-xs">Select the AI model that will generate your content. {onlyShowFreeModels ? "Only free models are shown." : "Different models have different capabilities and costs."}</p>
                                 </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
@@ -321,7 +379,7 @@ export function SeoGeneratorForm({
                           <Select 
                             onValueChange={field.onChange} 
                             defaultValue={field.value}
-                            disabled={apiKeyMissing}
+                            disabled={apiKeyMissing && !form.getValues('useGeminiDirectly')}
                           >
                             <FormControl>
                               <SelectTrigger>
@@ -329,9 +387,10 @@ export function SeoGeneratorForm({
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <div className="mb-2 px-2 py-1.5 text-sm font-semibold">Recommended</div>
-                              {recommendedModels
-                                .filter(model => model.recommended)
+                              <div className="mb-2 px-2 py-1.5 text-sm font-semibold">
+                                {onlyShowFreeModels ? "Free Models" : "Recommended"}
+                              </div>
+                              {(onlyShowFreeModels ? freeModels : recommendedModels.filter(model => model.recommended))
                                 .map(model => (
                                   <SelectItem key={model.id} value={model.id}>
                                     <div className="flex flex-col">
@@ -341,21 +400,25 @@ export function SeoGeneratorForm({
                                   </SelectItem>
                                 ))
                               }
-                              <div className="mb-2 mt-2 px-2 py-1.5 text-sm font-semibold">Other Models</div>
-                              {recommendedModels
-                                .filter(model => !model.recommended)
-                                .map(model => (
-                                  <SelectItem key={model.id} value={model.id}>
-                                    <div className="flex flex-col">
-                                      <span>{model.name}</span>
-                                      <span className="text-xs text-muted-foreground">{model.description}</span>
-                                    </div>
-                                  </SelectItem>
-                                ))
-                              }
+                              {!onlyShowFreeModels && (
+                                <>
+                                  <div className="mb-2 mt-2 px-2 py-1.5 text-sm font-semibold">Other Models</div>
+                                  {recommendedModels
+                                    .filter(model => !model.recommended)
+                                    .map(model => (
+                                      <SelectItem key={model.id} value={model.id}>
+                                        <div className="flex flex-col">
+                                          <span>{model.name}</span>
+                                          <span className="text-xs text-muted-foreground">{model.description}</span>
+                                        </div>
+                                      </SelectItem>
+                                    ))
+                                  }
+                                </>
+                              )}
                             </SelectContent>
                           </Select>
-                          {apiKeyMissing && (
+                          {apiKeyMissing && !form.getValues('useGeminiDirectly') && (
                             <FormDescription className="text-destructive">
                               API key required. Add it in Settings.
                             </FormDescription>
@@ -364,6 +427,41 @@ export function SeoGeneratorForm({
                         </FormItem>
                       )}
                     />
+
+                    {showGeminiKeyInput && (
+                      <FormField
+                        control={form.control}
+                        name="geminiApiKey"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Gemini API Key</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="password" 
+                                placeholder="Enter your Gemini API key" 
+                                {...field} 
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              <a 
+                                href="https://aistudio.google.com/app/apikey" 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-primary hover:underline"
+                              >
+                                Get a free Gemini API key here
+                              </a>
+                            </FormDescription>
+                            {geminiKeyError && (
+                              <FormDescription className="text-destructive">
+                                {geminiKeyError}
+                              </FormDescription>
+                            )}
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
 
                     <FormField
                       control={form.control}
@@ -634,20 +732,34 @@ export function SeoGeneratorForm({
               </Card>
             </div>
 
-            {!apiKey ? (
+            {!apiKey && !form.getValues('useGeminiDirectly') ? (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>API Key Required</AlertTitle>
                 <AlertDescription className="flex flex-col gap-2">
-                  <p>You need to add an OpenRouter API key in Settings to generate content.</p>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="w-fit"
-                    onClick={() => window.open("https://openrouter.ai/keys", "_blank")}
-                  >
-                    Get an OpenRouter API Key
-                  </Button>
+                  <p>You need to add an OpenRouter API key in Settings to generate content, or select a Gemini model and provide a Gemini API key.</p>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-fit"
+                      onClick={() => window.open("https://openrouter.ai/keys", "_blank")}
+                    >
+                      Get an OpenRouter API Key
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-fit"
+                      onClick={() => {
+                        form.setValue('model', 'google/gemini-2.5-pro-exp-03-25:free');
+                        form.setValue('useGeminiDirectly', true);
+                        setShowGeminiKeyInput(true);
+                      }}
+                    >
+                      Use Gemini Instead (Free)
+                    </Button>
+                  </div>
                 </AlertDescription>
               </Alert>
             ) : (
@@ -657,6 +769,8 @@ export function SeoGeneratorForm({
                 <AlertDescription>
                   {form.getValues('backgroundGeneration') ? 
                     "When using background generation, the content will be saved automatically to 'My Content'." :
+                    form.getValues('useGeminiDirectly') ? 
+                    "Using Google's Gemini model for content generation. Make sure you've provided a valid API key." :
                     "For best results, this template works optimally with the Claude 3.7 Sonnet model."}
                 </AlertDescription>
               </Alert>
@@ -665,7 +779,7 @@ export function SeoGeneratorForm({
             <Button 
               type="submit" 
               className="w-full"
-              disabled={isGenerating || (!apiKey)}
+              disabled={isGenerating || (!apiKey && !form.getValues('useGeminiDirectly'))}
             >
               {isGenerating ? "Generating..." : form.getValues('backgroundGeneration') ? 
                 "Generate & Save to My Content" : "Generate SEO Content"}
