@@ -282,7 +282,7 @@ function constructGeminiPrompt(formData: SeoFormValues): string {
     additionalContext,
     wordCount,
     includeFirstPerson,
-    includeStoriesExamples,
+    includeAnecdotes, // Changed from includeStoriesExamples to includeAnecdotes
     includeHook,
     includeHtmlElement
   } = formData;
@@ -327,7 +327,7 @@ function constructGeminiPrompt(formData: SeoFormValues): string {
     prompt += `\n- Start with an engaging hook`;
   }
   
-  if (includeStoriesExamples) {
+  if (includeAnecdotes) { // Changed from includeStoriesExamples to includeAnecdotes
     prompt += `\n- Include relevant stories, examples, or case studies`;
   }
   
