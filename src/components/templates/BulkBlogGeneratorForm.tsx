@@ -337,19 +337,11 @@ export function BulkBlogGeneratorForm({
           const content = await generateSeoContent(requestData, apiKey, options);
           
           if (content && content !== "BACKGROUND_GENERATION_STARTED") {
-            const { data: { user } } = await supabase.auth.getUser();
+            setBlogArticles(prev => prev.map(a => 
+              a.id === article.id ? { ...a, status: "completed" as const, wordCount } : a
+            ));
             
-            if (user) {
-              await saveGeneratedContent(article.title, content, user.id);
-              
-              setBlogArticles(prev => prev.map(a => 
-                a.id === article.id ? { ...a, status: "completed" as const, wordCount } : a
-              ));
-              
-              successCount++;
-            } else {
-              throw new Error("User not authenticated");
-            }
+            successCount++;
           } else {
             setBlogArticles(prev => prev.map(a => 
               a.id === article.id ? { ...a, status: "completed" as const, wordCount } : a
