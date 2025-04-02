@@ -8,7 +8,9 @@ import {
   PanelLeft,
   FileEdit,
   BrainCircuit,
-  Globe
+  Globe,
+  FilesIcon,
+  Sparkles
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -31,9 +33,11 @@ export default function Dashboard() {
     { value: "blog", label: "Blog Content" },
     { value: "article", label: "Article Content" },
     { value: "thinking", label: "Deep Thinking" },
+    { value: "bulk", label: "Bulk Generation" },
+    { value: "free", label: "Free Models" },
   ];
 
-  // Templates data - reordered as requested
+  // Templates data - added Free SEO Generator and Bulk Blog Generator
   const templatesData = [
     {
       id: "all-in-one-seo",
@@ -42,6 +46,14 @@ export default function Dashboard() {
       icon: Search,
       category: "seo",
       route: "/templates/all-in-one-seo"
+    },
+    {
+      id: "free-seo-generator",
+      title: "Free SEO Blog Post Generator",
+      description: "Generate SEO-optimized content using free AI models with perfect formatting and structure",
+      icon: Sparkles,
+      category: "free",
+      route: "/templates/free-seo-generator"
     },
     {
       id: "web-search",
@@ -66,6 +78,14 @@ export default function Dashboard() {
       icon: FileEdit,
       category: "article",
       route: "/templates/article-generator"
+    },
+    {
+      id: "bulk-blog-generator",
+      title: "Bulk Blog Post Generator",
+      description: "Generate multiple SEO-optimized blog posts in the background with shared settings",
+      icon: FilesIcon,
+      category: "bulk",
+      route: "/templates/bulk-blog-generator"
     }
   ];
 
