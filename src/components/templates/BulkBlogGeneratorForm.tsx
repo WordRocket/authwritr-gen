@@ -89,8 +89,7 @@ const globalSettingsSchema = z.object({
     "authoritative", 
     "casual"
   ]).optional(),
-  wordCountMin: z.number().min(500).max(5000),
-  wordCountMax: z.number().min(500).max(5000),
+  wordCount: z.number().min(500).max(5000),
   intendedAudience: z.string().optional(),
   additionalContext: z.string().optional(),
   includeFirstPerson: z.boolean().default(false),
@@ -117,8 +116,7 @@ type BulkArticleFormValues = z.infer<typeof bulkArticleSchema>;
 const defaultGlobalSettings: GlobalSettingsFormValues = {
   articleType: "informational",
   toneOfArticle: "professional",
-  wordCountMin: 1000,
-  wordCountMax: 2000,
+  wordCount: 1500,
   includeFirstPerson: false,
   includeStoriesExamples: false,
   includeHook: true,
@@ -305,10 +303,7 @@ export function BulkBlogGeneratorForm({
         ));
         
         try {
-          const wordCount = Math.floor(
-            Math.random() * (globalSettings.wordCountMax - globalSettings.wordCountMin + 1) 
-            + globalSettings.wordCountMin
-          );
+          const wordCount = globalSettings.wordCount;
           
           const requestData: SeoServiceFormValues = {
             topic: article.title,
@@ -576,10 +571,22 @@ export function BulkBlogGeneratorForm({
                   <CardContent className="space-y-4">
                     <FormField
                       control={globalSettingsForm.control}
-                      name="wordCountMin"
+                      name="wordCount"
                       render={({ field: { value, onChange, ...rest } }) => (
                         <FormItem>
-                          <FormLabel>Minimum Word Count: {value}</FormLabel>
+                          <div className="flex items-center justify-between">
+                            <FormLabel>Word Count: {value}</FormLabel>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <InfoIcon className="h-4 w-4 text-muted-foreground" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="max-w-xs">The AI will generate at least this many words (more is better than less).</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
                           <FormControl>
                             <Slider
                               min={500}
@@ -594,31 +601,9 @@ export function BulkBlogGeneratorForm({
                             <span>500</span>
                             <span>5000</span>
                           </div>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={globalSettingsForm.control}
-                      name="wordCountMax"
-                      render={({ field: { value, onChange, ...rest } }) => (
-                        <FormItem>
-                          <FormLabel>Maximum Word Count: {value}</FormLabel>
-                          <FormControl>
-                            <Slider
-                              min={500}
-                              max={5000}
-                              step={100}
-                              defaultValue={[value]}
-                              onValueChange={(values) => onChange(values[0])}
-                              {...rest}
-                            />
-                          </FormControl>
-                          <div className="flex justify-between text-xs text-muted-foreground">
-                            <span>500</span>
-                            <span>5000</span>
-                          </div>
+                          <FormDescription>
+                            The AI will aim to write at least this many words or more, but never less
+                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
