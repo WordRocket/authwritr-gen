@@ -173,11 +173,17 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
     } catch (invokeError: any) {
       console.error("Error in supabase.functions.invoke:", invokeError);
       
-      if (invokeError.message && invokeError.message.includes("API")) {
-        if (modelId.includes("gemini") || modelId.includes("deepseek")) {
-          throw new Error(`The selected model (${modelId.split('/')[1]}) may be temporarily unavailable. Please try a different model or try again later.`);
-        } else {
-          throw new Error(`Failed to communicate with content generation service: ${invokeError.message}`);
+      // Check for OpenRouter credit limit error
+      if (invokeError.message && typeof invokeError.message === 'string') {
+        if (invokeError.message.includes("requires more credits") || invokeError.message.includes("402")) {
+          throw new Error(`Insufficient OpenRouter credits for this request. Please visit https://openrouter.ai/settings/credits to add more credits or try a different model.`);
+        }
+        if (invokeError.message.includes("API")) {
+          if (modelId.includes("gemini") || modelId.includes("deepseek")) {
+            throw new Error(`The selected model (${modelId.split('/')[1]}) may be temporarily unavailable. Please try a different model or try again later.`);
+          } else {
+            throw new Error(`Failed to communicate with content generation service: ${invokeError.message}`);
+          }
         }
       }
       
