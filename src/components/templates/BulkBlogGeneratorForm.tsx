@@ -1,3 +1,4 @@
+
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -329,20 +330,39 @@ export function BulkBlogGeneratorForm({
             options = { customOutline };
           }
           
+          // Get user data to ensure we're authenticated before generation
+          const { data: { user: currentUser } } = await supabase.auth.getUser();
+          if (!currentUser) {
+            throw new Error("User authentication failed. Please sign in again.");
+          }
+          
+          console.log(`Generating article ${i+1}/${articles.length}: ${article.title}`);
           const content = await generateSeoContent(requestData, apiKey, options);
           
           if (content && content !== "BACKGROUND_GENERATION_STARTED") {
-            setBlogArticles(prev => prev.map(a => 
-              a.id === article.id ? { ...a, status: "completed" as const, wordCount } : a
-            ));
+            console.log(`Article ${i+1} generated successfully (${content.length} chars)`);
             
-            successCount++;
+            // Extract title for saving
+            const titleMatch = content.match(/^#\s*(.*?)(\n|$)/);
+            const title = titleMatch ? titleMatch[1].trim() : article.title;
+            
+            // Explicitly save the content to the database
+            try {
+              await saveGeneratedContent(title, content, currentUser.id);
+              console.log(`Article ${i+1} saved to database`);
+              
+              setBlogArticles(prev => prev.map(a => 
+                a.id === article.id ? { ...a, status: "completed" as const, wordCount } : a
+              ));
+              
+              successCount++;
+            } catch (saveError) {
+              console.error(`Error saving article ${i+1}:`, saveError);
+              throw new Error(`Failed to save article: ${saveError instanceof Error ? saveError.message : 'Unknown error'}`);
+            }
           } else {
-            setBlogArticles(prev => prev.map(a => 
-              a.id === article.id ? { ...a, status: "completed" as const, wordCount } : a
-            ));
-            
-            successCount++;
+            console.log(`Article ${i+1} generation returned unusual response:`, content);
+            throw new Error("Unexpected response from content generation service");
           }
           
         } catch (error) {
@@ -361,8 +381,9 @@ export function BulkBlogGeneratorForm({
           });
         }
         
+        // Add a small delay between requests to avoid overwhelming the API
         if (i < articles.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise(resolve => setTimeout(resolve, 2000));
         }
       }
       
@@ -376,7 +397,13 @@ export function BulkBlogGeneratorForm({
         description: finalMessage,
       });
       
+      // Only navigate if there were successful generations
       if (successCount > 0) {
+        toast({
+          title: "Navigating to My Content",
+          description: "You'll be redirected to view your generated articles in 3 seconds.",
+        });
+        
         setTimeout(() => {
           navigate("/content");
         }, 3000);
