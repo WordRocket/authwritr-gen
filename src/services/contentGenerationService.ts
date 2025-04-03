@@ -173,21 +173,71 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
     } catch (invokeError: any) {
       console.error("Error in supabase.functions.invoke:", invokeError);
       
-      // Check for OpenRouter credit limit error
+      // Enhanced error handling with detailed diagnostics
       if (invokeError.message && typeof invokeError.message === 'string') {
-        if (invokeError.message.includes("requires more credits") || invokeError.message.includes("402")) {
+        const errorMsg = invokeError.message.toLowerCase();
+        
+        // Check for OpenRouter credit limit errors
+        if (errorMsg.includes("requires more credits") || errorMsg.includes("402")) {
           throw new Error(`Insufficient OpenRouter credits for this request. Please visit https://openrouter.ai/settings/credits to add more credits or try a different model.`);
         }
-        if (invokeError.message.includes("API")) {
-          if (modelId.includes("gemini") || modelId.includes("deepseek")) {
-            throw new Error(`The selected model (${modelId.split('/')[1]}) may be temporarily unavailable. Please try a different model or try again later.`);
-          } else {
-            throw new Error(`Failed to communicate with content generation service: ${invokeError.message}`);
+        
+        // Model availability errors
+        if (errorMsg.includes("model") && (errorMsg.includes("unavailable") || errorMsg.includes("not found") || errorMsg.includes("not available"))) {
+          throw new Error(`The selected model (${modelId.split('/')[1]}) is currently unavailable. Please try a different model or try again later.`);
+        }
+        
+        // Token/context length errors
+        if (errorMsg.includes("token") || errorMsg.includes("context") || errorMsg.includes("length")) {
+          throw new Error(`Your content request is too long for the selected model. Try reducing the word count or using a model with larger context window.`);
+        }
+        
+        // Rate limit errors
+        if (errorMsg.includes("rate") && errorMsg.includes("limit")) {
+          throw new Error(`Rate limit exceeded. Please wait a few minutes before trying again.`);
+        }
+        
+        // Invalid API key errors
+        if (errorMsg.includes("api key") || errorMsg.includes("authentication") || errorMsg.includes("auth")) {
+          throw new Error(`Authentication error with the AI provider. Please check your API key in settings.`);
+        }
+
+        // Provider-specific error handling
+        if (modelId.includes("gemini") || modelId.includes("google")) {
+          if (errorMsg.includes("api") || errorMsg.includes("error") || errorMsg.includes("invalid")) {
+            throw new Error(`Gemini API error: ${invokeError.message}. Try using a different model.`);
           }
+        } else if (modelId.includes("anthropic") || modelId.includes("claude")) {
+          if (errorMsg.includes("api") || errorMsg.includes("error") || errorMsg.includes("invalid")) {
+            throw new Error(`Claude API error: ${invokeError.message}. Try using a different model.`);
+          }
+        } else if (modelId.includes("openai") || modelId.includes("gpt")) {
+          if (errorMsg.includes("api") || errorMsg.includes("error") || errorMsg.includes("invalid")) {
+            throw new Error(`OpenAI API error: ${invokeError.message}. Try using a different model.`);
+          }
+        } else if (modelId.includes("deepseek")) {
+          if (errorMsg.includes("api") || errorMsg.includes("error") || errorMsg.includes("invalid")) {
+            throw new Error(`DeepSeek API error: ${invokeError.message}. Try using a different model.`);
+          }
+        } else if (modelId.includes("mistral")) {
+          if (errorMsg.includes("api") || errorMsg.includes("error") || errorMsg.includes("invalid")) {
+            throw new Error(`Mistral API error: ${invokeError.message}. Try using a different model.`);
+          }
+        }
+        
+        // Network or timeout errors
+        if (errorMsg.includes("network") || errorMsg.includes("timeout") || errorMsg.includes("timed out")) {
+          throw new Error(`Network error or timeout when connecting to AI provider. Please check your internet connection and try again.`);
+        }
+        
+        // Generic API errors as fallback
+        if (errorMsg.includes("api")) {
+          throw new Error(`The AI service returned an error: ${invokeError.message}. Please try a different model or try again later.`);
         }
       }
       
-      throw new Error(`Failed to communicate with content generation service: ${invokeError.message}`);
+      // Fallback for any other errors
+      throw new Error(`Failed to communicate with content generation service: ${invokeError.message || "Unknown error"}`);
     }
   } catch (error: any) {
     console.error("Error in generateSeoContent:", error);
