@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -33,7 +32,6 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
   try {
     let modelId = formData.model || "anthropic/claude-3.7-sonnet";
     
-    // Check if we should use Gemini directly
     if (formData.useGeminiDirectly && formData.geminiApiKey) {
       console.log("Using Gemini API directly");
       return await generateWithGemini(formData);
@@ -173,36 +171,31 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
     } catch (invokeError: any) {
       console.error("Error in supabase.functions.invoke:", invokeError);
       
-      // Enhanced error handling with detailed diagnostics
       if (invokeError.message && typeof invokeError.message === 'string') {
         const errorMsg = invokeError.message.toLowerCase();
         
-        // Check for OpenRouter credit limit errors
-        if (errorMsg.includes("requires more credits") || errorMsg.includes("402")) {
-          throw new Error(`Insufficient OpenRouter credits for this request. Please visit https://openrouter.ai/settings/credits to add more credits or try a different model.`);
+        if (errorMsg.includes("requires more credits") || errorMsg.includes("402") || errorMsg.includes("insufficient credits")) {
+          throw new Error(
+            `⚠️ OPENROUTER CREDITS REQUIRED: You have run out of credits for this model. Please visit https://openrouter.ai/settings/credits to add more credits to your OpenRouter account, or select a different model. Most models require credits to use.`
+          );
         }
         
-        // Model availability errors
         if (errorMsg.includes("model") && (errorMsg.includes("unavailable") || errorMsg.includes("not found") || errorMsg.includes("not available"))) {
           throw new Error(`The selected model (${modelId.split('/')[1]}) is currently unavailable. Please try a different model or try again later.`);
         }
         
-        // Token/context length errors
         if (errorMsg.includes("token") || errorMsg.includes("context") || errorMsg.includes("length")) {
           throw new Error(`Your content request is too long for the selected model. Try reducing the word count or using a model with larger context window.`);
         }
         
-        // Rate limit errors
         if (errorMsg.includes("rate") && errorMsg.includes("limit")) {
           throw new Error(`Rate limit exceeded. Please wait a few minutes before trying again.`);
         }
         
-        // Invalid API key errors
         if (errorMsg.includes("api key") || errorMsg.includes("authentication") || errorMsg.includes("auth")) {
           throw new Error(`Authentication error with the AI provider. Please check your API key in settings.`);
         }
 
-        // Provider-specific error handling
         if (modelId.includes("gemini") || modelId.includes("google")) {
           if (errorMsg.includes("api") || errorMsg.includes("error") || errorMsg.includes("invalid")) {
             throw new Error(`Gemini API error: ${invokeError.message}. Try using a different model.`);
@@ -225,18 +218,15 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
           }
         }
         
-        // Network or timeout errors
         if (errorMsg.includes("network") || errorMsg.includes("timeout") || errorMsg.includes("timed out")) {
           throw new Error(`Network error or timeout when connecting to AI provider. Please check your internet connection and try again.`);
         }
         
-        // Generic API errors as fallback
         if (errorMsg.includes("api")) {
           throw new Error(`The AI service returned an error: ${invokeError.message}. Please try a different model or try again later.`);
         }
       }
       
-      // Fallback for any other errors
       throw new Error(`Failed to communicate with content generation service: ${invokeError.message || "Unknown error"}`);
     }
   } catch (error: any) {
@@ -245,7 +235,6 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
   }
 }
 
-// New function to generate content using the Gemini API directly
 async function generateWithGemini(formData: SeoFormValues): Promise<string> {
   try {
     console.log("Generating content with Gemini API directly");
@@ -254,10 +243,8 @@ async function generateWithGemini(formData: SeoFormValues): Promise<string> {
       throw new Error("Gemini API key is required");
     }
     
-    // Construct the prompt for Gemini
     const prompt = constructGeminiPrompt(formData);
     
-    // Call the Gemini API
     const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent", {
       method: "POST",
       headers: {
@@ -301,7 +288,6 @@ async function generateWithGemini(formData: SeoFormValues): Promise<string> {
       throw new Error("Empty content returned by Gemini");
     }
     
-    // Save the content to the database if user is logged in
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -317,7 +303,6 @@ async function generateWithGemini(formData: SeoFormValues): Promise<string> {
       }
     } catch (saveError) {
       console.error("Error saving Gemini-generated content:", saveError);
-      // Don't throw here - we still want to return the content even if saving fails
     }
     
     return generatedContent;
@@ -327,7 +312,6 @@ async function generateWithGemini(formData: SeoFormValues): Promise<string> {
   }
 }
 
-// Helper function to construct the prompt for Gemini
 function constructGeminiPrompt(formData: SeoFormValues): string {
   const {
     topic,
@@ -338,7 +322,7 @@ function constructGeminiPrompt(formData: SeoFormValues): string {
     additionalContext,
     wordCount,
     includeFirstPerson,
-    includeAnecdotes, // Changed from includeStoriesExamples to includeAnecdotes
+    includeAnecdotes,
     includeHook,
     includeHtmlElement
   } = formData;
@@ -383,7 +367,7 @@ function constructGeminiPrompt(formData: SeoFormValues): string {
     prompt += `\n- Start with an engaging hook`;
   }
   
-  if (includeAnecdotes) { // Changed from includeStoriesExamples to includeAnecdotes
+  if (includeAnecdotes) {
     prompt += `\n- Include relevant stories, examples, or case studies`;
   }
   
