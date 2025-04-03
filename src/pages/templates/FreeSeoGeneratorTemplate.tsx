@@ -11,9 +11,16 @@ export default function FreeSeoGeneratorTemplate() {
   const [includeInternalLinks, setIncludeInternalLinks] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [customOutline, setCustomOutline] = useState("");
+  const [geminiApiKey, setGeminiApiKey] = useState("");
   
   useEffect(() => {
     document.title = "Free SEO Blog Post Generator | Content Genius";
+    
+    // Load Gemini API key if it exists
+    const savedGeminiKey = localStorage.getItem('geminiApiKey');
+    if (savedGeminiKey) {
+      setGeminiApiKey(savedGeminiKey);
+    }
   }, []);
 
   const handleUrlsScraped = (count: number) => {
@@ -49,6 +56,11 @@ export default function FreeSeoGeneratorTemplate() {
     setCustomOutline(outline);
     localStorage.setItem('customOutline', outline);
   };
+  
+  const handleGeminiApiKeyChange = (apiKey: string) => {
+    setGeminiApiKey(apiKey);
+    localStorage.setItem('geminiApiKey', apiKey);
+  };
 
   return (
     <div className="mx-auto container py-8">
@@ -82,6 +94,9 @@ export default function FreeSeoGeneratorTemplate() {
         customOutline={customOutline}
         onCustomOutlineChange={handleOutlineChange}
         onlyShowFreeModels={true}
+        savedGeminiApiKey={geminiApiKey}
+        onGeminiApiKeyChange={handleGeminiApiKeyChange}
+        onGeneratingStateChange={handleGeneratingState}
       />
     </div>
   );

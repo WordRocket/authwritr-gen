@@ -1,4 +1,3 @@
-
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -104,6 +103,9 @@ interface SeoGeneratorFormProps {
   customOutline?: string;
   onCustomOutlineChange?: (outline: string) => void;
   onlyShowFreeModels?: boolean;
+  savedGeminiApiKey?: string;
+  onGeminiApiKeyChange?: (apiKey: string) => void;
+  onGeneratingStateChange?: (generating: boolean) => void;
 }
 
 export function SeoGeneratorForm({ 
@@ -111,7 +113,10 @@ export function SeoGeneratorForm({
   hideBackgroundGeneration = true,
   customOutline = "",
   onCustomOutlineChange,
-  onlyShowFreeModels = false
+  onlyShowFreeModels = false,
+  savedGeminiApiKey = "",
+  onGeminiApiKeyChange,
+  onGeneratingStateChange
 }: SeoGeneratorFormProps) {
   const { user, apiKey } = useAuth();
   const [isGenerating, setIsGenerating] = React.useState(false);
@@ -137,10 +142,9 @@ export function SeoGeneratorForm({
   }, [apiKey]);
 
   React.useEffect(() => {
-    // Check for saved Gemini key
-    const savedGeminiKey = localStorage.getItem('geminiApiKey');
-    if (savedGeminiKey) {
-      form.setValue('geminiApiKey', savedGeminiKey);
+    // Set Gemini API key from prop if provided
+    if (savedGeminiApiKey) {
+      form.setValue('geminiApiKey', savedGeminiApiKey);
     }
     
     // Update useGeminiDirectly based on the selected model
@@ -149,7 +153,7 @@ export function SeoGeneratorForm({
       form.setValue('useGeminiDirectly', true);
       setShowGeminiKeyInput(true);
     }
-  }, [form]);
+  }, [form, savedGeminiApiKey]);
 
   React.useEffect(() => {
     const subscription = form.watch((value, { name }) => {
@@ -163,10 +167,18 @@ export function SeoGeneratorForm({
           setShowGeminiKeyInput(false);
         }
       }
+      
+      // When geminiApiKey changes and there's a handler, call it
+      if (name === 'geminiApiKey' && onGeminiApiKeyChange) {
+        const geminiKey = value.geminiApiKey;
+        if (geminiKey) {
+          onGeminiApiKeyChange(geminiKey);
+        }
+      }
     });
     
     return () => subscription.unsubscribe();
-  }, [form]);
+  }, [form, onGeminiApiKeyChange]);
 
   React.useEffect(() => {
     if (generatedContent) {
@@ -214,8 +226,11 @@ export function SeoGeneratorForm({
         return;
       }
       
-      // Save Gemini API key to localStorage
+      // Save Gemini API key to localStorage and via callback if provided
       localStorage.setItem('geminiApiKey', data.geminiApiKey);
+      if (onGeminiApiKeyChange) {
+        onGeminiApiKeyChange(data.geminiApiKey);
+      }
       setGeminiKeyError("");
     } else if (!apiKey && !data.useGeminiDirectly) {
       toast({
@@ -227,6 +242,9 @@ export function SeoGeneratorForm({
     }
     
     setIsGenerating(true);
+    if (onGeneratingStateChange) {
+      onGeneratingStateChange(true);
+    }
     
     try {
       const formDataWithInternalLinks = {
@@ -238,6 +256,9 @@ export function SeoGeneratorForm({
       
       if (data.backgroundGeneration || content === "BACKGROUND_GENERATION_STARTED") {
         setIsGenerating(false);
+        if (onGeneratingStateChange) {
+          onGeneratingStateChange(false);
+        }
         navigate("/content");
         return;
       }
@@ -257,6 +278,9 @@ export function SeoGeneratorForm({
       });
     } finally {
       setIsGenerating(false);
+      if (onGeneratingStateChange) {
+        onGeneratingStateChange(false);
+      }
     }
   };
 
