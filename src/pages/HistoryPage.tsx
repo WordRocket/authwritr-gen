@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,13 +11,14 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tables } from "@/integrations/supabase/types";
 
 interface GenerationHistoryItem {
   id: string;
   title: string;
   created_at: string;
   status: "completed" | "failed" | "pending";
-  error_message?: string;
+  error_message?: string | null;
 }
 
 export default function HistoryPage() {
@@ -66,7 +68,7 @@ export default function HistoryPage() {
       }
 
       // Transform data for the history view with explicit type casting
-      const historyData: GenerationHistoryItem[] = data?.map(item => ({
+      const historyData: GenerationHistoryItem[] = data?.map((item: Tables["content"]["Row"]) => ({
         id: item.id,
         title: item.title,
         created_at: item.created_at,
