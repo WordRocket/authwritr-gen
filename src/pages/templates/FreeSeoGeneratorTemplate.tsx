@@ -97,6 +97,7 @@ export default function FreeSeoGeneratorTemplate() {
         savedGeminiApiKey={geminiApiKey}
         onGeminiApiKeyChange={handleGeminiApiKeyChange}
         onGeneratingStateChange={handleGeneratingState}
+        showGeminiKeyInput={true}
       />
     </div>
   );

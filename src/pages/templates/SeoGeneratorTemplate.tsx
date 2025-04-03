@@ -130,6 +130,7 @@ export default function SeoGeneratorTemplate() {
               hideBackgroundGeneration={true}
               customOutline={customOutline}
               onCustomOutlineChange={handleOutlineChange}
+              showGeminiKeyInput={false}
             />}
     </div>
   );
