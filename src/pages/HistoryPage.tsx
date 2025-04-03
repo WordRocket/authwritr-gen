@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -66,12 +65,12 @@ export default function HistoryPage() {
         return;
       }
 
-      // Transform data for the history view
-      const historyData = data?.map(item => ({
+      // Transform data for the history view with explicit type casting
+      const historyData: GenerationHistoryItem[] = data?.map(item => ({
         id: item.id,
         title: item.title,
         created_at: item.created_at,
-        status: item.error_message ? "failed" : "completed",
+        status: (item.error_message ? "failed" : "completed") as "completed" | "failed" | "pending",
         error_message: item.error_message,
       })) || [];
 
