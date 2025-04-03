@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { SeoGeneratorForm } from "@/components/templates/SeoGeneratorForm";
 import { RealTimeBlogGeneratorForm } from "@/components/templates/RealTimeBlogGeneratorForm";
@@ -131,6 +130,7 @@ export default function SeoGeneratorTemplate() {
               customOutline={customOutline}
               onCustomOutlineChange={handleOutlineChange}
               showGeminiKeyInput={false}
+              onGeneratingStateChange={handleGeneratingState}
             />}
     </div>
   );
