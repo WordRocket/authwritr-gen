@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tables } from "@/integrations/supabase/types";
+import { Database } from "@/integrations/supabase/types";
 
 interface GenerationHistoryItem {
   id: string;
@@ -68,7 +68,7 @@ export default function HistoryPage() {
       }
 
       // Transform data for the history view with explicit type casting
-      const historyData: GenerationHistoryItem[] = data?.map((item: Tables["content"]["Row"]) => ({
+      const historyData: GenerationHistoryItem[] = data?.map((item: Database['public']['Tables']['content']['Row']) => ({
         id: item.id,
         title: item.title,
         created_at: item.created_at,
