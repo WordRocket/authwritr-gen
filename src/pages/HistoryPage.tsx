@@ -121,7 +121,7 @@ export default function HistoryPage() {
         return <Badge variant="outline">Unknown</Badge>;
     }
   };
-  
+
   if (!isAuthenticated) {
     return (
       <Card>

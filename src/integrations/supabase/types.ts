@@ -13,6 +13,7 @@ export type Database = {
         Row: {
           content: string
           created_at: string
+          error_message: string | null
           id: string
           title: string
           user_id: string
@@ -20,6 +21,7 @@ export type Database = {
         Insert: {
           content: string
           created_at?: string
+          error_message?: string | null
           id?: string
           title: string
           user_id: string
@@ -27,6 +29,7 @@ export type Database = {
         Update: {
           content?: string
           created_at?: string
+          error_message?: string | null
           id?: string
           title?: string
           user_id?: string
