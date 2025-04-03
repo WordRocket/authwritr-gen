@@ -25,7 +25,8 @@ import {
   LogOut, 
   PenTool,
   User,
-  AlertCircle
+  AlertCircle,
+  History
 } from "lucide-react";
 import { OnboardingModal } from "./OnboardingModal";
 import { ThemeToggle } from "./ThemeToggle";
@@ -50,7 +51,7 @@ export default function MainLayout() {
     }
   }, [isAuthenticated, apiKey, location.pathname]);
 
-  // Menu items - removed History tab
+  // Menu items - add History tab back
   const menuItems = [
     {
       title: "Dashboard",
@@ -62,6 +63,11 @@ export default function MainLayout() {
       path: "/content",
       icon: FileText,
     },
+    {
+      title: "History",
+      path: "/history",
+      icon: History,
+    }
   ];
 
   const settingsItems = [
