@@ -23,6 +23,7 @@ interface ProductRoundupGeneratorFormProps {
   customOutline?: string;
   onCustomOutlineChange?: (outline: string) => void;
   onGeneratingStateChange?: (isGenerating: boolean) => void;
+  apiKey?: string | null;
 }
 
 const formSchema = z.object({
@@ -57,6 +58,7 @@ export function ProductRoundupGeneratorForm({
   customOutline = "",
   onCustomOutlineChange,
   onGeneratingStateChange,
+  apiKey,
 }: ProductRoundupGeneratorFormProps) {
   const [content, setContent] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -202,7 +204,7 @@ ${productDescriptions}
         includeInternalLinks,
         model: searchModel,
         finalContentModel: data.inputMode === "webSearch" ? "anthropic/claude-3.7-sonnet" : undefined,
-      }, undefined, customOutlineOption);
+      }, apiKey, customOutlineOption);
 
       if (generatedContent !== "BACKGROUND_GENERATION_STARTED") {
         setContent(generatedContent);
