@@ -1,3 +1,4 @@
+
 import { BrowserRouter as Router, Routes, Route, createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
@@ -21,6 +22,7 @@ import HistoryPage from "@/pages/HistoryPage";
 import SettingsPage from "@/pages/SettingsPage";
 import BulkBlogGeneratorTemplate from "@/pages/templates/BulkBlogGeneratorTemplate";
 import FreeSeoGeneratorTemplate from "./pages/templates/FreeSeoGeneratorTemplate";
+import ProductRoundupTemplate from "./pages/templates/ProductRoundupTemplate";
 
 import "./App.css";
 
@@ -75,6 +77,10 @@ function App() {
                   {
                     path: "templates/bulk-blog-generator",
                     element: <BulkBlogGeneratorTemplate />,
+                  },
+                  {
+                    path: "templates/product-roundup",
+                    element: <ProductRoundupTemplate />,
                   },
                   {
                     path: "history",

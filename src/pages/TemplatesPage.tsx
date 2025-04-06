@@ -39,6 +39,7 @@ export default function TemplatesPage() {
     { value: "thinking", label: "Deep Thinking" },
     { value: "bulk", label: "Bulk Generation" },
     { value: "free", label: "Free Models" },
+    { value: "product", label: "Product Content" },
   ];
 
   // Templates data - added free SEO generator template
@@ -74,6 +75,14 @@ export default function TemplatesPage() {
       icon: Globe,
       category: "article",
       route: "/templates/web-search"
+    },
+    {
+      id: "product-roundup",
+      title: "Product Round-up Generator",
+      description: "Create comprehensive product comparison articles with detailed reviews, comparison tables, and buyer's guides to help readers make informed purchasing decisions.",
+      icon: ShoppingBag,
+      category: "product",
+      route: "/templates/product-roundup"
     },
     {
       id: "deep-thinking",

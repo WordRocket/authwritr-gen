@@ -1,0 +1,85 @@
+
+import { useEffect, useState } from "react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { InfoIcon, ShoppingBag } from "lucide-react";
+import { ProductRoundupGeneratorForm } from "@/components/templates/ProductRoundupGeneratorForm";
+import { SitemapUrlInput } from "@/components/templates/SitemapUrlInput";
+
+export default function ProductRoundupTemplate() {
+  const [includeInternalLinks, setIncludeInternalLinks] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [customOutline, setCustomOutline] = useState("");
+  
+  useEffect(() => {
+    document.title = "Product Round-up Article Generator | Content Genius";
+  }, []);
+
+  const handleUrlsScraped = (count: number) => {
+    console.log(`Successfully scraped ${count} URLs`);
+  };
+
+  const handleInternalLinksToggle = (enabled: boolean) => {
+    setIncludeInternalLinks(enabled);
+    console.log(`Internal links ${enabled ? 'enabled' : 'disabled'}`);
+    
+    // Store the preference in localStorage
+    localStorage.setItem('includeInternalLinks', enabled.toString());
+  };
+
+  useEffect(() => {
+    const savedPreference = localStorage.getItem('includeInternalLinks');
+    if (savedPreference !== null) {
+      setIncludeInternalLinks(savedPreference === 'true');
+    }
+    
+    // Load custom outline if it exists
+    const savedOutline = localStorage.getItem('productRoundupCustomOutline');
+    if (savedOutline !== null) {
+      setCustomOutline(savedOutline);
+    }
+  }, []);
+  
+  const handleGeneratingState = (generating: boolean) => {
+    setIsGenerating(generating);
+  };
+  
+  const handleOutlineChange = (outline: string) => {
+    setCustomOutline(outline);
+    localStorage.setItem('productRoundupCustomOutline', outline);
+  };
+
+  return (
+    <div className="mx-auto container py-8">
+      <h1 className="text-3xl font-bold tracking-tight">
+        Product Round-up Article Generator
+      </h1>
+      <p className="text-muted-foreground mt-2">
+        Create comprehensive product comparison articles to help readers make informed purchasing decisions
+      </p>
+      
+      {isGenerating && (
+        <Alert className="mt-4 border-amber-500 bg-amber-50 dark:bg-amber-950/20">
+          <InfoIcon className="h-4 w-4 text-amber-500" />
+          <AlertDescription className="text-amber-800 dark:text-amber-300">
+            Content is being generated. Please do not leave this page. It may take a few minutes to complete.
+          </AlertDescription>
+        </Alert>
+      )}
+      
+      <div className="mt-6 mb-8">
+        <SitemapUrlInput 
+          onUrlsScraped={handleUrlsScraped} 
+          onInternalLinksToggle={handleInternalLinksToggle}
+          includeInternalLinks={includeInternalLinks}
+        />
+      </div>
+      
+      <ProductRoundupGeneratorForm 
+        includeInternalLinks={includeInternalLinks}
+        customOutline={customOutline}
+        onCustomOutlineChange={handleOutlineChange}
+        onGeneratingStateChange={handleGeneratingState}
+      />
+    </div>
+  );
+}
