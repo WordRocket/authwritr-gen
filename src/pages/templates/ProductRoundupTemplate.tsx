@@ -4,11 +4,13 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { InfoIcon, ShoppingBag } from "lucide-react";
 import { ProductRoundupGeneratorForm } from "@/components/templates/ProductRoundupGeneratorForm";
 import { SitemapUrlInput } from "@/components/templates/SitemapUrlInput";
+import { useAuth } from "@/context/AuthContext";
 
 export default function ProductRoundupTemplate() {
   const [includeInternalLinks, setIncludeInternalLinks] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [customOutline, setCustomOutline] = useState("");
+  const { apiKey } = useAuth();
   
   useEffect(() => {
     document.title = "Product Round-up Article Generator | Content Genius";
@@ -79,6 +81,7 @@ export default function ProductRoundupTemplate() {
         customOutline={customOutline}
         onCustomOutlineChange={handleOutlineChange}
         onGeneratingStateChange={handleGeneratingState}
+        apiKey={apiKey}
       />
     </div>
   );

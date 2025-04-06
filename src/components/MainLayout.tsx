@@ -26,7 +26,8 @@ import {
   PenTool,
   User,
   AlertCircle,
-  History
+  History,
+  AlertTriangle
 } from "lucide-react";
 import { OnboardingModal } from "./OnboardingModal";
 import { ThemeToggle } from "./ThemeToggle";
@@ -161,6 +162,20 @@ export default function MainLayout() {
               <ThemeToggle />
             </div>
           </div>
+          
+          {/* API Key Warning */}
+          {!apiKey && location.pathname !== "/settings" && (
+            <Alert className="rounded-none border-l-4 border-destructive bg-destructive/10">
+              <AlertTriangle className="h-4 w-4 text-destructive" />
+              <AlertDescription className="text-sm">
+                API key is missing. Please add your OpenRouter API key in{" "}
+                <Link to="/settings" className="font-medium underline text-destructive hover:text-destructive/80">
+                  Settings
+                </Link>
+                {" "}to use content generation features.
+              </AlertDescription>
+            </Alert>
+          )}
           
           {/* Beta Banner */}
           <Alert className="rounded-none border-l-4 border-primary bg-primary/10 my-0">
