@@ -1,66 +1,30 @@
 
 import { useEffect, useState } from "react";
-import { RealTimeBlogGeneratorForm } from "@/components/templates/RealTimeBlogGeneratorForm";
-import { SitemapUrlInput } from "@/components/templates/SitemapUrlInput";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { InfoIcon, Globe } from "lucide-react";
+import { InfoIcon, Globe, AlertCircle } from "lucide-react";
+import { RealTimeBlogGeneratorForm } from "@/components/templates/RealTimeBlogGeneratorForm";
+import { useAuth } from "@/context/AuthContext";
+import { Link } from "react-router-dom";
 
 export default function WebSearchTemplate() {
-  const [includeInternalLinks, setIncludeInternalLinks] = useState(false);
-  const [includeCitations, setIncludeCitations] = useState(true); // Default to true for citations
   const [isGenerating, setIsGenerating] = useState(false);
-  const [customOutline, setCustomOutline] = useState("");
+  const [apiError, setApiError] = useState<string | null>(null);
+  const { apiKey } = useAuth();
   
   useEffect(() => {
     document.title = "Real-Time Web Search Article Generator | Content Genius";
   }, []);
-
-  const handleUrlsScraped = (count: number) => {
-    console.log(`Successfully scraped ${count} URLs`);
-  };
-
-  const handleInternalLinksToggle = (enabled: boolean) => {
-    setIncludeInternalLinks(enabled);
-    console.log(`Internal links ${enabled ? 'enabled' : 'disabled'}`);
-    
-    // Store the preference in localStorage
-    localStorage.setItem('includeInternalLinks', enabled.toString());
-  };
-
-  useEffect(() => {
-    const savedPreference = localStorage.getItem('includeInternalLinks');
-    if (savedPreference !== null) {
-      setIncludeInternalLinks(savedPreference === 'true');
-    }
-    
-    // Load citation preference if it exists
-    const savedCitationPreference = localStorage.getItem('includeCitations');
-    if (savedCitationPreference !== null) {
-      setIncludeCitations(savedCitationPreference === 'true');
-    }
-    
-    // Load custom outline if it exists
-    const savedOutline = localStorage.getItem('customOutline');
-    if (savedOutline !== null) {
-      setCustomOutline(savedOutline);
-    }
-  }, []);
-  
-  const handleCitationsToggle = (enabled: boolean) => {
-    setIncludeCitations(enabled);
-    console.log(`Citations ${enabled ? 'enabled' : 'disabled'}`);
-    
-    // Store the preference in localStorage
-    localStorage.setItem('includeCitations', enabled.toString());
-  };
   
   const handleGeneratingState = (generating: boolean) => {
     setIsGenerating(generating);
+    if (generating) {
+      setApiError(null);
+    }
   };
-  
-  const handleOutlineChange = (outline: string) => {
-    setCustomOutline(outline);
-    localStorage.setItem('customOutline', outline);
+
+  const handleApiError = (error: string) => {
+    setApiError(error);
+    setIsGenerating(false);
   };
 
   return (
@@ -69,8 +33,43 @@ export default function WebSearchTemplate() {
         Real-Time Web Search Article Generator
       </h1>
       <p className="text-muted-foreground mt-2">
-        Research topics online and generate comprehensive articles with real-time web search
+        Create content with real-time web search results to ensure accuracy and relevance
       </p>
+      
+      {!apiKey && (
+        <Alert className="mt-4 border-destructive bg-destructive/10">
+          <AlertCircle className="h-4 w-4 text-destructive" />
+          <AlertDescription className="text-destructive">
+            API key is missing. Please add your OpenRouter API key in{" "}
+            <Link to="/settings" className="font-medium underline hover:text-destructive/80">
+              Settings
+            </Link>{" "}
+            to use content generation features.
+          </AlertDescription>
+        </Alert>
+      )}
+      
+      {apiError && (
+        <Alert className="mt-4 border-destructive bg-destructive/10">
+          <AlertCircle className="h-4 w-4 text-destructive" />
+          <AlertDescription className="text-destructive">
+            <p><strong>API Error:</strong> {apiError}</p>
+            <p className="mt-2">
+              If this is an authentication error (401), please check:
+            </p>
+            <ul className="list-disc pl-5 mt-1 space-y-1">
+              <li>That you have sufficient credits in your OpenRouter account</li>
+              <li>Your API key is valid and entered correctly</li>
+              <li>
+                Try creating a new API key in OpenRouter and updating it in your{" "}
+                <Link to="/settings" className="font-medium underline hover:text-destructive/80">
+                  Settings
+                </Link>
+              </li>
+            </ul>
+          </AlertDescription>
+        </Alert>
+      )}
       
       {isGenerating && (
         <Alert className="mt-4 border-amber-500 bg-amber-50 dark:bg-amber-950/20">
@@ -81,21 +80,10 @@ export default function WebSearchTemplate() {
         </Alert>
       )}
       
-      <div className="mt-6 mb-8">
-        <SitemapUrlInput 
-          onUrlsScraped={handleUrlsScraped} 
-          onInternalLinksToggle={handleInternalLinksToggle}
-          includeInternalLinks={includeInternalLinks}
-        />
-      </div>
-      
       <RealTimeBlogGeneratorForm 
-        includeInternalLinks={includeInternalLinks} 
-        includeCitations={includeCitations} 
-        onCitationsToggle={handleCitationsToggle}
-        customOutline={customOutline}
-        onCustomOutlineChange={handleOutlineChange}
-        forceWebSearch={true}
+        onGeneratingStateChange={handleGeneratingState}
+        onApiError={handleApiError}
+        apiKey={apiKey}
       />
     </div>
   );

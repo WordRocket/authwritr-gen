@@ -31,9 +31,15 @@ export interface SeoFormValues {
 export async function generateSeoContent(formData: SeoFormValues, apiKey?: string | null, options?: Record<string, any>): Promise<string> {
   try {
     // Validate API key first
-    if (!apiKey) {
+    if (!apiKey && !formData.useGeminiDirectly) {
       console.error("API key is missing");
       throw new Error("Authentication error with the AI provider. Please check your API key in settings.");
+    }
+    
+    // If using Gemini directly, validate the Gemini API key
+    if (formData.useGeminiDirectly && !formData.geminiApiKey) {
+      console.error("Gemini API key is missing");
+      throw new Error("Gemini API key is required when using Gemini directly");
     }
     
     let modelId = formData.model || "anthropic/claude-3.7-sonnet";
