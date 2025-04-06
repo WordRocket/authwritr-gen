@@ -6,12 +6,14 @@ import { ProductRoundupGeneratorForm } from "@/components/templates/ProductRound
 import { SitemapUrlInput } from "@/components/templates/SitemapUrlInput";
 import { useAuth } from "@/context/AuthContext";
 import { Link } from "react-router-dom";
+import { HtmlPreviewComponent } from "@/components/templates/HtmlPreviewComponent";
 
 export default function ProductRoundupTemplate() {
   const [includeInternalLinks, setIncludeInternalLinks] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [customOutline, setCustomOutline] = useState("");
   const [apiError, setApiError] = useState<string | null>(null);
+  const [generatedHtml, setGeneratedHtml] = useState("");
   const { apiKey } = useAuth();
   
   useEffect(() => {
@@ -58,6 +60,10 @@ export default function ProductRoundupTemplate() {
   const handleApiError = (error: string) => {
     setApiError(error);
     setIsGenerating(false);
+  };
+  
+  const handleContentGenerated = (content: string) => {
+    setGeneratedHtml(content);
   };
 
   return (
@@ -128,7 +134,12 @@ export default function ProductRoundupTemplate() {
         onGeneratingStateChange={handleGeneratingState}
         onApiError={handleApiError}
         apiKey={apiKey}
+        onContentGenerated={handleContentGenerated}
       />
+      
+      {generatedHtml && (
+        <HtmlPreviewComponent htmlCode={generatedHtml} className="mt-8" />
+      )}
     </div>
   );
 }

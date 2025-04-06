@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -23,6 +24,7 @@ interface ProductRoundupGeneratorFormProps {
   customOutline: string;
   onCustomOutlineChange: (outline: string) => void;
   onGeneratingStateChange: (generating: boolean) => void;
+  onContentGenerated?: (content: string) => void;
   apiKey: string | null;
   onApiError?: (error: string) => void;
 }
@@ -59,6 +61,7 @@ export function ProductRoundupGeneratorForm({
   customOutline = "",
   onCustomOutlineChange,
   onGeneratingStateChange,
+  onContentGenerated,
   apiKey,
   onApiError,
 }: ProductRoundupGeneratorFormProps) {
@@ -66,7 +69,6 @@ export function ProductRoundupGeneratorForm({
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentTab, setCurrentTab] = useState("form");
   const [products, setProducts] = useState<ProductFormValues[]>([]);
-  const [currentProduct, setCurrentProduct] = useState<ProductFormValues | null>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   
   const form = useForm<z.infer<typeof formSchema>>({
@@ -210,6 +212,9 @@ ${productDescriptions}
 
       if (generatedContent !== "BACKGROUND_GENERATION_STARTED") {
         setContent(generatedContent);
+        if (onContentGenerated) {
+          onContentGenerated(generatedContent);
+        }
         setCurrentTab("preview");
       }
     } catch (error: any) {
@@ -743,7 +748,9 @@ ${productDescriptions}
 
         <TabsContent value="preview">
           {content && (
-            <HtmlPreviewComponent htmlCode={content} />
+            <div className="border p-4 rounded-md bg-card">
+              <div dangerouslySetInnerHTML={{ __html: content }} />
+            </div>
           )}
         </TabsContent>
       </Tabs>
