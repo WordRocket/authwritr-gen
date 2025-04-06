@@ -11,6 +11,7 @@ export default function ProductRoundupTemplate() {
   const [includeInternalLinks, setIncludeInternalLinks] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [customOutline, setCustomOutline] = useState("");
+  const [apiError, setApiError] = useState<string | null>(null);
   const { apiKey } = useAuth();
   
   useEffect(() => {
@@ -44,11 +45,19 @@ export default function ProductRoundupTemplate() {
   
   const handleGeneratingState = (generating: boolean) => {
     setIsGenerating(generating);
+    if (generating) {
+      setApiError(null);
+    }
   };
   
   const handleOutlineChange = (outline: string) => {
     setCustomOutline(outline);
     localStorage.setItem('productRoundupCustomOutline', outline);
+  };
+
+  const handleApiError = (error: string) => {
+    setApiError(error);
+    setIsGenerating(false);
   };
 
   return (
@@ -69,6 +78,28 @@ export default function ProductRoundupTemplate() {
               Settings
             </Link>{" "}
             to use content generation features.
+          </AlertDescription>
+        </Alert>
+      )}
+      
+      {apiError && (
+        <Alert className="mt-4 border-destructive bg-destructive/10">
+          <AlertCircle className="h-4 w-4 text-destructive" />
+          <AlertDescription className="text-destructive">
+            <p><strong>API Error:</strong> {apiError}</p>
+            <p className="mt-2">
+              If this is an authentication error (401), please check:
+            </p>
+            <ul className="list-disc pl-5 mt-1 space-y-1">
+              <li>That you have sufficient credits in your OpenRouter account</li>
+              <li>Your API key is valid and entered correctly</li>
+              <li>
+                Try creating a new API key in OpenRouter and updating it in your{" "}
+                <Link to="/settings" className="font-medium underline hover:text-destructive/80">
+                  Settings
+                </Link>
+              </li>
+            </ul>
           </AlertDescription>
         </Alert>
       )}
@@ -95,6 +126,7 @@ export default function ProductRoundupTemplate() {
         customOutline={customOutline}
         onCustomOutlineChange={handleOutlineChange}
         onGeneratingStateChange={handleGeneratingState}
+        onApiError={handleApiError}
         apiKey={apiKey}
       />
     </div>

@@ -19,11 +19,12 @@ import { HtmlPreviewComponent } from "@/components/templates/HtmlPreviewComponen
 import { ShoppingBag, Plus, Trash, Search, Pencil } from "lucide-react";
 
 interface ProductRoundupGeneratorFormProps {
-  includeInternalLinks?: boolean;
-  customOutline?: string;
-  onCustomOutlineChange?: (outline: string) => void;
-  onGeneratingStateChange?: (isGenerating: boolean) => void;
-  apiKey?: string | null;
+  includeInternalLinks: boolean;
+  customOutline: string;
+  onCustomOutlineChange: (outline: string) => void;
+  onGeneratingStateChange: (generating: boolean) => void;
+  apiKey: string | null;
+  onApiError?: (error: string) => void;
 }
 
 const formSchema = z.object({
@@ -59,6 +60,7 @@ export function ProductRoundupGeneratorForm({
   onCustomOutlineChange,
   onGeneratingStateChange,
   apiKey,
+  onApiError,
 }: ProductRoundupGeneratorFormProps) {
   const [content, setContent] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -211,11 +213,9 @@ ${productDescriptions}
         setCurrentTab("preview");
       }
     } catch (error: any) {
-      toast({
-        title: "Error Generating Content",
-        description: error.message || "An error occurred while generating content.",
-        variant: "destructive",
-      });
+      if (onApiError) {
+        onApiError(error.message || "An error occurred while generating content.");
+      }
       console.error("Content generation error:", error);
     } finally {
       setIsGenerating(false);

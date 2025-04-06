@@ -122,6 +122,11 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
         console.error("Error invoking generate-seo-content function:", error);
         const errorMessage = error.message || "Failed to connect to the content generation service";
         console.log("Error details:", error);
+        
+        if (error.message?.includes("401") || error.message?.includes("auth")) {
+          throw new Error(`OpenRouter authentication error (401): Please check that your API key is valid and that you have sufficient credits. You may need to create a new API key in your OpenRouter account.`);
+        }
+        
         throw new Error(`Failed to generate content: ${errorMessage}`);
       }
 
@@ -184,7 +189,7 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
         if (errorMsg.includes("no auth") || errorMsg.includes("401") || 
             errorMsg.includes("authentication") || errorMsg.includes("credentials")) {
           throw new Error(
-            `Authentication error with the AI provider. Please check your API key in settings.`
+            `OpenRouter authentication failed (401): Please verify your API key is valid and has sufficient credits. Try creating a new API key in your OpenRouter account settings.`
           );
         }
         
