@@ -10,7 +10,8 @@ import {
   BrainCircuit,
   Globe,
   FilesIcon,
-  Sparkles
+  Sparkles,
+  ShoppingBag
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -35,9 +36,10 @@ export default function Dashboard() {
     { value: "thinking", label: "Deep Thinking" },
     { value: "bulk", label: "Bulk Generation" },
     { value: "free", label: "Free Models" },
+    { value: "product", label: "Product Content" },
   ];
 
-  // Templates data - added Free SEO Generator and Bulk Blog Generator
+  // Templates data - added Product Round-up Generator
   const templatesData = [
     {
       id: "all-in-one-seo",
@@ -78,6 +80,14 @@ export default function Dashboard() {
       icon: FileEdit,
       category: "article",
       route: "/templates/article-generator"
+    },
+    {
+      id: "product-roundup",
+      title: "Product Round-up Generator",
+      description: "Create comprehensive product comparison articles with detailed reviews and buyer's guides",
+      icon: ShoppingBag,
+      category: "product",
+      route: "/templates/product-roundup"
     },
     {
       id: "bulk-blog-generator",
