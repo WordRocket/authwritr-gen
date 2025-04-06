@@ -1,10 +1,11 @@
 
 import { useEffect, useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { InfoIcon, ShoppingBag } from "lucide-react";
+import { InfoIcon, ShoppingBag, AlertCircle } from "lucide-react";
 import { ProductRoundupGeneratorForm } from "@/components/templates/ProductRoundupGeneratorForm";
 import { SitemapUrlInput } from "@/components/templates/SitemapUrlInput";
 import { useAuth } from "@/context/AuthContext";
+import { Link } from "react-router-dom";
 
 export default function ProductRoundupTemplate() {
   const [includeInternalLinks, setIncludeInternalLinks] = useState(false);
@@ -58,6 +59,19 @@ export default function ProductRoundupTemplate() {
       <p className="text-muted-foreground mt-2">
         Create comprehensive product comparison articles to help readers make informed purchasing decisions
       </p>
+      
+      {!apiKey && (
+        <Alert className="mt-4 border-destructive bg-destructive/10">
+          <AlertCircle className="h-4 w-4 text-destructive" />
+          <AlertDescription className="text-destructive">
+            API key is missing. Please add your OpenRouter API key in{" "}
+            <Link to="/settings" className="font-medium underline hover:text-destructive/80">
+              Settings
+            </Link>{" "}
+            to use content generation features.
+          </AlertDescription>
+        </Alert>
+      )}
       
       {isGenerating && (
         <Alert className="mt-4 border-amber-500 bg-amber-50 dark:bg-amber-950/20">

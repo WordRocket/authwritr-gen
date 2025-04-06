@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -29,8 +28,14 @@ export interface SeoFormValues {
   geminiApiKey?: string;
 }
 
-export async function generateSeoContent(formData: SeoFormValues, apiKey?: string, options?: Record<string, any>): Promise<string> {
+export async function generateSeoContent(formData: SeoFormValues, apiKey?: string | null, options?: Record<string, any>): Promise<string> {
   try {
+    // Validate API key first
+    if (!apiKey) {
+      console.error("API key is missing");
+      throw new Error("Authentication error with the AI provider. Please check your API key in settings.");
+    }
+    
     let modelId = formData.model || "anthropic/claude-3.7-sonnet";
     
     if (formData.useGeminiDirectly && formData.geminiApiKey) {
@@ -87,7 +92,8 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
       enableThinking: formData.enableThinking,
       bulkGeneration: formData.bulkGeneration,
       searchModel: modelId,
-      finalContentModel
+      finalContentModel,
+      hasApiKey: !!apiKey
     });
 
     const customOutline = options?.customOutline;
@@ -175,9 +181,10 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
       if (invokeError.message && typeof invokeError.message === 'string') {
         const errorMsg = invokeError.message.toLowerCase();
         
-        if (errorMsg.includes("requires more credits") || errorMsg.includes("402") || errorMsg.includes("insufficient credits")) {
+        if (errorMsg.includes("no auth") || errorMsg.includes("401") || 
+            errorMsg.includes("authentication") || errorMsg.includes("credentials")) {
           throw new Error(
-            `⚠️ OPENROUTER CREDITS REQUIRED: You have run out of credits for this model. Please visit https://openrouter.ai/settings/credits to add more credits to your OpenRouter account, or select a different model. Most models require credits to use.`
+            `Authentication error with the AI provider. Please check your API key in settings.`
           );
         }
         

@@ -50,22 +50,24 @@ serve(async (req) => {
       backgroundGeneration: !!backgroundGeneration,
       hasAdditionalContext: !!additionalContext,
       model,
-      finalContentModel
+      finalContentModel,
+      hasApiKey: !!apiKey
     });
 
     if (includeInternalLinks && (!internalLinks || internalLinks.length === 0)) {
       console.warn("includeInternalLinks is true but no URLs were provided");
     }
 
-    // Validate API key
+    // Validate API key more thoroughly
     if (!apiKey) {
+      console.error("API key is missing");
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: "API key is required" 
+          error: "API key is required. Please add your OpenRouter API key in Settings." 
         }),
         { 
-          status: 200, // Always return 200 to client but with error in body
+          status: 200, // Always return 200 but with error in body
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       );
@@ -77,6 +79,20 @@ serve(async (req) => {
         JSON.stringify({ 
           success: false, 
           error: "Invalid API key format" 
+        }),
+        { 
+          status: 200, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    // Check if the API key has a valid format (at least has a certain length)
+    if (apiKey.trim().length < 10) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "API key is too short or invalid. Please check your OpenRouter API key in Settings." 
         }),
         { 
           status: 200, 
