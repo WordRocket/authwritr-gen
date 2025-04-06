@@ -1,22 +1,30 @@
-
 import { useEffect, useState } from "react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { InfoIcon, Search, AlertCircle } from "lucide-react";
 import { SeoGeneratorForm } from "@/components/templates/SeoGeneratorForm";
+import { RealTimeBlogGeneratorForm } from "@/components/templates/RealTimeBlogGeneratorForm";
+import { useLocation } from "react-router-dom";
 import { SitemapUrlInput } from "@/components/templates/SitemapUrlInput";
-import { useAuth } from "@/context/AuthContext";
-import { Link } from "react-router-dom";
+import { DeepThinkingGeneratorForm } from "@/components/templates/DeepThinkingGeneratorForm";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { InfoIcon } from "lucide-react";
 
 export default function SeoGeneratorTemplate() {
+  const location = useLocation();
+  const isArticleGenerator = location.pathname.includes("article-generator");
+  const isDeepThinking = location.pathname.includes("deep-thinking");
   const [includeInternalLinks, setIncludeInternalLinks] = useState(false);
+  const [includeCitations, setIncludeCitations] = useState(true); // Default to true for citations
   const [isGenerating, setIsGenerating] = useState(false);
   const [customOutline, setCustomOutline] = useState("");
-  const [apiError, setApiError] = useState<string | null>(null);
-  const { apiKey } = useAuth();
   
   useEffect(() => {
-    document.title = "All-in-One SEO Article Generator | Content Genius";
-  }, []);
+    if (isArticleGenerator) {
+      document.title = "AI Blog Generator With Web Research";
+    } else if (isDeepThinking) {
+      document.title = "Deep Thinking AI Blog Generator | Content Genius";
+    } else {
+      document.title = "All In One SEO Generator | Content Genius";
+    }
+  }, [isArticleGenerator, isDeepThinking]);
 
   const handleUrlsScraped = (count: number) => {
     console.log(`Successfully scraped ${count} URLs`);
@@ -36,73 +44,52 @@ export default function SeoGeneratorTemplate() {
       setIncludeInternalLinks(savedPreference === 'true');
     }
     
+    // Load citation preference if it exists
+    const savedCitationPreference = localStorage.getItem('includeCitations');
+    if (savedCitationPreference !== null) {
+      setIncludeCitations(savedCitationPreference === 'true');
+    }
+    
     // Load custom outline if it exists
-    const savedOutline = localStorage.getItem('seoGeneratorCustomOutline');
+    const savedOutline = localStorage.getItem('customOutline');
     if (savedOutline !== null) {
       setCustomOutline(savedOutline);
     }
   }, []);
   
+  const handleCitationsToggle = (enabled: boolean) => {
+    setIncludeCitations(enabled);
+    console.log(`Citations ${enabled ? 'enabled' : 'disabled'}`);
+    
+    // Store the preference in localStorage
+    localStorage.setItem('includeCitations', enabled.toString());
+  };
+  
   const handleGeneratingState = (generating: boolean) => {
     setIsGenerating(generating);
-    if (generating) {
-      setApiError(null);
-    }
   };
   
   const handleOutlineChange = (outline: string) => {
     setCustomOutline(outline);
-    localStorage.setItem('seoGeneratorCustomOutline', outline);
-  };
-
-  const handleApiError = (error: string) => {
-    setApiError(error);
-    setIsGenerating(false);
+    localStorage.setItem('customOutline', outline);
   };
 
   return (
     <div className="mx-auto container py-8">
       <h1 className="text-3xl font-bold tracking-tight">
-        All-in-One SEO Article Generator
+        {isArticleGenerator 
+          ? "AI Blog Generator With Web Research" 
+          : isDeepThinking
+            ? "Deep Thinking AI Blog Generator"
+            : "All In One SEO Generator"}
       </h1>
       <p className="text-muted-foreground mt-2">
-        Create comprehensive, SEO-optimized content for maximum search visibility
+        {isArticleGenerator 
+          ? "Create high-quality blog posts with real-time web research using Perplexity, GPT, and Claude models"
+          : isDeepThinking
+            ? "Create content with visible AI thinking process for more transparent reasoning"
+            : "Generate SEO-optimized content using AI with perfect formatting and structure"}
       </p>
-      
-      {!apiKey && (
-        <Alert className="mt-4 border-destructive bg-destructive/10">
-          <AlertCircle className="h-4 w-4 text-destructive" />
-          <AlertDescription className="text-destructive">
-            API key is missing. Please add your OpenRouter API key in{" "}
-            <Link to="/settings" className="font-medium underline hover:text-destructive/80">
-              Settings
-            </Link>{" "}
-            to use content generation features.
-          </AlertDescription>
-        </Alert>
-      )}
-      
-      {apiError && (
-        <Alert className="mt-4 border-destructive bg-destructive/10">
-          <AlertCircle className="h-4 w-4 text-destructive" />
-          <AlertDescription className="text-destructive">
-            <p><strong>API Error:</strong> {apiError}</p>
-            <p className="mt-2">
-              If this is an authentication error (401), please check:
-            </p>
-            <ul className="list-disc pl-5 mt-1 space-y-1">
-              <li>That you have sufficient credits in your OpenRouter account</li>
-              <li>Your API key is valid and entered correctly</li>
-              <li>
-                Try creating a new API key in OpenRouter and updating it in your{" "}
-                <Link to="/settings" className="font-medium underline hover:text-destructive/80">
-                  Settings
-                </Link>
-              </li>
-            </ul>
-          </AlertDescription>
-        </Alert>
-      )}
       
       {isGenerating && (
         <Alert className="mt-4 border-amber-500 bg-amber-50 dark:bg-amber-950/20">
@@ -121,14 +108,30 @@ export default function SeoGeneratorTemplate() {
         />
       </div>
       
-      <SeoGeneratorForm 
-        includeInternalLinks={includeInternalLinks}
-        customOutline={customOutline}
-        onCustomOutlineChange={handleOutlineChange}
-        onGeneratingStateChange={handleGeneratingState}
-        onApiError={handleApiError}
-        apiKey={apiKey}
-      />
+      {isArticleGenerator 
+        ? <RealTimeBlogGeneratorForm 
+            includeInternalLinks={includeInternalLinks} 
+            includeCitations={includeCitations} 
+            onCitationsToggle={handleCitationsToggle}
+            customOutline={customOutline}
+            onCustomOutlineChange={handleOutlineChange}
+          />
+        : isDeepThinking
+          ? <DeepThinkingGeneratorForm 
+              includeInternalLinks={includeInternalLinks} 
+              onGeneratingStateChange={handleGeneratingState}
+              hideBackgroundGeneration={true}
+              customOutline={customOutline}
+              onCustomOutlineChange={handleOutlineChange}
+            />
+          : <SeoGeneratorForm 
+              includeInternalLinks={includeInternalLinks}
+              hideBackgroundGeneration={true}
+              customOutline={customOutline}
+              onCustomOutlineChange={handleOutlineChange}
+              showGeminiKeyInput={false}
+              onGeneratingStateChange={handleGeneratingState}
+            />}
     </div>
   );
 }

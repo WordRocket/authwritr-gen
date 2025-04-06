@@ -1,20 +1,19 @@
 
-import { useEffect, useState } from "react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { InfoIcon, FileStack, AlertCircle } from "lucide-react";
-import { BulkBlogGeneratorForm } from "@/components/templates/BulkBlogGeneratorForm";
+import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { SitemapUrlInput } from "@/components/templates/SitemapUrlInput";
-import { useAuth } from "@/context/AuthContext";
-import { Link } from "react-router-dom";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { InfoIcon } from "lucide-react";
+import { BulkBlogGeneratorForm } from "@/components/templates/BulkBlogGeneratorForm";
 
 export default function BulkBlogGeneratorTemplate() {
+  const location = useLocation();
   const [includeInternalLinks, setIncludeInternalLinks] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [apiError, setApiError] = useState<string | null>(null);
-  const { apiKey } = useAuth();
+  const [customOutline, setCustomOutline] = useState("");
   
   useEffect(() => {
-    document.title = "Bulk Blog Post Generator | Content Genius";
+    document.title = "Bulk Blog Generator | Content Genius";
   }, []);
 
   const handleUrlsScraped = (count: number) => {
@@ -34,18 +33,21 @@ export default function BulkBlogGeneratorTemplate() {
     if (savedPreference !== null) {
       setIncludeInternalLinks(savedPreference === 'true');
     }
+    
+    // Load custom outline if it exists
+    const savedOutline = localStorage.getItem('customOutline');
+    if (savedOutline !== null) {
+      setCustomOutline(savedOutline);
+    }
   }, []);
   
   const handleGeneratingState = (generating: boolean) => {
     setIsGenerating(generating);
-    if (generating) {
-      setApiError(null);
-    }
   };
-
-  const handleApiError = (error: string) => {
-    setApiError(error);
-    setIsGenerating(false);
+  
+  const handleOutlineChange = (outline: string) => {
+    setCustomOutline(outline);
+    localStorage.setItem('customOutline', outline);
   };
 
   return (
@@ -54,49 +56,14 @@ export default function BulkBlogGeneratorTemplate() {
         Bulk Blog Post Generator
       </h1>
       <p className="text-muted-foreground mt-2">
-        Generate multiple blog posts at once with shared settings
+        Generate multiple SEO-optimized blog posts in the background with shared settings
       </p>
-      
-      {!apiKey && (
-        <Alert className="mt-4 border-destructive bg-destructive/10">
-          <AlertCircle className="h-4 w-4 text-destructive" />
-          <AlertDescription className="text-destructive">
-            API key is missing. Please add your OpenRouter API key in{" "}
-            <Link to="/settings" className="font-medium underline hover:text-destructive/80">
-              Settings
-            </Link>{" "}
-            to use content generation features.
-          </AlertDescription>
-        </Alert>
-      )}
-      
-      {apiError && (
-        <Alert className="mt-4 border-destructive bg-destructive/10">
-          <AlertCircle className="h-4 w-4 text-destructive" />
-          <AlertDescription className="text-destructive">
-            <p><strong>API Error:</strong> {apiError}</p>
-            <p className="mt-2">
-              If this is an authentication error (401), please check:
-            </p>
-            <ul className="list-disc pl-5 mt-1 space-y-1">
-              <li>That you have sufficient credits in your OpenRouter account</li>
-              <li>Your API key is valid and entered correctly</li>
-              <li>
-                Try creating a new API key in OpenRouter and updating it in your{" "}
-                <Link to="/settings" className="font-medium underline hover:text-destructive/80">
-                  Settings
-                </Link>
-              </li>
-            </ul>
-          </AlertDescription>
-        </Alert>
-      )}
       
       {isGenerating && (
         <Alert className="mt-4 border-amber-500 bg-amber-50 dark:bg-amber-950/20">
           <InfoIcon className="h-4 w-4 text-amber-500" />
           <AlertDescription className="text-amber-800 dark:text-amber-300">
-            Content is being generated. Please do not leave this page. It may take a few minutes to complete.
+            Content generation has started in the background. You can view progress in the "My Content" section.
           </AlertDescription>
         </Alert>
       )}
@@ -111,9 +78,9 @@ export default function BulkBlogGeneratorTemplate() {
       
       <BulkBlogGeneratorForm 
         includeInternalLinks={includeInternalLinks}
+        customOutline={customOutline}
+        onCustomOutlineChange={handleOutlineChange}
         onGeneratingStateChange={handleGeneratingState}
-        onApiError={handleApiError}
-        apiKey={apiKey}
       />
     </div>
   );

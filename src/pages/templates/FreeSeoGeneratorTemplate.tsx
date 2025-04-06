@@ -1,25 +1,25 @@
 
 import { useEffect, useState } from "react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { InfoIcon, Sparkles, AlertCircle } from "lucide-react";
 import { SeoGeneratorForm } from "@/components/templates/SeoGeneratorForm";
+import { useLocation } from "react-router-dom";
 import { SitemapUrlInput } from "@/components/templates/SitemapUrlInput";
-import { Link } from "react-router-dom";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { InfoIcon } from "lucide-react";
 
 export default function FreeSeoGeneratorTemplate() {
+  const location = useLocation();
   const [includeInternalLinks, setIncludeInternalLinks] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [customOutline, setCustomOutline] = useState("");
-  const [apiError, setApiError] = useState<string | null>(null);
-  const [geminiApiKey, setGeminiApiKey] = useState<string | null>(null);
+  const [geminiApiKey, setGeminiApiKey] = useState("");
   
   useEffect(() => {
     document.title = "Free SEO Blog Post Generator | Content Genius";
     
-    // Load Gemini API key if exists
-    const savedApiKey = localStorage.getItem('gemini_api_key');
-    if (savedApiKey) {
-      setGeminiApiKey(savedApiKey);
+    // Load Gemini API key if it exists
+    const savedGeminiKey = localStorage.getItem('geminiApiKey');
+    if (savedGeminiKey) {
+      setGeminiApiKey(savedGeminiKey);
     }
   }, []);
 
@@ -42,7 +42,7 @@ export default function FreeSeoGeneratorTemplate() {
     }
     
     // Load custom outline if it exists
-    const savedOutline = localStorage.getItem('freeSeoCustomOutline');
+    const savedOutline = localStorage.getItem('customOutline');
     if (savedOutline !== null) {
       setCustomOutline(savedOutline);
     }
@@ -50,24 +50,16 @@ export default function FreeSeoGeneratorTemplate() {
   
   const handleGeneratingState = (generating: boolean) => {
     setIsGenerating(generating);
-    if (generating) {
-      setApiError(null);
-    }
   };
   
   const handleOutlineChange = (outline: string) => {
     setCustomOutline(outline);
-    localStorage.setItem('freeSeoCustomOutline', outline);
+    localStorage.setItem('customOutline', outline);
   };
-
-  const handleApiError = (error: string) => {
-    setApiError(error);
-    setIsGenerating(false);
-  };
-
+  
   const handleGeminiApiKeyChange = (apiKey: string) => {
     setGeminiApiKey(apiKey);
-    localStorage.setItem('gemini_api_key', apiKey);
+    localStorage.setItem('geminiApiKey', apiKey);
   };
 
   return (
@@ -76,25 +68,8 @@ export default function FreeSeoGeneratorTemplate() {
         Free SEO Blog Post Generator
       </h1>
       <p className="text-muted-foreground mt-2">
-        Create SEO-optimized content using free AI models like Gemini. No paid API keys required.
+        Generate SEO-optimized content using free AI models with perfect formatting and structure
       </p>
-      
-      {apiError && (
-        <Alert className="mt-4 border-destructive bg-destructive/10">
-          <AlertCircle className="h-4 w-4 text-destructive" />
-          <AlertDescription className="text-destructive">
-            <p><strong>API Error:</strong> {apiError}</p>
-            <p className="mt-2">
-              If this is an authentication error, please check:
-            </p>
-            <ul className="list-disc pl-5 mt-1 space-y-1">
-              <li>Your Gemini API key is valid and entered correctly</li>
-              <li>Your Gemini API key has not expired</li>
-              <li>Try creating a new API key in Google AI Studio</li>
-            </ul>
-          </AlertDescription>
-        </Alert>
-      )}
       
       {isGenerating && (
         <Alert className="mt-4 border-amber-500 bg-amber-50 dark:bg-amber-950/20">
@@ -115,13 +90,14 @@ export default function FreeSeoGeneratorTemplate() {
       
       <SeoGeneratorForm 
         includeInternalLinks={includeInternalLinks}
+        hideBackgroundGeneration={true}
         customOutline={customOutline}
         onCustomOutlineChange={handleOutlineChange}
-        onGeneratingStateChange={handleGeneratingState}
-        onApiError={handleApiError}
-        useFreeModels={true}
-        geminiApiKey={geminiApiKey}
+        onlyShowFreeModels={true}
+        savedGeminiApiKey={geminiApiKey}
         onGeminiApiKeyChange={handleGeminiApiKeyChange}
+        onGeneratingStateChange={handleGeneratingState}
+        showGeminiKeyInput={true}
       />
     </div>
   );

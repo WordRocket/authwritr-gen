@@ -1,21 +1,17 @@
 
 import { useEffect, useState } from "react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { InfoIcon, BrainCircuit, AlertCircle } from "lucide-react";
 import { DeepThinkingGeneratorForm } from "@/components/templates/DeepThinkingGeneratorForm";
 import { SitemapUrlInput } from "@/components/templates/SitemapUrlInput";
-import { useAuth } from "@/context/AuthContext";
-import { Link } from "react-router-dom";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { InfoIcon } from "lucide-react";
 
 export default function DeepThinkingTemplate() {
   const [includeInternalLinks, setIncludeInternalLinks] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [customOutline, setCustomOutline] = useState("");
-  const [apiError, setApiError] = useState<string | null>(null);
-  const { apiKey } = useAuth();
   
   useEffect(() => {
-    document.title = "Deep Thinking Blog Generator | Content Genius";
+    document.title = "Deep Thinking Enabled Blog Generator | Content Genius";
   }, []);
 
   const handleUrlsScraped = (count: number) => {
@@ -30,6 +26,7 @@ export default function DeepThinkingTemplate() {
     localStorage.setItem('includeInternalLinks', enabled.toString());
   };
 
+  // Load the preference from localStorage on component mount
   useEffect(() => {
     const savedPreference = localStorage.getItem('includeInternalLinks');
     if (savedPreference !== null) {
@@ -37,72 +34,30 @@ export default function DeepThinkingTemplate() {
     }
     
     // Load custom outline if it exists
-    const savedOutline = localStorage.getItem('deepThinkingCustomOutline');
+    const savedOutline = localStorage.getItem('customOutline');
     if (savedOutline !== null) {
       setCustomOutline(savedOutline);
     }
   }, []);
   
+  // Handler for setting the generating state
   const handleGeneratingState = (generating: boolean) => {
     setIsGenerating(generating);
-    if (generating) {
-      setApiError(null);
-    }
   };
   
   const handleOutlineChange = (outline: string) => {
     setCustomOutline(outline);
-    localStorage.setItem('deepThinkingCustomOutline', outline);
-  };
-
-  const handleApiError = (error: string) => {
-    setApiError(error);
-    setIsGenerating(false);
+    localStorage.setItem('customOutline', outline);
   };
 
   return (
     <div className="mx-auto container py-8">
       <h1 className="text-3xl font-bold tracking-tight">
-        Deep Thinking Blog Generator
+        Deep Thinking Enabled Blog Generator
       </h1>
       <p className="text-muted-foreground mt-2">
-        Create thoughtful content with AI models that show their reasoning process
+        Create thoughtful, detailed content with AI models that explicitly show their reasoning process
       </p>
-      
-      {!apiKey && (
-        <Alert className="mt-4 border-destructive bg-destructive/10">
-          <AlertCircle className="h-4 w-4 text-destructive" />
-          <AlertDescription className="text-destructive">
-            API key is missing. Please add your OpenRouter API key in{" "}
-            <Link to="/settings" className="font-medium underline hover:text-destructive/80">
-              Settings
-            </Link>{" "}
-            to use content generation features.
-          </AlertDescription>
-        </Alert>
-      )}
-      
-      {apiError && (
-        <Alert className="mt-4 border-destructive bg-destructive/10">
-          <AlertCircle className="h-4 w-4 text-destructive" />
-          <AlertDescription className="text-destructive">
-            <p><strong>API Error:</strong> {apiError}</p>
-            <p className="mt-2">
-              If this is an authentication error (401), please check:
-            </p>
-            <ul className="list-disc pl-5 mt-1 space-y-1">
-              <li>That you have sufficient credits in your OpenRouter account</li>
-              <li>Your API key is valid and entered correctly</li>
-              <li>
-                Try creating a new API key in OpenRouter and updating it in your{" "}
-                <Link to="/settings" className="font-medium underline hover:text-destructive/80">
-                  Settings
-                </Link>
-              </li>
-            </ul>
-          </AlertDescription>
-        </Alert>
-      )}
       
       {isGenerating && (
         <Alert className="mt-4 border-amber-500 bg-amber-50 dark:bg-amber-950/20">
@@ -123,11 +78,10 @@ export default function DeepThinkingTemplate() {
       
       <DeepThinkingGeneratorForm 
         includeInternalLinks={includeInternalLinks}
+        onGeneratingStateChange={handleGeneratingState}
+        hideBackgroundGeneration={true}
         customOutline={customOutline}
         onCustomOutlineChange={handleOutlineChange}
-        onGeneratingStateChange={handleGeneratingState}
-        onApiError={handleApiError}
-        apiKey={apiKey}
       />
     </div>
   );
