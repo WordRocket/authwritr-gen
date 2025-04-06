@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -66,7 +65,6 @@ export function ProductRoundupGeneratorForm({
   const [currentProduct, setCurrentProduct] = useState<ProductFormValues | null>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   
-  // Initialize form with default values
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -103,13 +101,11 @@ export function ProductRoundupGeneratorForm({
 
   const handleProductAdd = productForm.handleSubmit((data) => {
     if (editingIndex !== null) {
-      // Update existing product
       const updatedProducts = [...products];
       updatedProducts[editingIndex] = data;
       setProducts(updatedProducts);
       setEditingIndex(null);
     } else {
-      // Add new product
       if (products.length >= 5) {
         toast({
           title: "Maximum Products Reached",
@@ -163,7 +159,6 @@ export function ProductRoundupGeneratorForm({
     try {
       let searchTermOrManualInput = data.inputMode === "webSearch" ? data.searchTerm : "";
       
-      // If using manual input, construct a formatted string with product details
       if (data.inputMode === "manualInput") {
         const productDescriptions = products.map((product, index) => {
           return `
@@ -184,15 +179,26 @@ ${productDescriptions}
         `;
       }
 
-      // For the web search mode, we'll use perplexity/sonar-reasoning-pro
       const searchModel = data.inputMode === "webSearch" ? "perplexity/sonar-reasoning-pro" : data.model;
 
       const customOutlineOption = customOutline ? { customOutline } : {};
       
       const generatedContent = await generateSeoContent({
-        ...data,
+        topic: data.topic,
+        wordCount: data.wordCount,
+        includeFirstPerson: data.includeFirstPerson,
+        includeAnecdotes: data.includeAnecdotes,
+        includeHook: data.includeHook,
+        includeStories: data.includeStories,
+        includeHtmlElement: data.includeHtmlElement,
         searchTerm: data.inputMode === "webSearch" ? data.searchTerm : undefined,
         manualInput: data.inputMode === "manualInput" ? searchTermOrManualInput : undefined,
+        inputMode: data.inputMode,
+        targetKeyword: data.targetKeyword,
+        articleType: data.articleType,
+        toneOfArticle: data.toneOfArticle,
+        intendedAudience: data.intendedAudience,
+        additionalContext: data.additionalContext,
         includeInternalLinks,
         model: searchModel,
         finalContentModel: data.inputMode === "webSearch" ? "anthropic/claude-3.7-sonnet" : undefined,
@@ -561,7 +567,7 @@ ${productDescriptions}
                   />
                   
                   <CustomOutlineSection 
-                    value={customOutline} 
+                    outline={customOutline} 
                     onChange={onCustomOutlineChange || (() => {})} 
                   />
 
@@ -735,7 +741,7 @@ ${productDescriptions}
 
         <TabsContent value="preview">
           {content && (
-            <HtmlPreviewComponent markdown={content} />
+            <HtmlPreviewComponent htmlCode={content} />
           )}
         </TabsContent>
       </Tabs>
