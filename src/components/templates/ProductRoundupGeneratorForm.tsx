@@ -49,10 +49,6 @@ const formSchema = z.object({
 type ProductFormValues = {
   name: string;
   description: string;
-  features?: string;
-  pricing?: string;
-  pros?: string;
-  cons?: string;
 };
 
 export function ProductRoundupGeneratorForm({
@@ -68,7 +64,6 @@ export function ProductRoundupGeneratorForm({
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentTab, setCurrentTab] = useState("form");
   const [products, setProducts] = useState<ProductFormValues[]>([]);
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -97,46 +92,25 @@ export function ProductRoundupGeneratorForm({
     defaultValues: {
       name: "",
       description: "",
-      features: "",
-      pricing: "",
-      pros: "",
-      cons: "",
     },
   });
 
   const handleProductAdd = productForm.handleSubmit((data) => {
-    if (editingIndex !== null) {
-      const updatedProducts = [...products];
-      updatedProducts[editingIndex] = data;
-      setProducts(updatedProducts);
-      setEditingIndex(null);
-    } else {
-      if (products.length >= 5) {
-        toast({
-          title: "Maximum Products Reached",
-          description: "You can compare up to 5 products at a time.",
-          variant: "destructive",
-        });
-        return;
-      }
-      setProducts([...products, data]);
+    if (products.length >= 5) {
+      toast({
+        title: "Maximum Products Reached",
+        description: "You can compare up to 5 products at a time.",
+        variant: "destructive",
+      });
+      return;
     }
+    setProducts([...products, data]);
     
     productForm.reset({
       name: "",
       description: "",
-      features: "",
-      pricing: "",
-      pros: "",
-      cons: "",
     });
   });
-
-  const editProduct = (index: number) => {
-    const product = products[index];
-    productForm.reset(product);
-    setEditingIndex(index);
-  };
 
   const removeProduct = (index: number) => {
     const updatedProducts = [...products];
@@ -169,10 +143,6 @@ export function ProductRoundupGeneratorForm({
           return `
 Product ${index + 1}: ${product.name}
 Description: ${product.description}
-${product.features ? `Features: ${product.features}` : ''}
-${product.pricing ? `Pricing: ${product.pricing}` : ''}
-${product.pros ? `Pros: ${product.pros}` : ''}
-${product.cons ? `Cons: ${product.cons}` : ''}
           `;
         }).join("\n\n");
         
@@ -335,14 +305,6 @@ ${productDescriptions}
                                   type="button" 
                                   variant="outline" 
                                   size="sm" 
-                                  onClick={() => editProduct(index)}
-                                >
-                                  Edit
-                                </Button>
-                                <Button 
-                                  type="button" 
-                                  variant="outline" 
-                                  size="sm" 
                                   onClick={() => removeProduct(index)}
                                 >
                                   <Trash className="h-4 w-4" />
@@ -354,9 +316,7 @@ ${productDescriptions}
                       )}
                       
                       <div className="space-y-4">
-                        <h4 className="text-sm font-medium text-center">
-                          {editingIndex !== null ? "Edit Product" : "Add Product"}
-                        </h4>
+                        <h4 className="text-sm font-medium text-center">Add Product</h4>
                         
                         <div>
                           <FormLabel htmlFor="name">Product Name</FormLabel>
@@ -374,53 +334,16 @@ ${productDescriptions}
                           <FormLabel htmlFor="description">Description</FormLabel>
                           <Textarea
                             id="description"
-                            placeholder="Describe the product..."
+                            placeholder="Describe the product including key features, pricing, pros and cons..."
                             {...productForm.register("description", { required: true })}
-                            className="min-h-[100px]"
+                            className="min-h-[150px]"
                           />
+                          <FormDescription className="mt-2">
+                            Include details like: product features, pricing, pros, cons, and any other relevant information.
+                          </FormDescription>
                           {productForm.formState.errors.description && (
                             <p className="text-sm font-medium text-destructive">Description is required</p>
                           )}
-                        </div>
-                        
-                        <div>
-                          <FormLabel htmlFor="features">Key Features (optional)</FormLabel>
-                          <Textarea
-                            id="features"
-                            placeholder="List key features..."
-                            {...productForm.register("features")}
-                            className="min-h-[80px]"
-                          />
-                        </div>
-                        
-                        <div>
-                          <FormLabel htmlFor="pricing">Pricing (optional)</FormLabel>
-                          <Input
-                            id="pricing"
-                            placeholder="$349.99"
-                            {...productForm.register("pricing")}
-                          />
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <FormLabel htmlFor="pros">Pros (optional)</FormLabel>
-                            <Textarea
-                              id="pros"
-                              placeholder="List pros..."
-                              {...productForm.register("pros")}
-                              className="min-h-[80px]"
-                            />
-                          </div>
-                          <div>
-                            <FormLabel htmlFor="cons">Cons (optional)</FormLabel>
-                            <Textarea
-                              id="cons"
-                              placeholder="List cons..."
-                              {...productForm.register("cons")}
-                              className="min-h-[80px]"
-                            />
-                          </div>
                         </div>
                         
                         <Button 
@@ -428,7 +351,7 @@ ${productDescriptions}
                           onClick={handleProductAdd} 
                           className="w-full"
                         >
-                          {editingIndex !== null ? "Update Product" : "Add Product"}
+                          Add Product
                         </Button>
                       </div>
                     </div>
