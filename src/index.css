@@ -110,6 +110,114 @@
   .content-container > * {
     @apply max-w-none;
   }
+  
+  /* Enhanced content styling for generated HTML */
+  .content-container h1 {
+    @apply text-3xl font-bold tracking-tight mt-6 mb-4 text-primary;
+  }
+  
+  .content-container h2 {
+    @apply text-2xl font-semibold tracking-tight mt-5 mb-3 border-b pb-2;
+  }
+  
+  .content-container h3 {
+    @apply text-xl font-semibold tracking-tight mt-4 mb-2;
+  }
+  
+  .content-container p {
+    @apply my-3 leading-7;
+  }
+  
+  .content-container ul, 
+  .content-container ol {
+    @apply my-3 pl-6;
+  }
+  
+  .content-container ul {
+    @apply list-disc;
+  }
+  
+  .content-container ol {
+    @apply list-decimal;
+  }
+  
+  .content-container li {
+    @apply my-1;
+  }
+  
+  .content-container table {
+    @apply w-full border-collapse my-4;
+  }
+  
+  .content-container table th {
+    @apply bg-muted px-4 py-2 text-left font-medium border;
+  }
+  
+  .content-container table td {
+    @apply px-4 py-2 border;
+  }
+  
+  .content-container blockquote {
+    @apply pl-4 border-l-4 border-primary/30 italic my-4 text-muted-foreground;
+  }
+  
+  .content-container a {
+    @apply text-primary hover:underline;
+  }
+  
+  .content-container img {
+    @apply max-w-full h-auto rounded-md my-4 mx-auto;
+  }
+  
+  .content-container hr {
+    @apply my-6;
+  }
+  
+  .content-container code {
+    @apply px-1 py-0.5 bg-muted rounded text-sm;
+  }
+  
+  .content-container pre {
+    @apply p-4 bg-muted rounded-md overflow-x-auto my-4;
+  }
+  
+  .content-container pre code {
+    @apply bg-transparent p-0;
+  }
+  
+  /* Specific styles for product comparison tables */
+  .content-container table.comparison,
+  .content-container .comparison-table {
+    @apply border-collapse w-full my-6 rounded-md overflow-hidden border;
+  }
+  
+  .content-container table.comparison th,
+  .content-container .comparison-table th {
+    @apply bg-primary/10 text-primary-foreground px-4 py-3 text-left font-semibold;
+  }
+  
+  .content-container table.comparison tr:nth-child(even),
+  .content-container .comparison-table tr:nth-child(even) {
+    @apply bg-muted/50;
+  }
+  
+  .content-container table.comparison td,
+  .content-container .comparison-table td {
+    @apply px-4 py-3 border;
+  }
+  
+  /* Product cards styling */
+  .content-container .product-card {
+    @apply rounded-lg border p-4 my-4 shadow-sm hover:shadow-md transition-shadow;
+  }
+  
+  .content-container .product-title {
+    @apply font-semibold text-lg mb-2;
+  }
+  
+  .content-container .product-price {
+    @apply text-primary font-medium mb-2;
+  }
 }
 
 @layer components {
