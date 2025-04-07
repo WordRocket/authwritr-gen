@@ -50,6 +50,9 @@ export default function ProductRoundupTemplate() {
     if (generating) {
       setApiError(null);
     }
+    
+    // Add this console log to track state changes
+    console.log(`Content generation state changed to: ${generating ? 'generating' : 'not generating'}`);
   };
   
   const handleOutlineChange = (outline: string) => {
@@ -58,11 +61,13 @@ export default function ProductRoundupTemplate() {
   };
 
   const handleApiError = (error: string) => {
+    console.error("API Error in ProductRoundupTemplate:", error);
     setApiError(error);
     setIsGenerating(false);
   };
   
   const handleContentGenerated = (content: string) => {
+    console.log("Content successfully generated, length:", content.length);
     setGeneratedHtml(content);
   };
 
@@ -135,6 +140,7 @@ export default function ProductRoundupTemplate() {
         onApiError={handleApiError}
         apiKey={apiKey}
         onContentGenerated={handleContentGenerated}
+        key={apiKey || 'no-api-key'} // Force re-render when API key changes
       />
       
       {generatedHtml && (

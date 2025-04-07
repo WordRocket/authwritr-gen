@@ -1,5 +1,4 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -65,6 +64,10 @@ export function ProductRoundupGeneratorForm({
   const [currentTab, setCurrentTab] = useState("form");
   const [products, setProducts] = useState<ProductFormValues[]>([]);
   
+  useEffect(() => {
+    setContent("");
+  }, [apiKey]);
+  
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -128,12 +131,26 @@ export function ProductRoundupGeneratorForm({
       return;
     }
 
+    if (!apiKey) {
+      toast({
+        title: "API Key Missing",
+        description: "Please add your OpenRouter API key in Settings.",
+        variant: "destructive",
+      });
+      if (onApiError) {
+        onApiError("API key is missing. Please add your OpenRouter API key in Settings.");
+      }
+      return;
+    }
+    
     setIsGenerating(true);
     setContent("");
     
     if (onGeneratingStateChange) {
       onGeneratingStateChange(true);
     }
+
+    console.log("Starting content generation with model:", data.model);
 
     try {
       let searchTermOrManualInput = data.inputMode === "webSearch" ? data.searchTerm : "";
@@ -158,6 +175,9 @@ ${productDescriptions}
 
       const customOutlineOption = customOutline ? { customOutline } : {};
       
+      console.log("Sending request to generateSeoContent with model:", searchModel);
+      console.log("Product count:", products.length);
+      
       const generatedContent = await generateSeoContent({
         topic: data.topic,
         wordCount: data.wordCount,
@@ -179,18 +199,32 @@ ${productDescriptions}
         finalContentModel: data.inputMode === "webSearch" ? "anthropic/claude-3.7-sonnet" : undefined,
       }, apiKey, customOutlineOption);
 
+      console.log("Content generation successful");
+      
       if (generatedContent !== "BACKGROUND_GENERATION_STARTED") {
         setContent(generatedContent);
         if (onContentGenerated) {
           onContentGenerated(generatedContent);
         }
         setCurrentTab("preview");
+        
+        toast({
+          title: "Content Generated",
+          description: "Your product round-up has been successfully generated.",
+        });
       }
     } catch (error: any) {
+      console.error("Content generation error:", error);
+      
       if (onApiError) {
         onApiError(error.message || "An error occurred while generating content.");
       }
-      console.error("Content generation error:", error);
+      
+      toast({
+        title: "Generation Failed",
+        description: error.message || "An error occurred while generating content.",
+        variant: "destructive",
+      });
     } finally {
       setIsGenerating(false);
       if (onGeneratingStateChange) {
@@ -652,7 +686,7 @@ ${productDescriptions}
                 <Button 
                   type="submit" 
                   size="lg" 
-                  disabled={isGenerating}
+                  disabled={isGenerating || !apiKey}
                   className="flex items-center"
                 >
                   {isGenerating ? (
