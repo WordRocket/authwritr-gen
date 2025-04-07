@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -16,7 +15,6 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { HtmlPreviewComponent } from "@/components/templates/HtmlPreviewComponent";
 import { ShoppingBag, Plus, Trash, Search, Pencil } from "lucide-react";
 
 interface ProductRoundupGeneratorFormProps {

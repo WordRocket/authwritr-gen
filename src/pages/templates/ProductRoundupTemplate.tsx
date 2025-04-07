@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { InfoIcon, ShoppingBag, AlertCircle } from "lucide-react";
@@ -23,7 +22,7 @@ export default function ProductRoundupTemplate() {
   const handleUrlsScraped = (count: number) => {
     console.log(`Successfully scraped ${count} URLs`);
   };
-
+  
   const handleInternalLinksToggle = (enabled: boolean) => {
     setIncludeInternalLinks(enabled);
     console.log(`Internal links ${enabled ? 'enabled' : 'disabled'}`);
