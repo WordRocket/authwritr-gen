@@ -3,7 +3,7 @@ import React, { useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Code, Eye, Copy, Check, Maximize, Minimize, FileText, HtmlIcon } from "lucide-react";
+import { Code, Eye, Copy, Check, Maximize, Minimize, FileText, FileCode } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
@@ -152,7 +152,7 @@ export const HtmlPreviewComponent = ({ htmlCode, className }: HtmlPreviewCompone
                     </>
                   ) : (
                     <>
-                      <HtmlIcon className="h-3.5 w-3.5" />
+                      <FileCode className="h-3.5 w-3.5" />
                       Copy Element
                     </>
                   )}
@@ -236,7 +236,7 @@ export const HtmlPreviewComponent = ({ htmlCode, className }: HtmlPreviewCompone
                   </>
                 ) : (
                   <>
-                    <HtmlIcon className="h-3.5 w-3.5" />
+                    <FileCode className="h-3.5 w-3.5" />
                     Copy HTML Element
                   </>
                 )}
