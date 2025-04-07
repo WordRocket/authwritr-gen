@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -352,81 +353,84 @@ ${productDescriptions}
                         </div>
                       )}
                       
-                      <form onSubmit={handleProductAdd} className="space-y-4">
-                        <h4 className="text-sm font-medium">
+                      <div className="space-y-4">
+                        <h4 className="text-sm font-medium text-center">
                           {editingIndex !== null ? "Edit Product" : "Add Product"}
                         </h4>
-                        <div className="grid grid-cols-1 gap-4">
+                        
+                        <div>
+                          <FormLabel htmlFor="name">Product Name</FormLabel>
+                          <Input
+                            id="name"
+                            placeholder="Sony WH-1000XM5"
+                            {...productForm.register("name", { required: true })}
+                          />
+                          {productForm.formState.errors.name && (
+                            <p className="text-sm font-medium text-destructive">Product name is required</p>
+                          )}
+                        </div>
+                        
+                        <div>
+                          <FormLabel htmlFor="description">Description</FormLabel>
+                          <Textarea
+                            id="description"
+                            placeholder="Describe the product..."
+                            {...productForm.register("description", { required: true })}
+                            className="min-h-[100px]"
+                          />
+                          {productForm.formState.errors.description && (
+                            <p className="text-sm font-medium text-destructive">Description is required</p>
+                          )}
+                        </div>
+                        
+                        <div>
+                          <FormLabel htmlFor="features">Key Features (optional)</FormLabel>
+                          <Textarea
+                            id="features"
+                            placeholder="List key features..."
+                            {...productForm.register("features")}
+                            className="min-h-[80px]"
+                          />
+                        </div>
+                        
+                        <div>
+                          <FormLabel htmlFor="pricing">Pricing (optional)</FormLabel>
+                          <Input
+                            id="pricing"
+                            placeholder="$349.99"
+                            {...productForm.register("pricing")}
+                          />
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
-                            <FormLabel htmlFor="name">Product Name</FormLabel>
-                            <Input
-                              id="name"
-                              placeholder="Sony WH-1000XM5"
-                              {...productForm.register("name", { required: true })}
-                            />
-                            {productForm.formState.errors.name && (
-                              <p className="text-sm font-medium text-destructive">Product name is required</p>
-                            )}
-                          </div>
-                          
-                          <div>
-                            <FormLabel htmlFor="description">Description</FormLabel>
+                            <FormLabel htmlFor="pros">Pros (optional)</FormLabel>
                             <Textarea
-                              id="description"
-                              placeholder="Describe the product..."
-                              {...productForm.register("description", { required: true })}
-                              className="min-h-[100px]"
-                            />
-                            {productForm.formState.errors.description && (
-                              <p className="text-sm font-medium text-destructive">Description is required</p>
-                            )}
-                          </div>
-                          
-                          <div>
-                            <FormLabel htmlFor="features">Key Features (optional)</FormLabel>
-                            <Textarea
-                              id="features"
-                              placeholder="List key features..."
-                              {...productForm.register("features")}
+                              id="pros"
+                              placeholder="List pros..."
+                              {...productForm.register("pros")}
                               className="min-h-[80px]"
                             />
                           </div>
-                          
                           <div>
-                            <FormLabel htmlFor="pricing">Pricing (optional)</FormLabel>
-                            <Input
-                              id="pricing"
-                              placeholder="$349.99"
-                              {...productForm.register("pricing")}
+                            <FormLabel htmlFor="cons">Cons (optional)</FormLabel>
+                            <Textarea
+                              id="cons"
+                              placeholder="List cons..."
+                              {...productForm.register("cons")}
+                              className="min-h-[80px]"
                             />
-                          </div>
-                          
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <FormLabel htmlFor="pros">Pros (optional)</FormLabel>
-                              <Textarea
-                                id="pros"
-                                placeholder="List pros..."
-                                {...productForm.register("pros")}
-                                className="min-h-[80px]"
-                              />
-                            </div>
-                            <div>
-                              <FormLabel htmlFor="cons">Cons (optional)</FormLabel>
-                              <Textarea
-                                id="cons"
-                                placeholder="List cons..."
-                                {...productForm.register("cons")}
-                                className="min-h-[80px]"
-                              />
-                            </div>
                           </div>
                         </div>
                         
-                        <Button type="submit" className="w-full">
+                        <Button 
+                          type="button" 
+                          onClick={handleProductAdd} 
+                          className="w-full"
+                        >
                           {editingIndex !== null ? "Update Product" : "Add Product"}
                         </Button>
-                      </form>
+                      </div>
                     </div>
                   )}
 
