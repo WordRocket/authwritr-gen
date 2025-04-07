@@ -1,3 +1,4 @@
+
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -51,6 +52,15 @@ import ReactMarkdown from "react-markdown";
 import { HtmlPreviewComponent } from "./HtmlPreviewComponent";
 import { useNavigate } from "react-router-dom";
 import { CustomOutlineSection } from "./CustomOutlineSection";
+
+// Define the model type
+export interface AIModel {
+  id: string;
+  name: string;
+  description: string;
+  recommended?: boolean;
+  free?: boolean;
+}
 
 const seoFormSchema = z.object({
   topic: z.string().min(3, { message: "Topic must be at least 3 characters" }),
@@ -107,6 +117,7 @@ interface SeoGeneratorFormProps {
   onGeminiApiKeyChange?: (apiKey: string) => void;
   onGeneratingStateChange?: (generating: boolean) => void;
   showGeminiKeyInput?: boolean;
+  additionalFreeModels?: AIModel[];
 }
 
 export function SeoGeneratorForm({ 
@@ -118,7 +129,8 @@ export function SeoGeneratorForm({
   savedGeminiApiKey = "",
   onGeminiApiKeyChange,
   onGeneratingStateChange,
-  showGeminiKeyInput = false
+  showGeminiKeyInput = false,
+  additionalFreeModels = []
 }: SeoGeneratorFormProps) {
   const { user, apiKey } = useAuth();
   const [isGenerating, setIsGenerating] = React.useState(false);
@@ -130,6 +142,11 @@ export function SeoGeneratorForm({
   const [extractedHtmlCode, setExtractedHtmlCode] = React.useState<string>("");
   const [geminiKeyError, setGeminiKeyError] = React.useState("");
   const navigate = useNavigate();
+  
+  // Combine the standard free models with any additional ones
+  const combinedFreeModels = React.useMemo(() => {
+    return [...freeModels, ...additionalFreeModels];
+  }, [additionalFreeModels]);
 
   const form = useForm<SeoFormValues>({
     resolver: zodResolver(seoFormSchema),
@@ -412,7 +429,7 @@ export function SeoGeneratorForm({
                               <div className="mb-2 px-2 py-1.5 text-sm font-semibold">
                                 {onlyShowFreeModels ? "Free Models" : "Recommended"}
                               </div>
-                              {(onlyShowFreeModels ? freeModels : recommendedModels.filter(model => model.recommended))
+                              {(onlyShowFreeModels ? combinedFreeModels : recommendedModels.filter(model => model.recommended))
                                 .map(model => (
                                   <SelectItem key={model.id} value={model.id}>
                                     <div className="flex flex-col">

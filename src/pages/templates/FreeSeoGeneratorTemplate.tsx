@@ -6,6 +6,31 @@ import { SitemapUrlInput } from "@/components/templates/SitemapUrlInput";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { InfoIcon } from "lucide-react";
 
+// Define free models to be used in this template
+const additionalFreeModels = [
+  {
+    id: "deepseek/deepseek-v3-base:free",
+    name: "DeepSeek V3 Base (free)",
+    description: "671B parameter open MoE model with 37B active parameters and 128K context",
+    recommended: true,
+    free: true
+  },
+  {
+    id: "meta-llama/llama-4-maverick:free",
+    name: "Llama 4 Maverick (free)",
+    description: "17B multimodal model with 256K context for text and image processing",
+    recommended: true,
+    free: true
+  },
+  {
+    id: "qwen/qwen2.5-vl-32b-instruct:free",
+    name: "Qwen2.5 VL 32B Instruct (free)",
+    description: "Multimodal vision-language model with enhanced reasoning capabilities",
+    recommended: true,
+    free: true
+  }
+];
+
 export default function FreeSeoGeneratorTemplate() {
   const location = useLocation();
   const [includeInternalLinks, setIncludeInternalLinks] = useState(false);
@@ -98,6 +123,7 @@ export default function FreeSeoGeneratorTemplate() {
         onGeminiApiKeyChange={handleGeminiApiKeyChange}
         onGeneratingStateChange={handleGeneratingState}
         showGeminiKeyInput={true}
+        additionalFreeModels={additionalFreeModels}
       />
     </div>
   );
