@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { InfoIcon, ShoppingBag, AlertCircle } from "lucide-react";
+import { InfoIcon, AlertCircle } from "lucide-react";
 import { ProductRoundupGeneratorForm } from "@/components/templates/ProductRoundupGeneratorForm";
 import { SitemapUrlInput } from "@/components/templates/SitemapUrlInput";
 import { useAuth } from "@/context/AuthContext";

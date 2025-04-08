@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,7 +10,6 @@ import ReactMarkdown from "react-markdown";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { HtmlPreviewComponent } from "@/components/templates/HtmlPreviewComponent";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious, PaginationLink } from "@/components/ui/pagination";
@@ -288,6 +286,216 @@ export default function ContentPage() {
     );
   };
 
+  const renderContentDialog = (item: ContentItem) => {
+    return (
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button 
+            variant="outline" 
+            className="w-full" 
+            onClick={() => handleViewContent(item)}
+          >
+            <FileText className="mr-2 h-4 w-4" /> View Content
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden p-0">
+          <div className="p-4 border-b">
+            <DialogTitle className="text-xl">{item.title}</DialogTitle>
+          </div>
+          
+          <Tabs defaultValue="preview" className="w-full">
+            <div className="flex items-center justify-between p-2 border-b bg-muted/40">
+              <TabsList className="bg-background">
+                <TabsTrigger value="preview" className="flex items-center gap-1">
+                  <Eye className="h-4 w-4" />
+                  Preview
+                </TabsTrigger>
+                <TabsTrigger value="markdown" className="flex items-center gap-1">
+                  <Code className="h-4 w-4" />
+                  Markdown
+                </TabsTrigger>
+              </TabsList>
+              
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={copyToClipboard}
+                  className="flex items-center gap-1"
+                >
+                  <Copy className="h-4 w-4" />
+                  Copy
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={downloadAsMarkdown}
+                  className="flex items-center gap-1"
+                >
+                  <Download className="h-4 w-4" />
+                  Download
+                </Button>
+              </div>
+            </div>
+            
+            <TabsContent value="preview" className="p-6 h-[calc(80vh-160px)] overflow-y-auto">
+              <div className="content-container prose dark:prose-invert max-w-none">
+                <ReactMarkdown components={{
+                  p: ({ node, ...props }) => {
+                    const content = props.children;
+                    if (typeof content === 'string' && (content.includes('<') && content.includes('>'))) {
+                      return <div dangerouslySetInnerHTML={{ __html: content }} />;
+                    }
+                    return <p {...props} />;
+                  },
+                  table: ({ node, ...props }) => (
+                    <div className="overflow-x-auto my-6">
+                      <table className="w-full border-collapse border border-border" {...props} />
+                    </div>
+                  ),
+                  thead: ({ node, ...props }) => (
+                    <thead className="bg-muted" {...props} />
+                  ),
+                  tbody: ({ node, ...props }) => (
+                    <tbody className="divide-y divide-border" {...props} />
+                  ),
+                  tr: ({ node, ...props }) => (
+                    <tr className="hover:bg-muted/50" {...props} />
+                  ),
+                  th: ({ node, ...props }) => (
+                    <th className="border border-border px-4 py-2 text-left font-semibold" {...props} />
+                  ),
+                  td: ({ node, ...props }) => (
+                    <td className="border border-border px-4 py-2" {...props} />
+                  ),
+                  ul: ({ node, ...props }) => (
+                    <ul className="list-disc pl-6 my-4 space-y-2" {...props} />
+                  ),
+                  ol: ({ node, ...props }) => (
+                    <ol className="list-decimal pl-6 my-4 space-y-2" {...props} />
+                  ),
+                  li: ({ node, ...props }) => (
+                    <li className="pl-1" {...props} />
+                  ),
+                  h1: ({ node, ...props }) => (
+                    <h1 className="text-3xl font-bold mt-8 mb-4" {...props} />
+                  ),
+                  h2: ({ node, ...props }) => (
+                    <h2 className="text-2xl font-semibold mt-8 mb-3" {...props} />
+                  ),
+                  h3: ({ node, ...props }) => (
+                    <h3 className="text-xl font-semibold mt-6 mb-2" {...props} />
+                  ),
+                  h4: ({ node, ...props }) => (
+                    <h4 className="text-lg font-medium mt-4 mb-2" {...props} />
+                  ),
+                  blockquote: ({ node, ...props }) => (
+                    <blockquote className="border-l-4 border-primary/50 pl-4 italic my-4" {...props} />
+                  ),
+                  code: ({ className, children, ...props }) => {
+                    const match = /language-(\w+)/.exec(className || '');
+                    const isInline = !match && (className || '').indexOf('language-') !== 0;
+                    
+                    if (isInline) {
+                      return <code className="px-1 py-0.5 bg-muted rounded text-sm" {...props}>{children}</code>;
+                    }
+                    
+                    return (
+                      <pre className="p-4 bg-muted rounded-md overflow-x-auto">
+                        <code className="text-sm" {...props}>{children}</code>
+                      </pre>
+                    );
+                  },
+                }}>
+                  {selectedContent?.content || ""}
+                </ReactMarkdown>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="markdown" className="p-6 h-[calc(80vh-160px)] overflow-y-auto">
+              <Textarea 
+                value={selectedContent?.content || ""} 
+                readOnly 
+                className="w-full h-full min-h-[400px] font-mono text-sm"
+              />
+            </TabsContent>
+          </Tabs>
+        </DialogContent>
+      </Dialog>
+    );
+  };
+
+  const renderMobileContentDrawer = (item: ContentItem) => {
+    return (
+      <Drawer>
+        <DrawerTrigger asChild>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => handleViewContent(item)}
+          >
+            <Eye className="h-4 w-4 mr-2" /> View
+          </Button>
+        </DrawerTrigger>
+        <DrawerContent className="h-[85vh] p-0">
+          <div className="p-4 border-b">
+            <h3 className="text-lg font-bold">{item.title}</h3>
+          </div>
+          
+          <Tabs defaultValue="preview" className="w-full">
+            <div className="flex items-center justify-between p-2 border-b bg-muted/40">
+              <TabsList className="bg-background">
+                <TabsTrigger value="preview" className="flex items-center gap-1">
+                  <Eye className="h-4 w-4" />
+                  Preview
+                </TabsTrigger>
+                <TabsTrigger value="markdown" className="flex items-center gap-1">
+                  <Code className="h-4 w-4" />
+                  Markdown
+                </TabsTrigger>
+              </TabsList>
+              
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={copyToClipboard}
+                  className="flex items-center gap-1 px-2"
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={downloadAsMarkdown}
+                  className="flex items-center gap-1 px-2"
+                >
+                  <Download className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            
+            <TabsContent value="preview" className="p-4 h-[calc(85vh-120px)] overflow-y-auto">
+              <div className="content-container prose dark:prose-invert max-w-none">
+                <ReactMarkdown>
+                  {selectedContent?.content || ""}
+                </ReactMarkdown>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="markdown" className="p-4 h-[calc(85vh-120px)] overflow-y-auto">
+              <Textarea 
+                value={selectedContent?.content || ""} 
+                readOnly 
+                className="w-full h-full min-h-[400px] font-mono text-sm"
+              />
+            </TabsContent>
+          </Tabs>
+        </DrawerContent>
+      </Drawer>
+    );
+  };
+
   const renderContent = () => {
     if (loading) {
       return (
@@ -360,177 +568,7 @@ export default function ContentPage() {
                   </p>
                   
                   <div className="flex flex-col gap-2">
-                    {isMobile ? (
-                      <Drawer>
-                        <DrawerTrigger asChild>
-                          <Button 
-                            variant="outline" 
-                            className="w-full" 
-                            onClick={() => handleViewContent(item)}
-                          >
-                            <FileText className="mr-2 h-4 w-4" /> View Content
-                          </Button>
-                        </DrawerTrigger>
-                        <DrawerContent className="h-[85vh] px-4 pb-4">
-                          <div className="mt-4 px-4">
-                            <h3 className="text-lg font-bold">{item.title}</h3>
-                            <div className="mt-4 overflow-auto max-h-[70vh] prose dark:prose-invert">
-                              <ReactMarkdown>
-                                {item.content}
-                              </ReactMarkdown>
-                            </div>
-                          </div>
-                        </DrawerContent>
-                      </Drawer>
-                    ) : (
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button 
-                            variant="outline" 
-                            className="w-full" 
-                            onClick={() => handleViewContent(item)}
-                          >
-                            <FileText className="mr-2 h-4 w-4" /> View Content
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
-                          <DialogHeader>
-                            <div className="flex items-center justify-between">
-                              <DialogTitle>{item.title}</DialogTitle>
-                              <div className="flex items-center gap-2">
-                                <div className="border rounded-md overflow-hidden flex">
-                                  <Button 
-                                    variant={viewMode === "rendered" ? "default" : "ghost"} 
-                                    size="sm"
-                                    onClick={() => setViewMode("rendered")}
-                                    className="rounded-none px-3"
-                                  >
-                                    <Eye className="h-4 w-4 mr-2" />
-                                    Preview
-                                  </Button>
-                                  <Button 
-                                    variant={viewMode === "markdown" ? "default" : "ghost"} 
-                                    size="sm"
-                                    onClick={() => setViewMode("markdown")}
-                                    className="rounded-none px-3"
-                                  >
-                                    <Code className="h-4 w-4 mr-2" />
-                                    Markdown
-                                  </Button>
-                                </div>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  onClick={copyToClipboard}
-                                >
-                                  <Copy className="h-4 w-4 mr-2" />
-                                  Copy
-                                </Button>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  onClick={downloadAsMarkdown}
-                                >
-                                  <Download className="h-4 w-4 mr-2" />
-                                  Download
-                                </Button>
-                              </div>
-                            </div>
-                          </DialogHeader>
-                          
-                          <Tabs value={viewMode} className="mt-2" onValueChange={(value) => setViewMode(value as "rendered" | "markdown")}>
-                            <TabsContent value="rendered" className="h-[calc(80vh-180px)] overflow-y-auto">
-                              <div className="content-container prose dark:prose-invert max-w-none">
-                                <ReactMarkdown components={{
-                                  p: ({ node, ...props }) => {
-                                    const content = props.children;
-                                    if (typeof content === 'string' && (content.includes('<') && content.includes('>'))) {
-                                      return <div dangerouslySetInnerHTML={{ __html: content }} />;
-                                    }
-                                    return <p {...props} />;
-                                  },
-                                  table: ({ node, ...props }) => (
-                                    <div className="overflow-x-auto my-6">
-                                      <table className="w-full border-collapse border border-border" {...props} />
-                                    </div>
-                                  ),
-                                  thead: ({ node, ...props }) => (
-                                    <thead className="bg-muted" {...props} />
-                                  ),
-                                  tbody: ({ node, ...props }) => (
-                                    <tbody className="divide-y divide-border" {...props} />
-                                  ),
-                                  tr: ({ node, ...props }) => (
-                                    <tr className="hover:bg-muted/50" {...props} />
-                                  ),
-                                  th: ({ node, ...props }) => (
-                                    <th className="border border-border px-4 py-2 text-left font-semibold" {...props} />
-                                  ),
-                                  td: ({ node, ...props }) => (
-                                    <td className="border border-border px-4 py-2" {...props} />
-                                  ),
-                                  ul: ({ node, ...props }) => (
-                                    <ul className="list-disc pl-6 my-4 space-y-2" {...props} />
-                                  ),
-                                  ol: ({ node, ...props }) => (
-                                    <ol className="list-decimal pl-6 my-4 space-y-2" {...props} />
-                                  ),
-                                  li: ({ node, ...props }) => (
-                                    <li className="pl-1" {...props} />
-                                  ),
-                                  h1: ({ node, ...props }) => (
-                                    <h1 className="text-3xl font-bold mt-8 mb-4" {...props} />
-                                  ),
-                                  h2: ({ node, ...props }) => (
-                                    <h2 className="text-2xl font-semibold mt-8 mb-3" {...props} />
-                                  ),
-                                  h3: ({ node, ...props }) => (
-                                    <h3 className="text-xl font-semibold mt-6 mb-2" {...props} />
-                                  ),
-                                  h4: ({ node, ...props }) => (
-                                    <h4 className="text-lg font-medium mt-4 mb-2" {...props} />
-                                  ),
-                                  blockquote: ({ node, ...props }) => (
-                                    <blockquote className="border-l-4 border-primary/50 pl-4 italic my-4" {...props} />
-                                  ),
-                                  code: ({ className, children, ...props }) => {
-                                    const match = /language-(\w+)/.exec(className || '');
-                                    const isInline = !match && (className || '').indexOf('language-') !== 0;
-                                    
-                                    if (isInline) {
-                                      return <code className="px-1 py-0.5 bg-muted rounded text-sm" {...props}>{children}</code>;
-                                    }
-                                    
-                                    return (
-                                      <pre className="p-4 bg-muted rounded-md overflow-x-auto">
-                                        <code className="text-sm" {...props}>{children}</code>
-                                      </pre>
-                                    );
-                                  },
-                                }}>
-                                  {selectedContent?.content || ""}
-                                </ReactMarkdown>
-                                
-                                {extractedHtmlCode && (
-                                  <HtmlPreviewComponent 
-                                    htmlCode={extractedHtmlCode} 
-                                    className="mt-8 border-t pt-8" 
-                                  />
-                                )}
-                              </div>
-                            </TabsContent>
-                            
-                            <TabsContent value="markdown" className="h-[calc(80vh-180px)]">
-                              <Textarea 
-                                value={selectedContent?.content || ""} 
-                                readOnly 
-                                className="w-full h-full min-h-[400px] font-mono text-sm"
-                              />
-                            </TabsContent>
-                          </Tabs>
-                        </DialogContent>
-                      </Dialog>
-                    )}
+                    {isMobile ? renderMobileContentDrawer(item) : renderContentDialog(item)}
                   </div>
                 </CardContent>
                 <CardFooter className="flex justify-between pt-0">
@@ -596,110 +634,14 @@ export default function ContentPage() {
                   </div>
                   
                   <div className="flex items-center gap-2 mt-3 md:mt-0">
-                    {isMobile ? (
-                      <Drawer>
-                        <DrawerTrigger asChild>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => handleViewContent(item)}
-                          >
-                            <Eye className="h-4 w-4 mr-2" /> View
-                          </Button>
-                        </DrawerTrigger>
-                        <DrawerContent className="h-[85vh] px-4 pb-4">
-                          <div className="mt-4 px-4">
-                            <h3 className="text-lg font-bold">{item.title}</h3>
-                            <div className="mt-4 overflow-auto max-h-[70vh] prose dark:prose-invert">
-                              <ReactMarkdown>
-                                {item.content}
-                              </ReactMarkdown>
-                            </div>
-                          </div>
-                        </DrawerContent>
-                      </Drawer>
-                    ) : (
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => handleViewContent(item)}
-                          >
-                            <Eye className="h-4 w-4 mr-2" /> View
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
-                          <DialogHeader>
-                            <div className="flex items-center justify-between">
-                              <DialogTitle>{item.title}</DialogTitle>
-                              <div className="flex items-center gap-2">
-                                <div className="border rounded-md overflow-hidden flex">
-                                  <Button 
-                                    variant={viewMode === "rendered" ? "default" : "ghost"} 
-                                    size="sm"
-                                    onClick={() => setViewMode("rendered")}
-                                    className="rounded-none px-3"
-                                  >
-                                    <Eye className="h-4 w-4 mr-2" />
-                                    Preview
-                                  </Button>
-                                  <Button 
-                                    variant={viewMode === "markdown" ? "default" : "ghost"} 
-                                    size="sm"
-                                    onClick={() => setViewMode("markdown")}
-                                    className="rounded-none px-3"
-                                  >
-                                    <Code className="h-4 w-4 mr-2" />
-                                    Markdown
-                                  </Button>
-                                </div>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  onClick={copyToClipboard}
-                                >
-                                  <Copy className="h-4 w-4 mr-2" />
-                                  Copy
-                                </Button>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  onClick={downloadAsMarkdown}
-                                >
-                                  <Download className="h-4 w-4 mr-2" />
-                                  Download
-                                </Button>
-                              </div>
-                            </div>
-                          </DialogHeader>
-                          
-                          <Tabs value={viewMode} className="mt-2" onValueChange={(value) => setViewMode(value as "rendered" | "markdown")}>
-                            <TabsContent value="rendered" className="h-[calc(80vh-180px)] overflow-y-auto">
-                              <div className="content-container prose dark:prose-invert max-w-none">
-                                <ReactMarkdown>
-                                  {selectedContent?.content || ""}
-                                </ReactMarkdown>
-                                
-                                {extractedHtmlCode && (
-                                  <HtmlPreviewComponent 
-                                    htmlCode={extractedHtmlCode} 
-                                    className="mt-8 border-t pt-8" 
-                                  />
-                                )}
-                              </div>
-                            </TabsContent>
-                            
-                            <TabsContent value="markdown" className="h-[calc(80vh-180px)]">
-                              <Textarea 
-                                value={selectedContent?.content || ""} 
-                                readOnly 
-                                className="w-full h-full min-h-[400px] font-mono text-sm"
-                              />
-                            </TabsContent>
-                          </Tabs>
-                        </DialogContent>
-                      </Dialog>
+                    {isMobile ? renderMobileContentDrawer(item) : (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleViewContent(item)}
+                      >
+                        <Eye className="h-4 w-4 mr-2" /> View
+                      </Button>
                     )}
                     
                     <Button variant="ghost" size="sm" onClick={() => navigate(`/templates?edit=${item.id}`)}>
@@ -754,121 +696,6 @@ export default function ContentPage() {
     );
   };
 
-  const renderContentDialog = (item: ContentItem) => {
-    return (
-      <Dialog>
-        <DialogTrigger asChild>
-          <Button 
-            variant="outline" 
-            className="w-full" 
-            onClick={() => handleViewContent(item)}
-          >
-            <FileText className="mr-2 h-4 w-4" /> View Content
-          </Button>
-        </DialogTrigger>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden" showFullscreenButton>
-          <DialogHeader>
-            <div className="flex items-center justify-between">
-              <DialogTitle>{item.title}</DialogTitle>
-              <div className="flex items-center gap-2">
-                <div className="border rounded-md overflow-hidden flex">
-                  <Button 
-                    variant={viewMode === "rendered" ? "default" : "ghost"} 
-                    size="sm"
-                    onClick={() => setViewMode("rendered")}
-                    className="rounded-none px-3"
-                  >
-                    <Eye className="h-4 w-4 mr-2" />
-                    Preview
-                  </Button>
-                  <Button 
-                    variant={viewMode === "markdown" ? "default" : "ghost"} 
-                    size="sm"
-                    onClick={() => setViewMode("markdown")}
-                    className="rounded-none px-3"
-                  >
-                    <Code className="h-4 w-4 mr-2" />
-                    Markdown
-                  </Button>
-                </div>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={copyToClipboard}
-                >
-                  <Copy className="h-4 w-4 mr-2" />
-                  Copy
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={downloadAsMarkdown}
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Download
-                </Button>
-              </div>
-            </div>
-          </DialogHeader>
-          
-          <Tabs value={viewMode} className="mt-2" onValueChange={(value) => setViewMode(value as "rendered" | "markdown")}>
-            <TabsContent value="rendered" className="h-[calc(90vh-180px)] overflow-y-auto">
-              <div className="content-container prose dark:prose-invert max-w-none">
-                <ReactMarkdown components={{
-                  p: ({ node, ...props }) => {
-                    const content = props.children;
-                    if (typeof content === 'string' && (content.includes('<') && content.includes('>'))) {
-                      return <div dangerouslySetInnerHTML={{ __html: content }} />;
-                    }
-                    return <p {...props} />;
-                  },
-                  table: ({ node, ...props }) => (
-                    <div className="overflow-x-auto my-6">
-                      <table className="w-full border-collapse border border-border" {...props} />
-                    </div>
-                  ),
-                  thead: ({ node, ...props }) => (
-                    <thead className="bg-muted" {...props} />
-                  ),
-                  tbody: ({ node, ...props }) => (
-                    <tbody className="divide-y divide-border" {...props} />
-                  ),
-                  tr: ({ node, ...props }) => (
-                    <tr className="hover:bg-muted/50" {...props} />
-                  ),
-                  th: ({ node, ...props }) => (
-                    <th className="border border-border px-4 py-2 text-left font-semibold" {...props} />
-                  ),
-                  td: ({ node, ...props }) => (
-                    <td className="border border-border px-4 py-2" {...props} />
-                  ),
-                }}>
-                  {selectedContent?.content || ""}
-                </ReactMarkdown>
-                
-                {extractedHtmlCode && (
-                  <HtmlPreviewComponent 
-                    htmlCode={extractedHtmlCode} 
-                    className="mt-8 border-t pt-8" 
-                  />
-                )}
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="markdown" className="h-[calc(90vh-180px)]">
-              <Textarea 
-                value={selectedContent?.content || ""} 
-                readOnly 
-                className="w-full h-full min-h-[400px] font-mono text-sm"
-              />
-            </TabsContent>
-          </Tabs>
-        </DialogContent>
-      </Dialog>
-    );
-  };
-
-  // Return the actual JSX for the component
   return (
     <div className="content-page">
       <div className="flex items-center justify-between mb-6">
