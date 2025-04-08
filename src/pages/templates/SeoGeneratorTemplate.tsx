@@ -130,7 +130,7 @@ export default function SeoGeneratorTemplate() {
             onCitationsToggle={handleCitationsToggle}
             customOutline={customOutline}
             onCustomOutlineChange={handleOutlineChange}
-            contentLanguage={language}
+            // contentLanguage={language} - Removed for now
           />
         : isDeepThinking
           ? <DeepThinkingGeneratorForm 
@@ -139,7 +139,7 @@ export default function SeoGeneratorTemplate() {
               hideBackgroundGeneration={true}
               customOutline={customOutline}
               onCustomOutlineChange={handleOutlineChange}
-              contentLanguage={language}
+              // contentLanguage={language} - Removed for now
             />
           : <SeoGeneratorForm 
               includeInternalLinks={includeInternalLinks}
@@ -148,7 +148,7 @@ export default function SeoGeneratorTemplate() {
               onCustomOutlineChange={handleOutlineChange}
               showGeminiKeyInput={false}
               onGeneratingStateChange={handleGeneratingState}
-              contentLanguage={language}
+              // contentLanguage={language} - Removed for now
             />}
     </div>
   );

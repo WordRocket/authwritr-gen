@@ -95,7 +95,7 @@ export default function BulkBlogGeneratorTemplate() {
         customOutline={customOutline}
         onCustomOutlineChange={handleOutlineChange}
         onGeneratingStateChange={handleGeneratingState}
-        contentLanguage={language}
+        // contentLanguage={language} - Removed for now
       />
     </div>
   );

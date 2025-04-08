@@ -96,7 +96,7 @@ export default function DeepThinkingTemplate() {
         hideBackgroundGeneration={true}
         customOutline={customOutline}
         onCustomOutlineChange={handleOutlineChange}
-        contentLanguage={language}
+        // contentLanguage={language} - Removed for now
       />
     </div>
   );

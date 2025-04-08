@@ -138,7 +138,7 @@ export default function FreeSeoGeneratorTemplate() {
         onGeneratingStateChange={handleGeneratingState}
         showGeminiKeyInput={true}
         additionalFreeModels={additionalFreeModels}
-        contentLanguage={language}
+        // contentLanguage={language} - Removed for now
       />
     </div>
   );

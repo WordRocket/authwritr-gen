@@ -110,7 +110,7 @@ export default function WebSearchTemplate() {
         customOutline={customOutline}
         onCustomOutlineChange={handleOutlineChange}
         forceWebSearch={true}
-        contentLanguage={language}
+        // contentLanguage={language} - Removed for now
       />
     </div>
   );

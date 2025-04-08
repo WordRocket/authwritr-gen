@@ -155,7 +155,7 @@ export default function ProductRoundupTemplate() {
         apiKey={apiKey}
         onContentGenerated={handleContentGenerated}
         key={apiKey || 'no-api-key'} // Force re-render when API key changes
-        contentLanguage={language}
+        // contentLanguage={language} - Removed for now
       />
       
       {generatedHtml && (
