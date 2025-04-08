@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -16,6 +17,7 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ShoppingBag, Plus, Trash, Search, Pencil } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface ProductRoundupGeneratorFormProps {
   includeInternalLinks: boolean;
@@ -63,6 +65,7 @@ export function ProductRoundupGeneratorForm({
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentTab, setCurrentTab] = useState("form");
   const [products, setProducts] = useState<ProductFormValues[]>([]);
+  const navigate = useNavigate();
   
   useEffect(() => {
     setContent("");
@@ -220,11 +223,28 @@ ${productDescriptions}
         onApiError(error.message || "An error occurred while generating content.");
       }
       
-      toast({
-        title: "Generation Failed",
-        description: error.message || "An error occurred while generating content.",
-        variant: "destructive",
-      });
+      // Check if it's an authentication error and provide a direct link to settings
+      if (error.message && typeof error.message === 'string' && 
+          (error.message.toLowerCase().includes('api key') || 
+           error.message.toLowerCase().includes('authentication') || 
+           error.message.toLowerCase().includes('auth'))) {
+        toast({
+          title: "Authentication Error",
+          description: "Please check your API key in Settings",
+          variant: "destructive",
+          action: (
+            <Button variant="outline" size="sm" onClick={() => navigate('/settings')}>
+              Go to Settings
+            </Button>
+          ),
+        });
+      } else {
+        toast({
+          title: "Generation Failed",
+          description: error.message || "An error occurred while generating content.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsGenerating(false);
       if (onGeneratingStateChange) {

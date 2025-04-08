@@ -105,6 +105,14 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
       useBackgroundGeneration ? "enabled" : "disabled (forced foreground generation)");
     
     try {
+      // Add API key validation before sending the request
+      if (!apiKey || apiKey.trim() === '') {
+        throw new Error("API key is missing or invalid. Please check your API key in settings.");
+      }
+      
+      // Log that we're about to make the request
+      console.log("Sending request to Supabase Edge Function: generate-seo-content");
+      
       const { data, error } = await supabase.functions.invoke("generate-seo-content", {
         body: {
           ...formData,
@@ -209,6 +217,15 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
           throw new Error(`Authentication error with the AI provider. Please check your API key in settings.`);
         }
 
+        if (errorMsg.includes("edge") && (errorMsg.includes("function") || errorMsg.includes("failed"))) {
+          throw new Error(`Failed to communicate with the Edge Function. Please check your network connection and try again later.`);
+        }
+
+        if (errorMsg.includes("network") || errorMsg.includes("timeout") || errorMsg.includes("timed out") || 
+            errorMsg.includes("connection") || errorMsg.includes("econnrefused")) {
+          throw new Error(`Network error or timeout when connecting to AI provider. Please check your internet connection and try again.`);
+        }
+
         if (modelId.includes("gemini") || modelId.includes("google")) {
           if (errorMsg.includes("api") || errorMsg.includes("error") || errorMsg.includes("invalid")) {
             throw new Error(`Gemini API error: ${invokeError.message}. Try using a different model.`);
@@ -229,10 +246,6 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
           if (errorMsg.includes("api") || errorMsg.includes("error") || errorMsg.includes("invalid")) {
             throw new Error(`Mistral API error: ${invokeError.message}. Try using a different model.`);
           }
-        }
-        
-        if (errorMsg.includes("network") || errorMsg.includes("timeout") || errorMsg.includes("timed out")) {
-          throw new Error(`Network error or timeout when connecting to AI provider. Please check your internet connection and try again.`);
         }
         
         if (errorMsg.includes("api")) {
