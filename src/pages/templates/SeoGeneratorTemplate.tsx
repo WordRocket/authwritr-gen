@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { SeoGeneratorForm } from "@/components/templates/SeoGeneratorForm";
 import { RealTimeBlogGeneratorForm } from "@/components/templates/RealTimeBlogGeneratorForm";
@@ -130,7 +129,7 @@ export default function SeoGeneratorTemplate() {
             onCitationsToggle={handleCitationsToggle}
             customOutline={customOutline}
             onCustomOutlineChange={handleOutlineChange}
-            // contentLanguage={language} - Removed for now
+            language={language}
           />
         : isDeepThinking
           ? <DeepThinkingGeneratorForm 
@@ -139,7 +138,7 @@ export default function SeoGeneratorTemplate() {
               hideBackgroundGeneration={true}
               customOutline={customOutline}
               onCustomOutlineChange={handleOutlineChange}
-              // contentLanguage={language} - Removed for now
+              language={language}
             />
           : <SeoGeneratorForm 
               includeInternalLinks={includeInternalLinks}
@@ -148,7 +147,7 @@ export default function SeoGeneratorTemplate() {
               onCustomOutlineChange={handleOutlineChange}
               showGeminiKeyInput={false}
               onGeneratingStateChange={handleGeneratingState}
-              // contentLanguage={language} - Removed for now
+              language={language}
             />}
     </div>
   );

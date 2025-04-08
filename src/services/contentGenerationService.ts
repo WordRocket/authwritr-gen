@@ -26,6 +26,7 @@ export interface SeoFormValues {
   bulkGeneration?: boolean;
   useGeminiDirectly?: boolean;
   geminiApiKey?: string;
+  language?: string;
 }
 
 export async function generateSeoContent(formData: SeoFormValues, apiKey?: string | null, options?: Record<string, any>): Promise<string> {
@@ -63,6 +64,10 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
     
     console.log("Using model ID:", modelId);
     
+    // Get language preference from localStorage if not provided
+    let contentLanguage = formData.language || localStorage.getItem('contentLanguage') || 'english';
+    console.log("Content language:", contentLanguage);
+    
     let internalLinks: string[] = [];
     if (formData.includeInternalLinks) {
       try {
@@ -93,7 +98,8 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
       bulkGeneration: formData.bulkGeneration,
       searchModel: modelId,
       finalContentModel,
-      hasApiKey: !!apiKey
+      hasApiKey: !!apiKey,
+      language: contentLanguage
     });
 
     const customOutline = options?.customOutline;
@@ -122,7 +128,8 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
           internalLinks: formData.includeInternalLinks ? internalLinks : [],
           customOutline,
           backgroundGeneration: useBackgroundGeneration,
-          bulkGeneration: formData.bulkGeneration
+          bulkGeneration: formData.bulkGeneration,
+          language: contentLanguage
         },
       });
 
@@ -350,7 +357,8 @@ function constructGeminiPrompt(formData: SeoFormValues): string {
     includeFirstPerson,
     includeAnecdotes,
     includeHook,
-    includeHtmlElement
+    includeHtmlElement,
+    language
   } = formData;
   
   let internalLinks: string[] = [];
@@ -366,6 +374,10 @@ function constructGeminiPrompt(formData: SeoFormValues): string {
   }
   
   let prompt = `Generate a comprehensive, SEO-optimized blog post about: "${topic}"`;
+  
+  if (language && language !== "english") {
+    prompt += ` Write the entire content in ${language} language.`;
+  }
   
   if (targetKeyword) {
     prompt += `\nTarget keyword: "${targetKeyword}"`;

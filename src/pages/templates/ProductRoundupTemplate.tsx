@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { InfoIcon, AlertCircle } from "lucide-react";
@@ -149,13 +148,13 @@ export default function ProductRoundupTemplate() {
       <ProductRoundupGeneratorForm 
         includeInternalLinks={includeInternalLinks}
         customOutline={customOutline}
-        onCustomOutlineChange={handleOutlineChange}
+        onCustomOutlineChange={handleOutlineChange} 
         onGeneratingStateChange={handleGeneratingState}
         onApiError={handleApiError}
         apiKey={apiKey}
         onContentGenerated={handleContentGenerated}
         key={apiKey || 'no-api-key'} // Force re-render when API key changes
-        // contentLanguage={language} - Removed for now
+        language={language}
       />
       
       {generatedHtml && (

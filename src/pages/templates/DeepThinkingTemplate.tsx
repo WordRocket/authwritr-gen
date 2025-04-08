@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { DeepThinkingGeneratorForm } from "@/components/templates/DeepThinkingGeneratorForm";
 import { SitemapUrlInput } from "@/components/templates/SitemapUrlInput";
@@ -96,7 +95,7 @@ export default function DeepThinkingTemplate() {
         hideBackgroundGeneration={true}
         customOutline={customOutline}
         onCustomOutlineChange={handleOutlineChange}
-        // contentLanguage={language} - Removed for now
+        language={language}
       />
     </div>
   );

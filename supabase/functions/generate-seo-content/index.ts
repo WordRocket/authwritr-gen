@@ -35,7 +35,8 @@ serve(async (req) => {
       model,
       finalContentModel,
       backgroundGeneration,
-      enableThinking
+      enableThinking,
+      language
     } = await req.json();
 
     // Log for debugging
@@ -51,7 +52,8 @@ serve(async (req) => {
       hasAdditionalContext: !!additionalContext,
       model,
       finalContentModel,
-      hasApiKey: !!apiKey
+      hasApiKey: !!apiKey,
+      language
     });
 
     if (includeInternalLinks && (!internalLinks || internalLinks.length === 0)) {
@@ -118,6 +120,7 @@ serve(async (req) => {
     }
     console.log("Internal links:", includeInternalLinks ? "Enabled" : "Disabled");
     console.log("Citations:", includeCitations ? "Enabled" : "Disabled");
+    console.log("Language:", language || "english");
     if (includeInternalLinks && internalLinks) {
       console.log(`${internalLinks.length} internal links provided`);
     }
@@ -154,6 +157,11 @@ serve(async (req) => {
       aiming for approximately ${wordCount} words for the intended audience of ${intendedAudience || 'general readers'}.`;
     } else {
       systemPrompt = `You are an expert SEO content writer. Write an SEO-optimized in-depth blog post about ${topic} with a readability of grade 8.`;
+    }
+    
+    // Add language instruction
+    if (language && language !== "english") {
+      systemPrompt += ` Write the entire content in ${language} language.`;
     }
     
     // Only add these for direct content generation (not for search)
@@ -229,6 +237,11 @@ serve(async (req) => {
     
     if (intendedAudience) {
       userPrompt += ` for an audience of ${intendedAudience}`;
+    }
+    
+    // Add language instruction to user prompt
+    if (language && language !== "english") {
+      userPrompt += ` Write the entire content in ${language} language.`;
     }
     
     // Add additional context with clear instructions on how to use it

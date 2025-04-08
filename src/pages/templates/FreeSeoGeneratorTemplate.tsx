@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { SeoGeneratorForm } from "@/components/templates/SeoGeneratorForm";
 import { useLocation } from "react-router-dom";
@@ -8,7 +7,6 @@ import { InfoIcon } from "lucide-react";
 import { LanguageSelector } from "@/components/templates/LanguageSelector";
 import { Card } from "@/components/ui/card";
 
-// Define free models to be used in this template
 const additionalFreeModels = [
   {
     id: "deepseek/deepseek-v3-base:free",
@@ -44,7 +42,6 @@ export default function FreeSeoGeneratorTemplate() {
   useEffect(() => {
     document.title = "Free SEO Blog Post Generator | Content Genius";
     
-    // Load Gemini API key if it exists
     const savedGeminiKey = localStorage.getItem('geminiApiKey');
     if (savedGeminiKey) {
       setGeminiApiKey(savedGeminiKey);
@@ -59,7 +56,6 @@ export default function FreeSeoGeneratorTemplate() {
     setIncludeInternalLinks(enabled);
     console.log(`Internal links ${enabled ? 'enabled' : 'disabled'}`);
     
-    // Store the preference in localStorage
     localStorage.setItem('includeInternalLinks', enabled.toString());
   };
 
@@ -69,7 +65,6 @@ export default function FreeSeoGeneratorTemplate() {
       setIncludeInternalLinks(savedPreference === 'true');
     }
     
-    // Load custom outline if it exists
     const savedOutline = localStorage.getItem('customOutline');
     if (savedOutline !== null) {
       setCustomOutline(savedOutline);
@@ -132,13 +127,10 @@ export default function FreeSeoGeneratorTemplate() {
         hideBackgroundGeneration={true}
         customOutline={customOutline}
         onCustomOutlineChange={handleOutlineChange}
-        onlyShowFreeModels={true}
-        savedGeminiApiKey={geminiApiKey}
-        onGeminiApiKeyChange={handleGeminiApiKeyChange}
         onGeneratingStateChange={handleGeneratingState}
         showGeminiKeyInput={true}
         additionalFreeModels={additionalFreeModels}
-        // contentLanguage={language} - Removed for now
+        language={language}
       />
     </div>
   );
