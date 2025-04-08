@@ -4,11 +4,14 @@ import { DeepThinkingGeneratorForm } from "@/components/templates/DeepThinkingGe
 import { SitemapUrlInput } from "@/components/templates/SitemapUrlInput";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { InfoIcon } from "lucide-react";
+import { LanguageSelector } from "@/components/templates/LanguageSelector";
+import { Card } from "@/components/ui/card";
 
 export default function DeepThinkingTemplate() {
   const [includeInternalLinks, setIncludeInternalLinks] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [customOutline, setCustomOutline] = useState("");
+  const [language, setLanguage] = useState("english");
   
   useEffect(() => {
     document.title = "Deep Thinking Enabled Blog Generator | Content Genius";
@@ -50,6 +53,10 @@ export default function DeepThinkingTemplate() {
     localStorage.setItem('customOutline', outline);
   };
 
+  const handleLanguageChange = (newLanguage: string) => {
+    setLanguage(newLanguage);
+  };
+
   return (
     <div className="mx-auto container py-8">
       <h1 className="text-3xl font-bold tracking-tight">
@@ -76,12 +83,20 @@ export default function DeepThinkingTemplate() {
         />
       </div>
       
+      <Card className="p-6 mb-6">
+        <LanguageSelector
+          selectedLanguage={language}
+          onLanguageChange={handleLanguageChange}
+        />
+      </Card>
+      
       <DeepThinkingGeneratorForm 
         includeInternalLinks={includeInternalLinks}
         onGeneratingStateChange={handleGeneratingState}
         hideBackgroundGeneration={true}
         customOutline={customOutline}
         onCustomOutlineChange={handleOutlineChange}
+        contentLanguage={language}
       />
     </div>
   );

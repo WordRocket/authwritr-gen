@@ -7,6 +7,8 @@ import { SitemapUrlInput } from "@/components/templates/SitemapUrlInput";
 import { useAuth } from "@/context/AuthContext";
 import { Link } from "react-router-dom";
 import { HtmlPreviewComponent } from "@/components/templates/HtmlPreviewComponent";
+import { LanguageSelector } from "@/components/templates/LanguageSelector";
+import { Card } from "@/components/ui/card";
 
 export default function ProductRoundupTemplate() {
   const [includeInternalLinks, setIncludeInternalLinks] = useState(false);
@@ -14,6 +16,7 @@ export default function ProductRoundupTemplate() {
   const [customOutline, setCustomOutline] = useState("");
   const [apiError, setApiError] = useState<string | null>(null);
   const [generatedHtml, setGeneratedHtml] = useState("");
+  const [language, setLanguage] = useState("english");
   const { apiKey } = useAuth();
   
   useEffect(() => {
@@ -69,6 +72,10 @@ export default function ProductRoundupTemplate() {
   const handleContentGenerated = (content: string) => {
     console.log("Content successfully generated, length:", content.length);
     setGeneratedHtml(content);
+  };
+
+  const handleLanguageChange = (newLanguage: string) => {
+    setLanguage(newLanguage);
   };
 
   return (
@@ -132,6 +139,13 @@ export default function ProductRoundupTemplate() {
         />
       </div>
       
+      <Card className="p-6 mb-6">
+        <LanguageSelector
+          selectedLanguage={language}
+          onLanguageChange={handleLanguageChange}
+        />
+      </Card>
+      
       <ProductRoundupGeneratorForm 
         includeInternalLinks={includeInternalLinks}
         customOutline={customOutline}
@@ -141,6 +155,7 @@ export default function ProductRoundupTemplate() {
         apiKey={apiKey}
         onContentGenerated={handleContentGenerated}
         key={apiKey || 'no-api-key'} // Force re-render when API key changes
+        contentLanguage={language}
       />
       
       {generatedHtml && (

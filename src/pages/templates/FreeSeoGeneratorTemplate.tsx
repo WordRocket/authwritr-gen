@@ -5,6 +5,8 @@ import { useLocation } from "react-router-dom";
 import { SitemapUrlInput } from "@/components/templates/SitemapUrlInput";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { InfoIcon } from "lucide-react";
+import { LanguageSelector } from "@/components/templates/LanguageSelector";
+import { Card } from "@/components/ui/card";
 
 // Define free models to be used in this template
 const additionalFreeModels = [
@@ -37,6 +39,7 @@ export default function FreeSeoGeneratorTemplate() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [customOutline, setCustomOutline] = useState("");
   const [geminiApiKey, setGeminiApiKey] = useState("");
+  const [language, setLanguage] = useState("english");
   
   useEffect(() => {
     document.title = "Free SEO Blog Post Generator | Content Genius";
@@ -87,6 +90,10 @@ export default function FreeSeoGeneratorTemplate() {
     localStorage.setItem('geminiApiKey', apiKey);
   };
 
+  const handleLanguageChange = (newLanguage: string) => {
+    setLanguage(newLanguage);
+  };
+
   return (
     <div className="mx-auto container py-8">
       <h1 className="text-3xl font-bold tracking-tight">
@@ -113,6 +120,13 @@ export default function FreeSeoGeneratorTemplate() {
         />
       </div>
       
+      <Card className="p-6 mb-6">
+        <LanguageSelector
+          selectedLanguage={language}
+          onLanguageChange={handleLanguageChange}
+        />
+      </Card>
+      
       <SeoGeneratorForm 
         includeInternalLinks={includeInternalLinks}
         hideBackgroundGeneration={true}
@@ -124,6 +138,7 @@ export default function FreeSeoGeneratorTemplate() {
         onGeneratingStateChange={handleGeneratingState}
         showGeminiKeyInput={true}
         additionalFreeModels={additionalFreeModels}
+        contentLanguage={language}
       />
     </div>
   );

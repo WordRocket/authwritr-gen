@@ -4,12 +4,15 @@ import { RealTimeBlogGeneratorForm } from "@/components/templates/RealTimeBlogGe
 import { SitemapUrlInput } from "@/components/templates/SitemapUrlInput";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { InfoIcon, Globe } from "lucide-react";
+import { LanguageSelector } from "@/components/templates/LanguageSelector";
+import { Card } from "@/components/ui/card";
 
 export default function WebSearchTemplate() {
   const [includeInternalLinks, setIncludeInternalLinks] = useState(false);
   const [includeCitations, setIncludeCitations] = useState(true); // Default to true for citations
   const [isGenerating, setIsGenerating] = useState(false);
   const [customOutline, setCustomOutline] = useState("");
+  const [language, setLanguage] = useState("english");
   
   useEffect(() => {
     document.title = "Real-Time Web Search Article Generator | Content Genius";
@@ -63,6 +66,10 @@ export default function WebSearchTemplate() {
     localStorage.setItem('customOutline', outline);
   };
 
+  const handleLanguageChange = (newLanguage: string) => {
+    setLanguage(newLanguage);
+  };
+
   return (
     <div className="mx-auto container py-8">
       <h1 className="text-3xl font-bold tracking-tight">
@@ -89,6 +96,13 @@ export default function WebSearchTemplate() {
         />
       </div>
       
+      <Card className="p-6 mb-6">
+        <LanguageSelector
+          selectedLanguage={language}
+          onLanguageChange={handleLanguageChange}
+        />
+      </Card>
+      
       <RealTimeBlogGeneratorForm 
         includeInternalLinks={includeInternalLinks} 
         includeCitations={includeCitations} 
@@ -96,6 +110,7 @@ export default function WebSearchTemplate() {
         customOutline={customOutline}
         onCustomOutlineChange={handleOutlineChange}
         forceWebSearch={true}
+        contentLanguage={language}
       />
     </div>
   );

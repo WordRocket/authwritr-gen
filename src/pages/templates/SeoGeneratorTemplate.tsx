@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { SeoGeneratorForm } from "@/components/templates/SeoGeneratorForm";
 import { RealTimeBlogGeneratorForm } from "@/components/templates/RealTimeBlogGeneratorForm";
@@ -6,6 +7,8 @@ import { SitemapUrlInput } from "@/components/templates/SitemapUrlInput";
 import { DeepThinkingGeneratorForm } from "@/components/templates/DeepThinkingGeneratorForm";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { InfoIcon } from "lucide-react";
+import { LanguageSelector } from "@/components/templates/LanguageSelector";
+import { Card } from "@/components/ui/card";
 
 export default function SeoGeneratorTemplate() {
   const location = useLocation();
@@ -15,6 +18,7 @@ export default function SeoGeneratorTemplate() {
   const [includeCitations, setIncludeCitations] = useState(true); // Default to true for citations
   const [isGenerating, setIsGenerating] = useState(false);
   const [customOutline, setCustomOutline] = useState("");
+  const [language, setLanguage] = useState("english");
   
   useEffect(() => {
     if (isArticleGenerator) {
@@ -74,6 +78,10 @@ export default function SeoGeneratorTemplate() {
     localStorage.setItem('customOutline', outline);
   };
 
+  const handleLanguageChange = (newLanguage: string) => {
+    setLanguage(newLanguage);
+  };
+
   return (
     <div className="mx-auto container py-8">
       <h1 className="text-3xl font-bold tracking-tight">
@@ -108,6 +116,13 @@ export default function SeoGeneratorTemplate() {
         />
       </div>
       
+      <Card className="p-6 mb-6">
+        <LanguageSelector
+          selectedLanguage={language}
+          onLanguageChange={handleLanguageChange}
+        />
+      </Card>
+      
       {isArticleGenerator 
         ? <RealTimeBlogGeneratorForm 
             includeInternalLinks={includeInternalLinks} 
@@ -115,6 +130,7 @@ export default function SeoGeneratorTemplate() {
             onCitationsToggle={handleCitationsToggle}
             customOutline={customOutline}
             onCustomOutlineChange={handleOutlineChange}
+            contentLanguage={language}
           />
         : isDeepThinking
           ? <DeepThinkingGeneratorForm 
@@ -123,6 +139,7 @@ export default function SeoGeneratorTemplate() {
               hideBackgroundGeneration={true}
               customOutline={customOutline}
               onCustomOutlineChange={handleOutlineChange}
+              contentLanguage={language}
             />
           : <SeoGeneratorForm 
               includeInternalLinks={includeInternalLinks}
@@ -131,6 +148,7 @@ export default function SeoGeneratorTemplate() {
               onCustomOutlineChange={handleOutlineChange}
               showGeminiKeyInput={false}
               onGeneratingStateChange={handleGeneratingState}
+              contentLanguage={language}
             />}
     </div>
   );
