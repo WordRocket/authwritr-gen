@@ -55,6 +55,8 @@ export default function BulkBlogGeneratorTemplate() {
 
   const handleLanguageChange = (newLanguage: string) => {
     setLanguage(newLanguage);
+    // Store language preference in localStorage for content generation service to use
+    localStorage.setItem('contentLanguage', newLanguage);
   };
 
   return (
@@ -95,7 +97,6 @@ export default function BulkBlogGeneratorTemplate() {
         customOutline={customOutline}
         onCustomOutlineChange={handleOutlineChange}
         onGeneratingStateChange={handleGeneratingState}
-        language={language}
       />
     </div>
   );

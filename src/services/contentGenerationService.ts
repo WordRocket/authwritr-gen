@@ -373,10 +373,13 @@ function constructGeminiPrompt(formData: SeoFormValues): string {
     }
   }
   
+  // Get language preference from localStorage if not provided in formData
+  const contentLanguage = language || localStorage.getItem('contentLanguage') || 'english';
+  
   let prompt = `Generate a comprehensive, SEO-optimized blog post about: "${topic}"`;
   
-  if (language && language !== "english") {
-    prompt += ` Write the entire content in ${language} language.`;
+  if (contentLanguage && contentLanguage !== "english") {
+    prompt += ` Write the entire content in ${contentLanguage} language.`;
   }
   
   if (targetKeyword) {

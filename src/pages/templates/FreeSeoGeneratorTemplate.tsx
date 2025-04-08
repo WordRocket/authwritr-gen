@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { SeoGeneratorForm } from "@/components/templates/SeoGeneratorForm";
 import { useLocation } from "react-router-dom";
@@ -87,6 +88,8 @@ export default function FreeSeoGeneratorTemplate() {
 
   const handleLanguageChange = (newLanguage: string) => {
     setLanguage(newLanguage);
+    // Store language preference in localStorage for content generation service to use
+    localStorage.setItem('contentLanguage', newLanguage);
   };
 
   return (
@@ -130,7 +133,6 @@ export default function FreeSeoGeneratorTemplate() {
         onGeneratingStateChange={handleGeneratingState}
         showGeminiKeyInput={true}
         additionalFreeModels={additionalFreeModels}
-        language={language}
       />
     </div>
   );

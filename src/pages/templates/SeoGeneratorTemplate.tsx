@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { SeoGeneratorForm } from "@/components/templates/SeoGeneratorForm";
 import { RealTimeBlogGeneratorForm } from "@/components/templates/RealTimeBlogGeneratorForm";
@@ -79,6 +80,8 @@ export default function SeoGeneratorTemplate() {
 
   const handleLanguageChange = (newLanguage: string) => {
     setLanguage(newLanguage);
+    // Store language preference in localStorage for content generation service to use
+    localStorage.setItem('contentLanguage', newLanguage);
   };
 
   return (
@@ -129,7 +132,6 @@ export default function SeoGeneratorTemplate() {
             onCitationsToggle={handleCitationsToggle}
             customOutline={customOutline}
             onCustomOutlineChange={handleOutlineChange}
-            language={language}
           />
         : isDeepThinking
           ? <DeepThinkingGeneratorForm 
@@ -138,7 +140,6 @@ export default function SeoGeneratorTemplate() {
               hideBackgroundGeneration={true}
               customOutline={customOutline}
               onCustomOutlineChange={handleOutlineChange}
-              language={language}
             />
           : <SeoGeneratorForm 
               includeInternalLinks={includeInternalLinks}
@@ -147,7 +148,6 @@ export default function SeoGeneratorTemplate() {
               onCustomOutlineChange={handleOutlineChange}
               showGeminiKeyInput={false}
               onGeneratingStateChange={handleGeneratingState}
-              language={language}
             />}
     </div>
   );

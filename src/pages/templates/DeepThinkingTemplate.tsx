@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { DeepThinkingGeneratorForm } from "@/components/templates/DeepThinkingGeneratorForm";
 import { SitemapUrlInput } from "@/components/templates/SitemapUrlInput";
@@ -54,6 +55,8 @@ export default function DeepThinkingTemplate() {
 
   const handleLanguageChange = (newLanguage: string) => {
     setLanguage(newLanguage);
+    // Store language preference in localStorage for content generation service to use
+    localStorage.setItem('contentLanguage', newLanguage);
   };
 
   return (
@@ -95,7 +98,6 @@ export default function DeepThinkingTemplate() {
         hideBackgroundGeneration={true}
         customOutline={customOutline}
         onCustomOutlineChange={handleOutlineChange}
-        language={language}
       />
     </div>
   );

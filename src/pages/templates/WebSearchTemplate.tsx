@@ -68,6 +68,8 @@ export default function WebSearchTemplate() {
 
   const handleLanguageChange = (newLanguage: string) => {
     setLanguage(newLanguage);
+    // Store language preference in localStorage for content generation service to use
+    localStorage.setItem('contentLanguage', newLanguage);
   };
 
   return (
@@ -110,7 +112,6 @@ export default function WebSearchTemplate() {
         customOutline={customOutline}
         onCustomOutlineChange={handleOutlineChange}
         forceWebSearch={true}
-        language={language}
       />
     </div>
   );

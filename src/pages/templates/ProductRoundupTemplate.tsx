@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { InfoIcon, AlertCircle } from "lucide-react";
@@ -75,6 +76,8 @@ export default function ProductRoundupTemplate() {
 
   const handleLanguageChange = (newLanguage: string) => {
     setLanguage(newLanguage);
+    // Store language preference in localStorage for content generation service to use
+    localStorage.setItem('contentLanguage', newLanguage);
   };
 
   return (
@@ -154,7 +157,6 @@ export default function ProductRoundupTemplate() {
         apiKey={apiKey}
         onContentGenerated={handleContentGenerated}
         key={apiKey || 'no-api-key'} // Force re-render when API key changes
-        language={language}
       />
       
       {generatedHtml && (
