@@ -145,14 +145,14 @@ serve(async (req) => {
       - Specific details that would make the blog post more authoritative and comprehensive
       
       Always include the sources of your information. Be thorough and comprehensive in your research.
-      The information you gather will be used to write an in-depth blog post on "${topic}" optimized for the keyword "${keyword}".`;
+      The information you gather will be used to write an in-depth blog post on "${topic}" optimized for the keyword "${targetKeyword || topic}".`;
     } else if (inputMode === "manualInput" && manualInput) {
       systemPrompt = `You are an expert SEO content writer. Your task is to create a high-quality, SEO-optimized blog post based
       on the research information provided by the user. The content should have a readability level of grade 8, sound human-written,
-      and follow best SEO practices to optimize for the keyword "${keyword}".
+      and follow best SEO practices to optimize for the keyword "${targetKeyword || topic}".
       
       You'll be given research content that you should use as the primary source of information for the article.
-      Write a comprehensive article about ${topic} with a readability of grade 8, optimized for the keyword "${keyword}".
+      Write a comprehensive article about ${topic} with a readability of grade 8, optimized for the keyword "${targetKeyword || topic}".
       Write in the ${toneOfArticle || 'professional'} ${articleType || 'informational'} style, 
       aiming for approximately ${wordCount} words for the intended audience of ${intendedAudience || 'general readers'}.`;
     } else {
@@ -192,7 +192,7 @@ serve(async (req) => {
         systemPrompt += ` The element should be responsive and not break the page layout when embedded in a WordPress post.`;
       }
       
-      systemPrompt += ` When writing, follow the best SEO practices and include the target keyword "${keyword}" and variations of the keyword in the title, h1, h2, h3, etc. and the body of the article.`;
+      systemPrompt += ` When writing, follow the best SEO practices and include the target keyword "${targetKeyword || topic}" and variations of the keyword in the title, h1, h2, h3, etc. and the body of the article.`;
       systemPrompt += ` Always end the article with an SEO title and meta description.`;
     }
 
@@ -212,7 +212,7 @@ serve(async (req) => {
       - Specific details that would make the blog post more authoritative
       
       Be thorough and comprehensive in your research. Include the sources for all information you provide.
-      This research will be used to write an in-depth blog post on "${topic}" optimized for the keyword "${keyword}".`;
+      This research will be used to write an in-depth blog post on "${topic}" optimized for the keyword "${targetKeyword || topic}".`;
     } else if (inputMode === "manualInput" && manualInput) {
       userPrompt = `I've conducted research on the topic "${topic}" and I'd like you to use this research to write a comprehensive, ${toneOfArticle || 'professional'} ${articleType || 'informational'} blog post.
       
@@ -220,7 +220,7 @@ serve(async (req) => {
       
       ${manualInput}
       
-      Using this research information, write a ${wordCount}-word SEO-optimized article about "${topic}" that's optimized for the keyword "${keyword}".
+      Using this research information, write a ${wordCount}-word SEO-optimized article about "${topic}" that's optimized for the keyword "${targetKeyword || topic}".
       
       Make sure the article:
       - Has a readability level of grade 8
@@ -232,7 +232,7 @@ serve(async (req) => {
     }
     
     if (targetKeyword) {
-      userPrompt += ` optimized for the keyword "${targetKeyword}"`;
+      userPrompt += ` optimized for the keyword "${targetKeyword || topic}"`;
     }
     
     if (intendedAudience) {
@@ -358,7 +358,7 @@ serve(async (req) => {
             // STEP 2: Use Claude 3.7 Sonnet to create the final content
             const claudeSystemPrompt = `You are an expert SEO content writer. Your task is to create a high-quality, 
             SEO-optimized blog post based on the research information provided. The content should have a readability 
-            level of grade 8, sound human-written, and follow best SEO practices to optimize for the keyword "${keyword}".
+            level of grade 8, sound human-written, and follow best SEO practices to optimize for the keyword "${targetKeyword || topic}".
             
             The blog post should be written in a ${toneOfArticle || 'professional'} ${articleType || 'informational'} style, 
             aiming for approximately ${wordCount} words for ${intendedAudience || 'general readers'}.
@@ -372,13 +372,13 @@ serve(async (req) => {
               claudeSystemPrompt += ` Include relevant internal links from the provided list of URLs. Select 3-7 of the most relevant URLs based on the content and link to them naturally within the text using anchor text that is relevant to both the linked page and the context of your article.`;
             }
             
-            const claudeUserPrompt = `I have conducted extensive research on the topic "${topic}" optimized for the keyword "${keyword}". 
+            const claudeUserPrompt = `I have conducted extensive research on the topic "${topic}" optimized for the keyword "${targetKeyword || topic}". 
             Here is the research data:
             
             ${searchResults}
             
             Using this research, write a comprehensive ${wordCount}-word SEO-optimized blog post about "${topic}" that's optimized 
-            for the keyword "${keyword}". Make sure to include relevant sources from the research.
+            for the keyword "${targetKeyword || topic}". Make sure to include relevant sources from the research.
             
             Ensure the content:
             - Has a readability level of grade 8
@@ -658,7 +658,7 @@ serve(async (req) => {
         // Important: Making sure we're using 'let' for system prompts here
         let claudeSystemPrompt = `You are an expert SEO content writer. Your task is to create a high-quality, 
         SEO-optimized blog post based on the research information provided. The content should have a readability 
-        level of grade 8, sound human-written, and follow best SEO practices to optimize for the keyword "${keyword}".
+        level of grade 8, sound human-written, and follow best SEO practices to optimize for the keyword "${targetKeyword || topic}".
         
         The blog post should be written in a ${toneOfArticle || 'professional'} ${articleType || 'informational'} style, 
         aiming for approximately ${wordCount} words for ${intendedAudience || 'general readers'}.
@@ -683,13 +683,13 @@ serve(async (req) => {
         }
         
         // Important: Using 'let' instead of 'const' for userPrompt that might be appended to
-        let claudeUserPrompt = `I have conducted extensive research on the topic "${topic}" optimized for the keyword "${keyword}". 
+        let claudeUserPrompt = `I have conducted extensive research on the topic "${topic}" optimized for the keyword "${targetKeyword || topic}". 
         Here is the research data:
         
         ${searchResults}
         
         Using this research, write a comprehensive ${wordCount}-word SEO-optimized blog post about "${topic}" that's optimized 
-        for the keyword "${keyword}". Make sure to include relevant sources from the research.
+        for the keyword "${targetKeyword || topic}". Make sure to include relevant sources from the research.
         
         Ensure the content:
         - Has a readability level of grade 8

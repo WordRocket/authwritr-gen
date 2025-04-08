@@ -178,6 +178,10 @@ ${productDescriptions}
 
       const customOutlineOption = customOutline ? { customOutline } : {};
       
+      // Retrieve the selected language from localStorage
+      const language = localStorage.getItem('contentLanguage') || 'english';
+      console.log("Using language for content generation:", language);
+      
       console.log("Sending request to generateSeoContent with model:", searchModel);
       console.log("Product count:", products.length);
       
@@ -200,6 +204,7 @@ ${productDescriptions}
         includeInternalLinks,
         model: searchModel,
         finalContentModel: data.inputMode === "webSearch" ? "anthropic/claude-3.7-sonnet" : undefined,
+        language: language, // Pass the language to the content generation service
       }, apiKey, customOutlineOption);
 
       console.log("Content generation successful");
