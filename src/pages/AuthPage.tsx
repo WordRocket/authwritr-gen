@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -84,7 +83,7 @@ export default function AuthPage() {
 
   if (isPageLoading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-secondary to-background">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-gray-900 dark:to-gray-800">
         <div className="flex flex-col items-center gap-4">
           <LoadingSpinner size="lg" />
           <p className="text-muted-foreground">Loading...</p>
@@ -94,28 +93,32 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-secondary to-background p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-gray-900 dark:to-gray-800 p-4">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
-          <div className="flex items-center justify-center mb-4">
-            <PenTool className="h-10 w-10 text-primary" />
+          <div className="flex items-center justify-center mb-6">
+            <div className="rounded-full bg-primary/10 p-3">
+              <PenTool className="h-8 w-8 text-primary" />
+            </div>
           </div>
-          <h1 className="gradient-heading mb-2">WordRocket 🚀</h1>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-500 bg-clip-text text-transparent mb-2">
+            WordRocket 🚀
+          </h1>
           <p className="text-muted-foreground">
             AI-powered blog post & article generator
           </p>
         </div>
 
-        <Tabs defaultValue="signin" value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid grid-cols-2 w-full">
-            <TabsTrigger value="signin">Sign In</TabsTrigger>
-            <TabsTrigger value="signup">Sign Up</TabsTrigger>
+        <Tabs defaultValue="signin" value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid grid-cols-2 w-full mb-6">
+            <TabsTrigger value="signin" className="text-sm">Sign In</TabsTrigger>
+            <TabsTrigger value="signup" className="text-sm">Sign Up</TabsTrigger>
           </TabsList>
           
           <TabsContent value="signin">
-            <Card>
-              <CardHeader>
-                <CardTitle>Sign In</CardTitle>
+            <Card className="border-none shadow-lg">
+              <CardHeader className="space-y-1">
+                <CardTitle className="text-2xl">Sign In</CardTitle>
                 <CardDescription>
                   Sign in to your account to generate content
                 </CardDescription>
@@ -125,7 +128,7 @@ export default function AuthPage() {
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <div className="flex items-center">
-                        <Mail className="h-4 w-4 mr-2" />
+                        <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
                         <label htmlFor="email" className="text-sm font-medium">
                           Email
                         </label>
@@ -142,7 +145,7 @@ export default function AuthPage() {
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center">
-                        <Lock className="h-4 w-4 mr-2" />
+                        <Lock className="h-4 w-4 mr-2 text-muted-foreground" />
                         <label htmlFor="password" className="text-sm font-medium">
                           Password
                         </label>
@@ -163,6 +166,7 @@ export default function AuthPage() {
                   <Button
                     type="submit"
                     className="w-full"
+                    size="lg"
                     disabled={isLoading || !email || !password}
                   >
                     {isLoading ? (
@@ -183,9 +187,9 @@ export default function AuthPage() {
           </TabsContent>
           
           <TabsContent value="signup">
-            <Card>
-              <CardHeader>
-                <CardTitle>Create an Account</CardTitle>
+            <Card className="border-none shadow-lg">
+              <CardHeader className="space-y-1">
+                <CardTitle className="text-2xl">Create an Account</CardTitle>
                 <CardDescription>
                   Sign up to start generating great content
                 </CardDescription>
@@ -195,7 +199,7 @@ export default function AuthPage() {
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <div className="flex items-center">
-                        <Mail className="h-4 w-4 mr-2" />
+                        <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
                         <label htmlFor="signup-email" className="text-sm font-medium">
                           Email
                         </label>
@@ -212,7 +216,7 @@ export default function AuthPage() {
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center">
-                        <Lock className="h-4 w-4 mr-2" />
+                        <Lock className="h-4 w-4 mr-2 text-muted-foreground" />
                         <label htmlFor="signup-password" className="text-sm font-medium">
                           Password
                         </label>
@@ -236,6 +240,7 @@ export default function AuthPage() {
                   <Button
                     type="submit"
                     className="w-full"
+                    size="lg"
                     disabled={isLoading || !email || !password}
                   >
                     {isLoading ? (
@@ -256,9 +261,9 @@ export default function AuthPage() {
           </TabsContent>
           
           <TabsContent value="apikey">
-            <Card>
-              <CardHeader>
-                <CardTitle>API Key Access</CardTitle>
+            <Card className="border-none shadow-lg">
+              <CardHeader className="space-y-1">
+                <CardTitle className="text-2xl">API Key Access</CardTitle>
                 <CardDescription>
                   Enter your OpenRouter API key to continue
                 </CardDescription>
@@ -303,6 +308,7 @@ export default function AuthPage() {
                   <Button
                     type="submit"
                     className="w-full"
+                    size="lg"
                     disabled={apiKey.trim() === ""}
                   >
                     <span>Continue</span>

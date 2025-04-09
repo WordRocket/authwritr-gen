@@ -76,16 +76,18 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h1>Settings</h1>
+        <h1 className="text-3xl font-bold tracking-tight mb-2 bg-gradient-to-r from-purple-600 to-blue-500 bg-clip-text text-transparent">
+          Settings
+        </h1>
         <p className="text-muted-foreground">
           Manage your account settings and preferences
         </p>
       </div>
 
       {user && (
-        <Card>
+        <Card className="border hover:border-primary/10 transition-shadow hover:shadow-md">
           <CardHeader>
             <CardTitle>Profile Settings</CardTitle>
             <CardDescription>
@@ -119,6 +121,7 @@ export default function SettingsPage() {
             <Button 
               onClick={handleUpdateProfile}
               disabled={loading}
+              className="transition-all"
             >
               {loading ? "Updating..." : "Update Profile"}
             </Button>
@@ -126,7 +129,7 @@ export default function SettingsPage() {
         </Card>
       )}
 
-      <Card>
+      <Card className="border hover:border-primary/10 transition-shadow hover:shadow-md">
         <CardHeader>
           <CardTitle>API Configuration</CardTitle>
           <CardDescription>
@@ -135,7 +138,7 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           {!apiKey && (
-            <Alert className="mb-4">
+            <Alert className="mb-4 bg-amber-50 text-amber-800 dark:bg-amber-900/20 dark:text-amber-300 border-amber-200 dark:border-amber-800/30">
               <AlertDescription>
                 You need an OpenRouter API key to use WordRocket's AI-powered content generation features.
               </AlertDescription>
@@ -155,12 +158,12 @@ export default function SettingsPage() {
               <p>
                 Your API key is stored locally and never sent to our servers.
               </p>
-              <div className="pt-2">
+              <div className="pt-2 space-y-2">
                 <a 
                   href="https://openrouter.ai/keys" 
                   target="_blank" 
                   rel="noreferrer"
-                  className="flex items-center text-primary hover:underline text-sm"
+                  className="flex items-center text-primary hover:underline text-sm transition-colors"
                 >
                   Get your OpenRouter API key
                   <ExternalLink className="h-3 w-3 ml-1 inline" />
@@ -169,7 +172,7 @@ export default function SettingsPage() {
                   href="https://docs.openrouter.ai/introduction" 
                   target="_blank" 
                   rel="noreferrer" 
-                  className="flex items-center text-primary hover:underline text-sm mt-1"
+                  className="flex items-center text-primary hover:underline text-sm transition-colors"
                 >
                   Learn more about OpenRouter
                   <ExternalLink className="h-3 w-3 ml-1 inline" />
@@ -182,13 +185,14 @@ export default function SettingsPage() {
           <Button 
             onClick={handleUpdateApiKey}
             disabled={newApiKey.trim() === "" || newApiKey === apiKey}
+            className="transition-all"
           >
             Update API Key
           </Button>
         </CardFooter>
       </Card>
 
-      <Card>
+      <Card className="border hover:border-primary/10 transition-shadow hover:shadow-md">
         <CardHeader>
           <CardTitle>Application Preferences</CardTitle>
           <CardDescription>

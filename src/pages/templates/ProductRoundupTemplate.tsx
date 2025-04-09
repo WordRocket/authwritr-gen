@@ -81,16 +81,18 @@ export default function ProductRoundupTemplate() {
   };
 
   return (
-    <div className="mx-auto container py-8">
-      <h1 className="text-3xl font-bold tracking-tight">
-        Product Round-up Article Generator
-      </h1>
-      <p className="text-muted-foreground mt-2">
-        Create comprehensive product comparison articles to help readers make informed purchasing decisions
-      </p>
+    <div className="mx-auto container py-8 space-y-8">
+      <div className="max-w-3xl">
+        <h1 className="text-3xl font-bold tracking-tight mb-2 bg-gradient-to-r from-purple-600 to-blue-500 bg-clip-text text-transparent">
+          Product Round-up Article Generator
+        </h1>
+        <p className="text-muted-foreground">
+          Create comprehensive product comparison articles to help readers make informed purchasing decisions
+        </p>
+      </div>
       
       {!apiKey && (
-        <Alert className="mt-4 border-destructive bg-destructive/10">
+        <Alert className="mt-4 border-destructive bg-destructive/10 rounded-lg">
           <AlertCircle className="h-4 w-4 text-destructive" />
           <AlertDescription className="text-destructive">
             API key is missing. Please add your OpenRouter API key in{" "}
@@ -103,7 +105,7 @@ export default function ProductRoundupTemplate() {
       )}
       
       {apiError && (
-        <Alert className="mt-4 border-destructive bg-destructive/10">
+        <Alert className="mt-4 border-destructive bg-destructive/10 rounded-lg">
           <AlertCircle className="h-4 w-4 text-destructive" />
           <AlertDescription className="text-destructive">
             <p><strong>API Error:</strong> {apiError}</p>
@@ -125,7 +127,7 @@ export default function ProductRoundupTemplate() {
       )}
       
       {isGenerating && (
-        <Alert className="mt-4 border-amber-500 bg-amber-50 dark:bg-amber-950/20">
+        <Alert className="mt-4 border-amber-500 bg-amber-50 dark:bg-amber-950/20 rounded-lg">
           <InfoIcon className="h-4 w-4 text-amber-500" />
           <AlertDescription className="text-amber-800 dark:text-amber-300">
             Content is being generated. Please do not leave this page. It may take a few minutes to complete.
@@ -141,7 +143,7 @@ export default function ProductRoundupTemplate() {
         />
       </div>
       
-      <Card className="p-6 mb-6">
+      <Card className="p-6 mb-6 border hover:border-primary/10 transition-shadow hover:shadow-md">
         <LanguageSelector
           selectedLanguage={language}
           onLanguageChange={handleLanguageChange}
