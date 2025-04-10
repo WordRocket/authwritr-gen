@@ -5,6 +5,19 @@ import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
+// Define subscription interface to match our database structure
+interface Subscription {
+  id: string;
+  user_id: string;
+  status: string;
+  subscription_type: string;
+  created_at: string;
+  updated_at: string;
+  expires_at: string | null;
+  stripe_subscription_id: string | null;
+  stripe_customer_id: string | null;
+}
+
 interface AuthContextType {
   isAuthenticated: boolean;
   apiKey: string | null;
@@ -77,8 +90,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     const checkPremium = async () => {
       try {
+        // Use type assertion to work around TypeScript limitations
         const { data, error } = await supabase
-          .from('subscriptions')
+          .from('subscriptions' as any)
           .select('status')
           .eq('user_id', user.id)
           .single();

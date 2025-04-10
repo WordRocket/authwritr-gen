@@ -1,6 +1,28 @@
+
 import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+
+// Define interfaces for our database tables
+interface UserUsage {
+  id: string;
+  user_id: string;
+  date: string;
+  words_used: number;
+  last_reset: string | null;
+}
+
+interface Subscription {
+  id: string;
+  user_id: string;
+  status: string;
+  subscription_type: string;
+  created_at: string | null;
+  updated_at: string | null;
+  expires_at: string | null;
+  stripe_subscription_id: string | null;
+  stripe_customer_id: string | null;
+}
 
 interface PremiumContextType {
   isPremium: boolean;
@@ -47,7 +69,7 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
       
       try {
         const { data, error } = await supabase
-          .from('user_usage')
+          .from('user_usage' as any)
           .select('last_reset')
           .eq('user_id', user.id)
           .single();
@@ -77,8 +99,9 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
     setIsLoading(true);
     
     try {
+      // Use type assertion to work around TypeScript limitations
       const { data, error } = await supabase
-        .from('subscriptions')
+        .from('subscriptions' as any)
         .select('status, subscription_type, expires_at')
         .eq('user_id', user.id)
         .single();
@@ -112,8 +135,9 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
     try {
       const today = new Date().toISOString().split('T')[0];
       
+      // Use type assertion to work around TypeScript limitations
       const { data, error } = await supabase
-        .from('user_usage')
+        .from('user_usage' as any)
         .select('words_used')
         .eq('user_id', user.id)
         .eq('date', today)
@@ -127,13 +151,13 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
         setUsedWords(data.words_used);
       } else {
         const { error: insertError } = await supabase
-          .from('user_usage')
+          .from('user_usage' as any)
           .insert({
             user_id: user.id,
             date: today,
             words_used: 0,
             last_reset: new Date().toISOString()
-          });
+          } as any);
           
         if (insertError) throw insertError;
         setUsedWords(0);
@@ -167,8 +191,9 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
     try {
       const today = new Date().toISOString().split('T')[0];
       
+      // Use type assertion to work around TypeScript limitations
       const { data, error } = await supabase
-        .from('user_usage')
+        .from('user_usage' as any)
         .select('words_used')
         .eq('user_id', user.id)
         .eq('date', today)
@@ -181,8 +206,8 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
       if (data) {
         const newTotal = data.words_used + wordCount;
         const { error: updateError } = await supabase
-          .from('user_usage')
-          .update({ words_used: newTotal })
+          .from('user_usage' as any)
+          .update({ words_used: newTotal } as any)
           .eq('user_id', user.id)
           .eq('date', today);
           
@@ -190,13 +215,13 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
         setUsedWords(newTotal);
       } else {
         const { error: insertError } = await supabase
-          .from('user_usage')
+          .from('user_usage' as any)
           .insert({
             user_id: user.id,
             date: today,
             words_used: wordCount,
             last_reset: new Date().toISOString()
-          });
+          } as any);
           
         if (insertError) throw insertError;
         setUsedWords(wordCount);
@@ -220,14 +245,15 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
     try {
       const today = new Date().toISOString().split('T')[0];
       
+      // Use type assertion to work around TypeScript limitations
       const { error } = await supabase
-        .from('user_usage')
+        .from('user_usage' as any)
         .upsert({
           user_id: user.id,
           date: today,
           words_used: 0,
           last_reset: new Date().toISOString()
-        });
+        } as any);
         
       if (error) throw error;
       setUsedWords(0);
