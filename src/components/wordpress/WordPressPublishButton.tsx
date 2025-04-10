@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { WordPress } from "lucide-react";
+import { Globe } from "lucide-react";
 import { createWordPressPost, getWordPressSettings } from "@/services/wordpressService";
 import { useAuth } from "@/context/AuthContext";
 
@@ -77,7 +77,7 @@ export default function WordPressPublishButton({
       variant="outline"
       className="flex items-center gap-2"
     >
-      <WordPress size={16} />
+      <Globe size={16} />
       {publishing ? "Publishing..." : "Publish to WordPress"}
     </Button>
   );

@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { RealTimeBlogGeneratorForm } from "@/components/templates/RealTimeBlogGeneratorForm";
 import { SitemapUrlInput } from "@/components/templates/SitemapUrlInput";
@@ -60,7 +59,7 @@ export default function WebSearchTemplate() {
     localStorage.setItem('includeCitations', enabled.toString());
   };
   
-  const handleGeneratingState = (generating: boolean) => {
+  const handleGeneratingChange = (generating: boolean) => {
     setIsGenerating(generating);
   };
   
@@ -120,7 +119,7 @@ export default function WebSearchTemplate() {
         customOutline={customOutline}
         onCustomOutlineChange={handleOutlineChange}
         forceWebSearch={true}
-        onGeneratingStateChange={handleGeneratingState}
+        onGeneratingChange={handleGeneratingChange}
         onContentGenerated={handleContentGenerated}
       />
       
