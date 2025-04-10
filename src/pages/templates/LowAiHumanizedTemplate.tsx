@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { SeoGeneratorForm } from "@/components/templates/SeoGeneratorForm";
 import { SitemapUrlInput } from "@/components/templates/SitemapUrlInput";

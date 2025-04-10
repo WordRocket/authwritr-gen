@@ -1,4 +1,3 @@
-
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -53,7 +52,6 @@ import { HtmlPreviewComponent } from "./HtmlPreviewComponent";
 import { useNavigate } from "react-router-dom";
 import { CustomOutlineSection } from "./CustomOutlineSection";
 
-// Define the model type
 export interface AIModel {
   id: string;
   name: string;
@@ -118,6 +116,8 @@ interface SeoGeneratorFormProps {
   onGeneratingStateChange?: (generating: boolean) => void;
   showGeminiKeyInput?: boolean;
   additionalFreeModels?: AIModel[];
+  additionalPromptContext?: string;
+  additionalFormData?: Record<string, any>;
 }
 
 export function SeoGeneratorForm({ 
@@ -130,7 +130,9 @@ export function SeoGeneratorForm({
   onGeminiApiKeyChange,
   onGeneratingStateChange,
   showGeminiKeyInput = false,
-  additionalFreeModels = []
+  additionalFreeModels = [],
+  additionalPromptContext,
+  additionalFormData
 }: SeoGeneratorFormProps) {
   const { user, apiKey } = useAuth();
   const [isGenerating, setIsGenerating] = React.useState(false);
@@ -143,7 +145,6 @@ export function SeoGeneratorForm({
   const [geminiKeyError, setGeminiKeyError] = React.useState("");
   const navigate = useNavigate();
   
-  // Combine the standard free models with any additional ones
   const combinedFreeModels = React.useMemo(() => {
     return [...freeModels, ...additionalFreeModels];
   }, [additionalFreeModels]);
@@ -160,12 +161,10 @@ export function SeoGeneratorForm({
   }, [apiKey]);
 
   React.useEffect(() => {
-    // Set Gemini API key from prop if provided
     if (savedGeminiApiKey && showGeminiKeyInput) {
       form.setValue('geminiApiKey', savedGeminiApiKey);
     }
     
-    // Update useGeminiDirectly based on the selected model and showGeminiKeyInput prop
     const currentModel = form.getValues('model');
     if (currentModel && currentModel.includes('gemini') && showGeminiKeyInput) {
       form.setValue('useGeminiDirectly', true);
@@ -183,7 +182,6 @@ export function SeoGeneratorForm({
         }
       }
       
-      // When geminiApiKey changes and there's a handler, call it
       if (name === 'geminiApiKey' && onGeminiApiKeyChange && showGeminiKeyInput) {
         const geminiKey = value.geminiApiKey;
         if (geminiKey) {
@@ -229,7 +227,6 @@ export function SeoGeneratorForm({
   }, [generatedContent]);
 
   const onSubmit = async (data: SeoFormValues) => {
-    // Check if we're using Gemini and have a Gemini API key
     if (data.useGeminiDirectly && showGeminiKeyInput) {
       if (!data.geminiApiKey) {
         setGeminiKeyError("Please enter your Gemini API key to generate content");
@@ -241,7 +238,6 @@ export function SeoGeneratorForm({
         return;
       }
       
-      // Save Gemini API key to localStorage and via callback if provided
       localStorage.setItem('geminiApiKey', data.geminiApiKey);
       if (onGeminiApiKeyChange) {
         onGeminiApiKeyChange(data.geminiApiKey);
@@ -265,6 +261,8 @@ export function SeoGeneratorForm({
       const formDataWithInternalLinks = {
         ...data,
         includeInternalLinks,
+        ...(props.additionalPromptContext ? { additionalPromptContext: props.additionalPromptContext } : {}),
+        ...(props.additionalFormData || {})
       };
       
       const content = await generateSeoContent(formDataWithInternalLinks as SeoServiceFormValues, apiKey);

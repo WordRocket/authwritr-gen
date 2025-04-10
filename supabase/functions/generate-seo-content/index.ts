@@ -740,4 +740,211 @@ serve(async (req) => {
         - Has a readability level of grade 8
         - Sounds natural and human-written
         - Follows best SEO practices
-        - Is written in a ${
+        - Is written in a ${toneOfArticle || 'professional'} ${articleType || 'informational'} style
+        - Includes all relevant information from the research
+        - Includes lists, tables, charts, and bold text where appropriate
+        - Cites sources from the research where appropriate`;
+        
+        if (stylePreferences.length > 0) {
+          claudeUserPrompt += `\n- Uses ${stylePreferences.join(", ")} style`;
+        }
+        
+        // Add internal links if requested
+        if (includeInternalLinks && internalLinks && internalLinks.length > 0) {
+          claudeUserPrompt += `
+          
+          Include 3-7 relevant internal links from this list of URLs. Choose the most appropriate URLs that relate to the content and incorporate them naturally in the article:
+          
+          ${internalLinks.join('\n')}
+          
+          For each link, use descriptive and contextually relevant anchor text that helps both users and search engines understand what the linked page is about. Distribute the links evenly throughout the article.`;
+        }
+        
+        if (includeHtmlElement) {
+          claudeUserPrompt += `
+          
+          Additionally, create ONE highly relevant interactive HTML element that would significantly help readers understand or use the information in this article. The HTML element must:
+          
+          1. Start with <!DOCTYPE HTML> and be structured as a complete, self-contained document
+          2. Choose the most appropriate format based on the article content:
+             - Interactive table (for comparing options/data)
+             - Data visualization (for statistics/trends)
+             - Calculator (for financial/numeric concepts)
+             - Quiz (for educational content)
+             - Timeline (for historical/sequential information)
+             - Selector/filtering tool (for decision-making assistance)
+             - Infographic (for visual representation of complex concepts)
+          
+          3. Include all CSS within a <style> tag and all JavaScript within a <script> tag
+          4. Use prefixed class names (like "cg-element-") to avoid conflicts with WordPress themes
+          5. Be responsive and mobile-friendly
+          6. Not rely on external libraries or dependencies
+          7. Not affect the page layout or styling when embedded in a WordPress post
+          8. Be actually useful to the reader, not just decorative
+          
+          Ensure the HTML is valid, clean, and follows best practices for embedding in WordPress without breaking the layout.`;
+        }
+        
+        try {
+          // Call the Claude 3.7 Sonnet model
+          let claudeResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${apiKey}`,
+              'HTTP-Referer': 'https://contentgenius.app', 
+              'X-Title': 'ContentGenius SEO Generator'
+            },
+            body: JSON.stringify({
+              model: "anthropic/claude-3.7-sonnet",
+              messages: [
+                { role: "system", content: claudeSystemPrompt },
+                { role: "user", content: claudeUserPrompt }
+              ],
+              temperature: 0.7,
+              max_tokens: 128000,
+            }),
+          });
+
+          if (!claudeResponse.ok) {
+            const errorText = await claudeResponse.text();
+            console.error("Error from Claude 3.7 Sonnet:", errorText);
+            // Fall back to using the search results if Claude fails
+            generatedContent = searchResults;
+            console.log("Falling back to search results due to Claude 3.7 Sonnet failure");
+          } else {
+            let claudeData = await claudeResponse.json();
+            
+            if (!claudeData || !claudeData.choices || !claudeData.choices[0] || !claudeData.choices[0].message) {
+              console.error("Invalid response structure from Claude 3.7 Sonnet:", claudeData);
+              // Fall back to using the search results
+              generatedContent = searchResults;
+              console.log("Falling back to search results due to invalid Claude 3.7 Sonnet response");
+            } else {
+              generatedContent = claudeData.choices[0].message.content;
+              console.log("Successfully generated content with Claude 3.7 Sonnet");
+            }
+          }
+        } catch (claudeError) {
+          console.error("Error during Claude 3.7 Sonnet call:", claudeError);
+          // Fall back to using the search results if Claude call fails
+          generatedContent = searchResults;
+          console.log("Falling back to search results due to Claude 3.7 Sonnet call error:", claudeError.message);
+        }
+      } else {
+        // For manual input or non-search requests, use the specified or default model directly
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+            'HTTP-Referer': 'https://contentgenius.app', 
+            'X-Title': 'ContentGenius SEO Generator'
+          },
+          body: JSON.stringify({
+            model: requestedModel,
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userPrompt }
+            ],
+            temperature: 0.7,
+            // Set max_tokens to 128000 specifically for Claude 3.7 Sonnet
+            max_tokens: 16000,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`API Error (${response.status}): ${errorText}`);
+        }
+
+        const data = await response.json();
+        
+        if (!data || !data.choices || !data.choices[0] || !data.choices[0].message) {
+          throw new Error("Invalid response structure from API");
+        }
+        
+        generatedContent = data.choices[0].message.content;
+      }
+      
+      // Save completed content to content table
+      const titleMatch = generatedContent.match(/^#\s*(.*?)(\n|$)/);
+      const title = titleMatch ? titleMatch[1].trim() : topic;
+      
+      // Get user_id from auth header
+      // In a real app, you'd extract the user ID from auth. For now, let's use a placeholder
+      let userId = req.headers.get('x-user-id');
+      
+      // If we don't have a user ID, try to extract it from the request parameters
+      if (!userId && req.headers.get('authorization')) {
+        try {
+          // Extract JWT token
+          const token = req.headers.get('authorization')?.split('Bearer ')[1];
+          if (token) {
+            // This is a simplified example. In a real app, you'd properly decode and verify the JWT
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+              return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+            const payload = JSON.parse(jsonPayload);
+            userId = payload.sub;
+          }
+        } catch (error) {
+          console.error("Error extracting user ID from token:", error);
+        }
+      }
+      
+      if (!userId) {
+        console.error("Could not determine user ID for background job");
+        return;
+      }
+      
+      // Save content to database
+      const contentResult = await fetch(`${req.url.split('/functions/')[0]}/rest/v1/content`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': req.headers.get('authorization') || '',
+          'apikey': req.headers.get('apikey') || '',
+        },
+        body: JSON.stringify({
+          title: title,
+          content: generatedContent,
+          user_id: userId,
+          created_at: new Date().toISOString()
+        }),
+      });
+      
+      if (!contentResult.ok) {
+        console.error("Failed to save content:", await contentResult.text());
+      } else {
+        console.log("Content generation complete and saved");
+      }
+    } catch (error) {
+      console.error("Error during content generation:", error);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "An error occurred during content generation. Please try again." 
+        }),
+        { 
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+  } catch (error) {
+    console.error("Error handling request:", error);
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: "An error occurred while processing your request. Please try again." 
+      }),
+      { 
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+  }
+});
