@@ -10,6 +10,41 @@ import { InfoIcon } from "lucide-react";
 import { LanguageSelector } from "@/components/templates/LanguageSelector";
 import { Card } from "@/components/ui/card";
 
+// Custom model ordering for the All in One SEO Generator
+const customSeoModels = [
+  { 
+    id: "google/gemini-2.5-pro-preview-03-25", 
+    name: "Gemini 2.5 Pro", 
+    description: "Best, lower cost",
+    recommended: true
+  },
+  { 
+    id: "anthropic/claude-3.7-sonnet", 
+    name: "Claude 3.7 Sonnet", 
+    description: "Best, higher cost",
+    recommended: true
+  },
+  { 
+    id: "openai/o1-pro", 
+    name: "O1 Pro", 
+    description: "Advanced reasoning capabilities",
+    recommended: false
+  },
+  { 
+    id: "x-ai/grok-3-beta", 
+    name: "Grok 3 Beta", 
+    description: "Powerful model with up-to-date knowledge",
+    recommended: false
+  },
+  { 
+    id: "deepseek/deepseek-v3-base:free", 
+    name: "DeepSeek V3 Base", 
+    description: "High-quality free model option",
+    recommended: false,
+    free: true
+  }
+];
+
 export default function SeoGeneratorTemplate() {
   const location = useLocation();
   const isArticleGenerator = location.pathname.includes("article-generator");
@@ -148,6 +183,7 @@ export default function SeoGeneratorTemplate() {
               onCustomOutlineChange={handleOutlineChange}
               showGeminiKeyInput={false}
               onGeneratingStateChange={handleGeneratingState}
+              customModels={customSeoModels}
             />}
     </div>
   );

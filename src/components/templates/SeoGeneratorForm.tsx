@@ -119,6 +119,7 @@ interface SeoGeneratorFormProps {
   additionalPromptContext?: string;
   additionalFormData?: Record<string, any>;
   geminiApiKey?: string;
+  customModels?: AIModel[];
 }
 
 export function SeoGeneratorForm({ 
@@ -134,7 +135,8 @@ export function SeoGeneratorForm({
   additionalFreeModels = [],
   additionalPromptContext,
   additionalFormData,
-  geminiApiKey = ""
+  geminiApiKey = "",
+  customModels
 }: SeoGeneratorFormProps) {
   const { user, apiKey } = useAuth();
   const [isGenerating, setIsGenerating] = React.useState(false);
@@ -170,11 +172,33 @@ export function SeoGeneratorForm({
     return uniqueModels;
   }, [additionalFreeModels]);
 
+  const modelsToDisplay = React.useMemo(() => {
+    if (onlyShowFreeModels) {
+      return combinedFreeModels;
+    } else if (customModels) {
+      return customModels;
+    } else {
+      return recommendedModels;
+    }
+  }, [onlyShowFreeModels, combinedFreeModels, customModels]);
+
+  const defaultModel = React.useMemo(() => {
+    if (onlyShowFreeModels) {
+      return "google/gemini-2.5-pro-exp-03-25:free";
+    } else if (customModels && customModels.length > 0) {
+      return customModels[0].id;
+    } else {
+      return "anthropic/claude-3.7-sonnet";
+    }
+  }, [onlyShowFreeModels, customModels]);
+
   const form = useForm<SeoFormValues>({
     resolver: zodResolver(seoFormSchema),
-    defaultValues: onlyShowFreeModels 
-      ? {...defaultValues, model: "google/gemini-2.5-pro-exp-03-25:free", useGeminiDirectly: true} 
-      : defaultValues,
+    defaultValues: { 
+      ...defaultValues, 
+      model: defaultModel,
+      useGeminiDirectly: onlyShowFreeModels || (defaultModel.includes('gemini') && showGeminiKeyInput)
+    },
   });
 
   React.useEffect(() => {
@@ -445,21 +469,65 @@ export function SeoGeneratorForm({
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent className="z-50 bg-popover border border-border shadow-md">
-                              <div className="mb-2 px-2 py-1.5 text-sm font-semibold">
-                                {onlyShowFreeModels ? "Free Models" : "Recommended"}
-                              </div>
-                              {(onlyShowFreeModels ? combinedFreeModels : recommendedModels.filter(model => model.recommended))
-                                .map(model => (
-                                  <SelectItem key={model.id} value={model.id}>
-                                    <div className="flex flex-col">
-                                      <span>{model.name}</span>
-                                      <span className="text-xs text-muted-foreground">{model.description}</span>
-                                    </div>
-                                  </SelectItem>
-                                ))
-                              }
-                              {!onlyShowFreeModels && (
+                              {customModels ? (
                                 <>
+                                  <div className="mb-2 px-2 py-1.5 text-sm font-semibold">
+                                    Recommended Models
+                                  </div>
+                                  {modelsToDisplay
+                                    .filter(model => model.recommended)
+                                    .map(model => (
+                                      <SelectItem key={model.id} value={model.id}>
+                                        <div className="flex flex-col">
+                                          <span>{model.name}</span>
+                                          <span className="text-xs text-muted-foreground">{model.description}</span>
+                                        </div>
+                                      </SelectItem>
+                                    ))
+                                  }
+                                  <div className="mb-2 mt-2 px-2 py-1.5 text-sm font-semibold">Other Models</div>
+                                  {modelsToDisplay
+                                    .filter(model => !model.recommended)
+                                    .map(model => (
+                                      <SelectItem key={model.id} value={model.id}>
+                                        <div className="flex flex-col">
+                                          <span>{model.name}</span>
+                                          <span className="text-xs text-muted-foreground">{model.description}</span>
+                                        </div>
+                                      </SelectItem>
+                                    ))
+                                  }
+                                </>
+                              ) : onlyShowFreeModels ? (
+                                <>
+                                  <div className="mb-2 px-2 py-1.5 text-sm font-semibold">
+                                    Free Models
+                                  </div>
+                                  {combinedFreeModels.map(model => (
+                                    <SelectItem key={model.id} value={model.id}>
+                                      <div className="flex flex-col">
+                                        <span>{model.name}</span>
+                                        <span className="text-xs text-muted-foreground">{model.description}</span>
+                                      </div>
+                                    </SelectItem>
+                                  ))}
+                                </>
+                              ) : (
+                                <>
+                                  <div className="mb-2 px-2 py-1.5 text-sm font-semibold">
+                                    Recommended
+                                  </div>
+                                  {recommendedModels
+                                    .filter(model => model.recommended)
+                                    .map(model => (
+                                      <SelectItem key={model.id} value={model.id}>
+                                        <div className="flex flex-col">
+                                          <span>{model.name}</span>
+                                          <span className="text-xs text-muted-foreground">{model.description}</span>
+                                        </div>
+                                      </SelectItem>
+                                    ))
+                                  }
                                   <div className="mb-2 mt-2 px-2 py-1.5 text-sm font-semibold">Other Models</div>
                                   {recommendedModels
                                     .filter(model => !model.recommended)
