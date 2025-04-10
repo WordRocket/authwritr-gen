@@ -5,7 +5,6 @@ import { useNavigate, Link, useLocation, Outlet } from "react-router-dom";
 import {
   SidebarProvider,
   SidebarTrigger,
-  Sidebar,
   SidebarContent,
   SidebarGroup,
   SidebarGroupLabel,
@@ -26,13 +25,18 @@ import {
   User,
   AlertCircle,
   History,
-  AlertTriangle
+  AlertTriangle,
+  BadgeDollarSign
 } from "lucide-react";
 import { OnboardingModal } from "./OnboardingModal";
 import { ThemeToggle } from "./ThemeToggle";
+import { UsageDisplay } from "./UsageDisplay";
+import { usePremium } from "@/context/PremiumContext";
+import { Sidebar } from "./ui/sidebar";
 
 export default function MainLayout() {
   const { isAuthenticated, logout, user, apiKey } = useAuth();
+  const { isPremium } = usePremium();
   const navigate = useNavigate();
   const location = useLocation();
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -76,6 +80,11 @@ export default function MainLayout() {
       path: "/settings",
       icon: Settings,
     },
+    {
+      title: "Pricing",
+      path: "/pricing",
+      icon: BadgeDollarSign,
+    }
   ];
 
   if (!isAuthenticated) {
@@ -123,6 +132,9 @@ export default function MainLayout() {
                         <Link to={item.path} className="flex items-center">
                           <item.icon className="h-5 w-5 mr-3" />
                           <span>{item.title}</span>
+                          {item.title === "Pricing" && !isPremium && (
+                            <span className="ml-2 rounded-full bg-primary px-1.5 py-0.5 text-[0.625rem] font-medium text-primary-foreground">PRO</span>
+                          )}
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -130,6 +142,11 @@ export default function MainLayout() {
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
+            
+            {/* Usage Display */}
+            <div className="px-3 py-2 mt-2">
+              <UsageDisplay />
+            </div>
           </SidebarContent>
           <SidebarFooter className="p-4 space-y-2">
             {user && (

@@ -1,2 +1,22 @@
 
-project_id = "wcwkvlxgxvbnzfaoeipr"
+project_id = "wordrocket"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage"]
+
+[db]
+port = 54322
+
+[realtime]
+enabled = true
+
+[storage]
+enabled = true
+
+[functions.create-checkout]
+verify_jwt = true
+
+[functions.check-subscription]
+verify_jwt = true
