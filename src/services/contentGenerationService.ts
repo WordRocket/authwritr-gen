@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -24,6 +23,9 @@ export interface SeoFormValues {
   model: string;
   finalContentModel?: string;
   language?: string;
+  backgroundGeneration?: boolean;
+  bulkGeneration?: boolean;
+  enableThinking?: boolean;
 }
 
 // Define recommended models for the UI to use
