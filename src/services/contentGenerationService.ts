@@ -39,6 +39,15 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
     
     let modelId = formData.model || "anthropic/claude-3.7-sonnet";
     
+    // Set appropriate temperature based on the model
+    let temperature = 0.7; // default temperature
+    
+    // Set temperature to 0.5 specifically for Gemini 2.5 Pro Preview model
+    if (modelId === "google/gemini-2.5-pro-preview-03-25") {
+      temperature = 0.5;
+      console.log("Using Gemini 2.5 Pro Preview with temperature 0.5");
+    }
+    
     if (formData.useGeminiDirectly && formData.geminiApiKey) {
       console.log("Using Gemini API directly");
       return await generateWithGemini(formData);
@@ -99,7 +108,8 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
       searchModel: modelId,
       finalContentModel,
       hasApiKey: !!apiKey,
-      language: contentLanguage
+      language: contentLanguage,
+      temperature: temperature // Log the temperature being used
     });
 
     const customOutline = options?.customOutline;
@@ -129,7 +139,8 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
           customOutline,
           backgroundGeneration: useBackgroundGeneration,
           bulkGeneration: formData.bulkGeneration,
-          language: contentLanguage
+          language: contentLanguage,
+          temperature: temperature // Include temperature in the request
         },
       });
 
@@ -459,9 +470,9 @@ export async function saveGeneratedContent(title: string, content: string, userI
 
 export const recommendedModels = [
   { 
-    id: "google/gemini-2.5-pro-exp-03-25:free", 
-    name: "Gemini Pro 2.5 Experimental", 
-    description: "Google's state-of-the-art AI model (free)",
+    id: "google/gemini-2.5-pro-preview-03-25", 
+    name: "Gemini 2.5 Pro Preview", 
+    description: "Google's state-of-the-art AI model for human-like content",
     recommended: true
   },
   { 
@@ -534,8 +545,8 @@ export const recommendedModels = [
 
 export const freeModels = [
   { 
-    id: "google/gemini-2.5-pro-exp-03-25:free", 
-    name: "Gemini Pro 2.5 Experimental", 
+    id: "google/gemini-2.5-pro-preview-03-25:free", 
+    name: "Gemini 2.5 Pro Preview", 
     description: "Google's state-of-the-art AI model (free)",
     recommended: true
   },

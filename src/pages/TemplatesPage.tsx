@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,8 @@ import {
   BrainCircuit,
   FilesIcon,
   Globe,
-  Sparkles
+  Sparkles,
+  UserRound
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { 
@@ -41,7 +43,7 @@ export default function TemplatesPage() {
     { value: "product", label: "Product Content" },
   ];
 
-  // Templates data - added free SEO generator template
+  // Templates data - added new Low AI Humanized Blog Posts template
   const templatesData = [
     {
       id: "all-in-one-seo",
@@ -50,6 +52,14 @@ export default function TemplatesPage() {
       icon: Search,
       category: "seo",
       route: "/templates/all-in-one-seo"
+    },
+    {
+      id: "low-ai-humanized",
+      title: "Low AI Humanized Blog Posts",
+      description: "Generate natural-sounding blog posts that don't feel AI-written. Uses Gemini 2.5 Pro with specialized settings for human-like content.",
+      icon: UserRound,
+      category: "blog",
+      route: "/templates/low-ai-humanized"
     },
     {
       id: "free-seo-generator",
