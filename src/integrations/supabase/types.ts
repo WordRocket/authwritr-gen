@@ -119,6 +119,7 @@ export type Database = {
       }
       user_usage: {
         Row: {
+          content_count: number | null
           date: string
           id: string
           last_reset: string | null
@@ -126,6 +127,7 @@ export type Database = {
           words_used: number
         }
         Insert: {
+          content_count?: number | null
           date: string
           id?: string
           last_reset?: string | null
@@ -133,6 +135,7 @@ export type Database = {
           words_used?: number
         }
         Update: {
+          content_count?: number | null
           date?: string
           id?: string
           last_reset?: string | null
