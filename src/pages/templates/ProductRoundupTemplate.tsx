@@ -9,7 +9,6 @@ import { Link } from "react-router-dom";
 import { HtmlPreviewComponent } from "@/components/templates/HtmlPreviewComponent";
 import { LanguageSelector } from "@/components/templates/LanguageSelector";
 import { Card } from "@/components/ui/card";
-import { toast } from "sonner";
 
 export default function ProductRoundupTemplate() {
   const [includeInternalLinks, setIncludeInternalLinks] = useState(false);
@@ -68,17 +67,11 @@ export default function ProductRoundupTemplate() {
     console.error("API Error in ProductRoundupTemplate:", error);
     setApiError(error);
     setIsGenerating(false);
-    toast.error(`API Error: ${error}`);
   };
   
   const handleContentGenerated = (content: string) => {
     console.log("Content successfully generated, length:", content.length);
-    if (content) {
-      setGeneratedHtml(content);
-      toast.success("Content generated successfully!");
-    } else {
-      toast.error("Generated content was empty");
-    }
+    setGeneratedHtml(content);
   };
 
   const handleLanguageChange = (newLanguage: string) => {

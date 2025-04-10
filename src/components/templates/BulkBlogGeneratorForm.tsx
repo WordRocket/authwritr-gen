@@ -1,3 +1,4 @@
+
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -319,7 +320,7 @@ export function BulkBlogGeneratorForm({
             includeHook: globalSettings.includeHook,
             includeHtmlElement: globalSettings.includeHtmlElement,
             includeInternalLinks,
-            inputMode: "manualInput",
+            backgroundGeneration: false,
             model: globalSettings.model,
             bulkGeneration: true
           };

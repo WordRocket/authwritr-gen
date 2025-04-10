@@ -7,11 +7,8 @@ import { InfoIcon } from "lucide-react";
 import { BulkBlogGeneratorForm } from "@/components/templates/BulkBlogGeneratorForm";
 import { LanguageSelector } from "@/components/templates/LanguageSelector";
 import { Card } from "@/components/ui/card";
-import { usePremium } from "@/context/PremiumContext";
-import { PremiumRequired } from "@/components/PremiumRequired";
 
 export default function BulkBlogGeneratorTemplate() {
-  const { isPremium } = usePremium();
   const location = useLocation();
   const [includeInternalLinks, setIncludeInternalLinks] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -19,7 +16,7 @@ export default function BulkBlogGeneratorTemplate() {
   const [language, setLanguage] = useState("english");
   
   useEffect(() => {
-    document.title = "Bulk Blog Generator | WordRocket";
+    document.title = "Bulk Blog Generator | Content Genius";
   }, []);
 
   const handleUrlsScraped = (count: number) => {
@@ -61,11 +58,6 @@ export default function BulkBlogGeneratorTemplate() {
     // Store language preference in localStorage for content generation service to use
     localStorage.setItem('contentLanguage', newLanguage);
   };
-
-  // If not premium, show premium required component
-  if (!isPremium) {
-    return <PremiumRequired feature="Bulk Blog Generator" />;
-  }
 
   return (
     <div className="mx-auto container py-8">

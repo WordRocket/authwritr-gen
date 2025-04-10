@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { SeoGeneratorForm } from "@/components/templates/SeoGeneratorForm";
 import { SitemapUrlInput } from "@/components/templates/SitemapUrlInput";
@@ -6,8 +5,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { InfoIcon } from "lucide-react";
 import { LanguageSelector } from "@/components/templates/LanguageSelector";
 import { Card } from "@/components/ui/card";
-import { usePremium } from "@/context/PremiumContext";
-import { PremiumRequired } from "@/components/PremiumRequired";
 
 // Define the Gemini 2.5 Pro Preview model
 const humanizedModels = [
@@ -89,7 +86,6 @@ Additional writing guidelines:
 - Provide valuable information`;
 
 export default function LowAiHumanizedTemplate() {
-  const { isPremium } = usePremium();
   const [includeInternalLinks, setIncludeInternalLinks] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [customOutline, setCustomOutline] = useState("");
@@ -97,7 +93,7 @@ export default function LowAiHumanizedTemplate() {
   const [targetAudience, setTargetAudience] = useState("");
   
   useEffect(() => {
-    document.title = "Low AI Humanized Blog Posts | WordRocket";
+    document.title = "Low AI Humanized Blog Posts | Content Genius";
   }, []);
 
   const handleUrlsScraped = (count: number) => {
@@ -148,11 +144,6 @@ export default function LowAiHumanizedTemplate() {
     setTargetAudience(e.target.value);
     localStorage.setItem('targetAudience', e.target.value);
   };
-
-  // If not premium, show premium required component
-  if (!isPremium) {
-    return <PremiumRequired feature="Low AI Humanized Blog Posts" />;
-  }
 
   return (
     <div className="mx-auto container py-8">

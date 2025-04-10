@@ -12,8 +12,7 @@ import {
   FilesIcon,
   Sparkles,
   ShoppingBag,
-  UserRound,
-  BadgeDollarSign
+  UserRound
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -23,14 +22,11 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { usePremium } from "@/context/PremiumContext";
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
-  const { isPremium } = usePremium();
 
   // Template categories
   const categories = [
@@ -52,8 +48,7 @@ export default function Dashboard() {
       description: "Complete SEO-optimized content with keywords, meta descriptions, and structured sections",
       icon: Search,
       category: "seo",
-      route: "/templates/all-in-one-seo",
-      isPremium: false
+      route: "/templates/all-in-one-seo"
     },
     {
       id: "free-seo-generator",
@@ -61,8 +56,7 @@ export default function Dashboard() {
       description: "Generate SEO-optimized content using free AI models with perfect formatting and structure",
       icon: Sparkles,
       category: "free",
-      route: "/templates/free-seo-generator",
-      isPremium: false
+      route: "/templates/free-seo-generator"
     },
     {
       id: "web-search",
@@ -70,8 +64,7 @@ export default function Dashboard() {
       description: "Research and write articles with live web search capabilities for up-to-date content",
       icon: Globe,
       category: "article",
-      route: "/templates/web-search",
-      isPremium: false
+      route: "/templates/web-search"
     },
     {
       id: "deep-thinking",
@@ -79,8 +72,7 @@ export default function Dashboard() {
       description: "Create thoughtful, detailed content using AI models that explicitly show their reasoning process",
       icon: BrainCircuit,
       category: "thinking",
-      route: "/templates/deep-thinking",
-      isPremium: false
+      route: "/templates/deep-thinking"
     },
     {
       id: "article-generator",
@@ -88,8 +80,7 @@ export default function Dashboard() {
       description: "Create current, well-researched articles with live web search integration",
       icon: FileEdit,
       category: "article",
-      route: "/templates/article-generator",
-      isPremium: false
+      route: "/templates/article-generator"
     },
     {
       id: "product-roundup",
@@ -97,8 +88,7 @@ export default function Dashboard() {
       description: "Create comprehensive product comparison articles with detailed reviews and buyer's guides",
       icon: ShoppingBag,
       category: "product",
-      route: "/templates/product-roundup",
-      isPremium: false
+      route: "/templates/product-roundup"
     },
     {
       id: "low-ai-humanized",
@@ -106,8 +96,7 @@ export default function Dashboard() {
       description: "Generate natural-sounding blog posts that don't feel AI-written using Google's Gemini 2.5 Pro model",
       icon: UserRound,
       category: "blog",
-      route: "/templates/low-ai-humanized",
-      isPremium: true
+      route: "/templates/low-ai-humanized"
     },
     {
       id: "bulk-blog-generator",
@@ -115,8 +104,7 @@ export default function Dashboard() {
       description: "Generate multiple SEO-optimized blog posts in the background with shared settings",
       icon: FilesIcon,
       category: "bulk",
-      route: "/templates/bulk-blog-generator",
-      isPremium: true
+      route: "/templates/bulk-blog-generator"
     }
   ];
 
@@ -171,25 +159,15 @@ export default function Dashboard() {
         {filteredTemplates.map((template) => (
           <Card
             key={template.id}
-            className={`cursor-pointer border hover:border-primary/30 transition-all hover:shadow-md hover:-translate-y-1 ${
-              template.isPremium && !isPremium ? 'border-amber-300 dark:border-amber-700' : ''
-            }`}
+            className="cursor-pointer border hover:border-primary/30 transition-all hover:shadow-md hover:-translate-y-1"
             onClick={() => navigate(template.route)}
           >
             <CardHeader className="flex flex-row items-center space-y-0 pb-2">
               <div className="mr-4 rounded-full bg-primary/10 p-3">
                 <template.icon className="h-5 w-5 text-primary" />
               </div>
-              <div className="flex-1">
-                <CardTitle className="text-base flex items-center gap-2">
-                  {template.title}
-                  {template.isPremium && (
-                    <Badge variant={isPremium ? "default" : "outline"} className={isPremium ? "bg-primary" : "border-amber-500 text-amber-500"}>
-                      <BadgeDollarSign className="h-3 w-3 mr-1" />
-                      Premium
-                    </Badge>
-                  )}
-                </CardTitle>
+              <div>
+                <CardTitle className="text-base">{template.title}</CardTitle>
               </div>
             </CardHeader>
             <CardContent>
@@ -211,21 +189,6 @@ export default function Dashboard() {
               }}
             >
               Clear Filters
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      {!isPremium && (
-        <Card className="bg-primary/5 border-primary/20 p-6">
-          <CardContent className="p-0 flex flex-col md:flex-row items-center justify-between gap-4">
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Upgrade to WordRocket Premium</h3>
-              <p className="text-muted-foreground mb-0">Unlock all premium templates and enjoy unlimited content generation</p>
-            </div>
-            <Button onClick={() => navigate('/pricing')} className="whitespace-nowrap">
-              <BadgeDollarSign className="mr-2 h-4 w-4" />
-              View Pricing
             </Button>
           </CardContent>
         </Card>

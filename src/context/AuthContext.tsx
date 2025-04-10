@@ -5,31 +5,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
-// Define subscription interface to match our database structure
-interface Subscription {
-  id: string;
-  user_id: string;
-  status: string;
-  subscription_type: string;
-  created_at: string;
-  updated_at: string;
-  expires_at: string | null;
-  stripe_subscription_id: string | null;
-  stripe_customer_id: string | null;
-}
-
 interface AuthContextType {
   isAuthenticated: boolean;
   apiKey: string | null;
   user: User | null;
-  supabase: typeof supabase;
-  isPremium: boolean;
   login: (apiKey: string) => void;
   logout: () => void;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
   setApiKey: (apiKey: string) => void;
-  startCheckoutSession: (priceType: 'monthly' | 'lifetime') => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -39,7 +23,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isPremium, setIsPremium] = useState(false);
 
   useEffect(() => {
     const storedApiKey = localStorage.getItem("openrouter_api_key");
@@ -52,13 +35,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       (_event, session) => {
         setUser(session?.user || null);
         setIsAuthenticated(!!session);
-        
-        // Check premium status when auth state changes
-        if (session?.user) {
-          checkPremium(session.user);
-        } else {
-          setIsPremium(false);
-        }
       }
     );
 
@@ -76,7 +52,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (session) {
           setUser(session.user);
           setIsAuthenticated(true);
-          checkPremium(session.user);
         }
       } catch (error) {
         console.error("Auth error:", error);
@@ -91,56 +66,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       subscription.unsubscribe();
     };
   }, []);
-
-  // Check premium status function
-  const checkPremium = async (currentUser: User) => {
-    if (!currentUser) return;
-    
-    try {
-      console.log(`Checking premium status for user ${currentUser.id}`);
-      const { data, error } = await supabase
-        .from('subscriptions')
-        .select('status')
-        .eq('user_id', currentUser.id)
-        .maybeSingle();
-          
-      if (error && error.code !== 'PGRST116') {
-        console.error("Error checking premium status:", error);
-        return;
-      }
-      
-      // Use type assertion only after error check
-      setIsPremium(data ? data.status === 'active' : false);
-      console.log("Premium status:", data ? data.status : "no subscription found");
-    } catch (error) {
-      console.error("Premium check error:", error);
-    }
-  };
-
-  // Add placeholder for the startCheckoutSession function
-  const startCheckoutSession = async (priceType: 'monthly' | 'lifetime') => {
-    try {
-      if (!user) {
-        toast.error("Please login to subscribe");
-        return;
-      }
-      
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { priceType }
-      });
-      
-      if (error) throw error;
-      
-      if (data?.url) {
-        window.location.href = data.url;
-      } else {
-        throw new Error("No checkout URL returned");
-      }
-    } catch (error) {
-      console.error("Error starting checkout:", error);
-      toast.error("Failed to start checkout process");
-    }
-  };
 
   const signUp = async (email: string, password: string) => {
     try {
@@ -266,15 +191,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     <AuthContext.Provider value={{ 
       isAuthenticated, 
       apiKey, 
-      user,
-      supabase,
-      isPremium,
+      user, 
       login, 
       logout, 
       signIn, 
       signUp,
-      setApiKey,
-      startCheckoutSession
+      setApiKey
     }}>
       {children}
     </AuthContext.Provider>

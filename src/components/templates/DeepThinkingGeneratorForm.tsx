@@ -206,7 +206,6 @@ export function DeepThinkingGeneratorForm({
         ...data,
         includeInternalLinks,
         enableThinking: true,
-        inputMode: "manualInput",
       };
       
       const content = await generateSeoContent(formDataWithInternalLinks as SeoServiceFormValues, apiKey);

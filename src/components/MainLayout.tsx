@@ -1,9 +1,11 @@
+
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate, Link, useLocation, Outlet } from "react-router-dom";
 import {
   SidebarProvider,
   SidebarTrigger,
+  Sidebar,
   SidebarContent,
   SidebarGroup,
   SidebarGroupLabel,
@@ -24,35 +26,32 @@ import {
   User,
   AlertCircle,
   History,
-  AlertTriangle,
-  BadgeDollarSign
+  AlertTriangle
 } from "lucide-react";
 import { OnboardingModal } from "./OnboardingModal";
 import { ThemeToggle } from "./ThemeToggle";
-import { UsageDisplay } from "./UsageDisplay";
-import { usePremium } from "@/context/PremiumContext";
-import { Sidebar } from "./ui/sidebar";
-import { Toaster } from "@/components/ui/sonner";
 
 export default function MainLayout() {
   const { isAuthenticated, logout, user, apiKey } = useAuth();
-  const { isPremium } = usePremium();
   const navigate = useNavigate();
   const location = useLocation();
   const [showOnboarding, setShowOnboarding] = useState(false);
 
+  // Redirect to login if not authenticated
   useEffect(() => {
     if (!isAuthenticated) {
       navigate("/auth");
     }
   }, [isAuthenticated, navigate]);
 
+  // Show onboarding modal when a user logs in and doesn't have an API key
   useEffect(() => {
     if (isAuthenticated && !apiKey && location.pathname !== "/settings") {
       setShowOnboarding(true);
     }
   }, [isAuthenticated, apiKey, location.pathname]);
 
+  // Menu items - add History tab back
   const menuItems = [
     {
       title: "Dashboard",
@@ -77,11 +76,6 @@ export default function MainLayout() {
       path: "/settings",
       icon: Settings,
     },
-    {
-      title: "Pricing",
-      path: "/pricing",
-      icon: BadgeDollarSign,
-    }
   ];
 
   if (!isAuthenticated) {
@@ -90,7 +84,6 @@ export default function MainLayout() {
 
   return (
     <SidebarProvider>
-      <Toaster />
       <div className="min-h-screen flex w-full">
         <Sidebar>
           <SidebarHeader className="flex flex-row items-center px-4 py-2">
@@ -130,9 +123,6 @@ export default function MainLayout() {
                         <Link to={item.path} className="flex items-center">
                           <item.icon className="h-5 w-5 mr-3" />
                           <span>{item.title}</span>
-                          {item.title === "Pricing" && !isPremium && (
-                            <span className="ml-2 rounded-full bg-primary px-1.5 py-0.5 text-[0.625rem] font-medium text-primary-foreground">PRO</span>
-                          )}
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -140,10 +130,6 @@ export default function MainLayout() {
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
-            
-            <div className="px-3 py-2 mt-2">
-              <UsageDisplay />
-            </div>
           </SidebarContent>
           <SidebarFooter className="p-4 space-y-2">
             {user && (
@@ -175,6 +161,7 @@ export default function MainLayout() {
             </div>
           </div>
           
+          {/* API Key Warning */}
           {!apiKey && location.pathname !== "/settings" && (
             <Alert className="rounded-none border-l-4 border-destructive bg-destructive/10">
               <AlertTriangle className="h-4 w-4 text-destructive" />
@@ -188,6 +175,7 @@ export default function MainLayout() {
             </Alert>
           )}
           
+          {/* Beta Banner */}
           <Alert className="rounded-none border-l-4 border-primary bg-primary/10 my-0">
             <AlertCircle className="h-4 w-4 text-primary" />
             <AlertDescription className="text-sm">
@@ -203,6 +191,7 @@ export default function MainLayout() {
           </div>
         </main>
         
+        {/* Onboarding Modal */}
         <OnboardingModal 
           open={showOnboarding} 
           onOpenChange={setShowOnboarding} 
