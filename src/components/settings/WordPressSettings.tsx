@@ -8,6 +8,8 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { ExternalLink, Check } from "lucide-react";
+import { testWordPressConnection } from "@/services/wordpressService";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function WordPressSettings() {
   const { user } = useAuth();
@@ -16,6 +18,7 @@ export default function WordPressSettings() {
   const [appPassword, setAppPassword] = useState("");
   const [testingConnection, setTestingConnection] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
 
   // Load saved WordPress settings from localStorage
   useEffect(() => {
@@ -68,76 +71,54 @@ export default function WordPressSettings() {
 
   const testConnection = async () => {
     setTestingConnection(true);
+    setConnectionError(null);
     
     try {
+      // Format the URL properly before testing
+      let testUrl = siteUrl;
+      if (!testUrl.startsWith('http://') && !testUrl.startsWith('https://')) {
+        testUrl = 'https://' + testUrl;
+      }
+      if (testUrl.endsWith('/')) {
+        testUrl = testUrl.slice(0, -1);
+      }
+      
       const result = await testWordPressConnection(
-        siteUrl, 
+        testUrl, 
         username, 
         appPassword !== "********" ? appPassword : JSON.parse(localStorage.getItem(`wordpress_settings_${user.id}`) || '{}').appPassword
       );
       
+      console.log("WordPress connection test result:", result);
+      
       if (result.success) {
         setIsConnected(true);
+        setConnectionError(null);
         toast.success("Successfully connected to WordPress site");
         
         // Save the updated connection state
-        saveSettings();
+        const settings = {
+          siteUrl: testUrl,
+          username,
+          appPassword: appPassword !== "********" ? appPassword : JSON.parse(localStorage.getItem(`wordpress_settings_${user.id}`) || '{}').appPassword,
+          isConnected: true
+        };
+        localStorage.setItem(`wordpress_settings_${user.id}`, JSON.stringify(settings));
       } else {
         setIsConnected(false);
+        setConnectionError(result.message || "Unknown connection error");
         toast.error(`Connection failed: ${result.message}`);
       }
     } catch (error) {
       console.error("Error testing WordPress connection:", error);
       setIsConnected(false);
-      toast.error("Connection failed. Please check your credentials and site URL.");
+      const errorMessage = error instanceof Error ? error.message : "Network or connection error";
+      setConnectionError(errorMessage);
+      toast.error(`Connection failed: ${errorMessage}`);
     } finally {
       setTestingConnection(false);
     }
   };
-
-  async function testWordPressConnection(url: string, user: string, password: string) {
-    // Make sure URL is properly formatted
-    let apiUrl = url;
-    if (!apiUrl.startsWith('http://') && !apiUrl.startsWith('https://')) {
-      apiUrl = 'https://' + apiUrl;
-    }
-    if (apiUrl.endsWith('/')) {
-      apiUrl = apiUrl.slice(0, -1);
-    }
-    
-    const endpoint = `${apiUrl}/wp-json/wp/v2/users/me`;
-    
-    try {
-      const response = await fetch(endpoint, {
-        method: "GET",
-        headers: {
-          'Authorization': 'Basic ' + btoa(user + ':' + password),
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        return {
-          success: true,
-          user: data,
-          message: "Connected successfully"
-        };
-      } else {
-        const errorData = await response.json();
-        return {
-          success: false,
-          message: errorData.message || `Error ${response.status}: ${response.statusText}`
-        };
-      }
-    } catch (error) {
-      console.error("Error in WordPress connection test:", error);
-      return {
-        success: false,
-        message: "Network or connection error. Please check the site URL and try again."
-      };
-    }
-  }
 
   return (
     <Card className="border hover:border-primary/10 transition-shadow hover:shadow-md">
@@ -195,6 +176,14 @@ export default function WordPressSettings() {
             </a>
           </div>
         </div>
+
+        {connectionError && (
+          <Alert variant="destructive" className="bg-destructive/10 text-destructive border-destructive">
+            <AlertDescription>
+              Connection error: {connectionError}
+            </AlertDescription>
+          </Alert>
+        )}
 
         {isConnected && (
           <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
