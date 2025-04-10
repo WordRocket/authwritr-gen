@@ -17,7 +17,7 @@ import "./App.css";
 import MainLayout from "./components/MainLayout";
 import { AuthProvider } from "./context/AuthContext";
 import { ThemeProvider } from "./components/theme-provider";
-import { Toaster } from "@/components/ui/toaster";
+import { Toaster } from "sonner";
 import HistoryPage from "./pages/HistoryPage";
 
 function App() {
@@ -43,7 +43,7 @@ function App() {
           </Route>
           <Route path="/auth" element={<AuthPage />} />
         </Routes>
-        <Toaster />
+        <Toaster richColors position="top-right" />
       </AuthProvider>
     </ThemeProvider>
   );

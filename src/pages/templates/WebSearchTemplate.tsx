@@ -6,6 +6,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { InfoIcon, Globe } from "lucide-react";
 import { LanguageSelector } from "@/components/templates/LanguageSelector";
 import { Card } from "@/components/ui/card";
+import WordPressPublishSection from "@/components/wordpress/WordPressPublishSection";
 
 export default function WebSearchTemplate() {
   const [includeInternalLinks, setIncludeInternalLinks] = useState(false);
@@ -13,6 +14,8 @@ export default function WebSearchTemplate() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [customOutline, setCustomOutline] = useState("");
   const [language, setLanguage] = useState("english");
+  const [generatedContent, setGeneratedContent] = useState("");
+  const [generatedTitle, setGeneratedTitle] = useState("");
   
   useEffect(() => {
     document.title = "Real-Time Web Search Article Generator | Content Genius";
@@ -71,6 +74,11 @@ export default function WebSearchTemplate() {
     // Store language preference in localStorage for content generation service to use
     localStorage.setItem('contentLanguage', newLanguage);
   };
+  
+  const handleContentGenerated = (title: string, content: string) => {
+    setGeneratedTitle(title);
+    setGeneratedContent(content);
+  };
 
   return (
     <div className="mx-auto container py-8">
@@ -112,7 +120,16 @@ export default function WebSearchTemplate() {
         customOutline={customOutline}
         onCustomOutlineChange={handleOutlineChange}
         forceWebSearch={true}
+        onGeneratingStateChange={handleGeneratingState}
+        onContentGenerated={handleContentGenerated}
       />
+      
+      {generatedContent && generatedTitle && (
+        <WordPressPublishSection
+          title={generatedTitle}
+          content={generatedContent}
+        />
+      )}
     </div>
   );
 }
