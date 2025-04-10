@@ -215,17 +215,49 @@ export const saveGeneratedContent = async (
       throw new Error("Missing title or content");
     }
     
+    // Ensure title is not used as a UUID
+    const titleForSaving = title.trim().substring(0, 200); // Limit title length
+    
+    console.log(`Saving content with title: ${titleForSaving}`);
+    
     // Save the content to the database
-    const result = await saveContentToDatabase(userId, title, content);
+    const { data, error } = await supabase
+      .from("content")
+      .insert({
+        user_id: userId,
+        title: titleForSaving,
+        content: content
+      })
+      .select();
+
+    if (error) {
+      console.error("Supabase error:", error);
+      
+      // More specific error messages based on Supabase error codes
+      if (error.code === '23505') {
+        toast.error("Content with this title already exists");
+        throw new Error("Content with this title already exists");
+      } else if (error.code === '42501') {
+        toast.error("Permission denied. Please check your account permissions");
+        throw new Error("Permission denied. Please check your account permissions");
+      } else {
+        toast.error(`Failed to save: ${error.message}`);
+        throw new Error(`Database error: ${error.message}`);
+      }
+    }
+
+    if (!data || data.length === 0) {
+      toast.error("No data returned from database");
+      throw new Error("No data returned from database");
+    }
     
-    // Display success message
+    console.log("Content saved successfully with ID:", data[0].id);
     toast.success("Content saved successfully!");
-    
-    return result;
+    return data[0].id;
   } catch (error: any) {
     console.error("Error in saveGeneratedContent:", error);
     toast.error(`Failed to save: ${error.message || "Unknown error"}`);
-    throw new Error(`Failed to save content: ${error.message}`);
+    throw error; // Propagate the error to be handled by the caller
   }
 };
 
@@ -297,16 +329,15 @@ export const saveContentToDatabase = async (
       throw new Error("Content cannot be empty");
     }
     
-    // Insert the content into the database
+    // Fix: Ensure we're not using the title as a UUID
     const { data, error } = await supabase
       .from("content")
       .insert({
         user_id: userId,
-        title,
-        content
+        title: title.trim(),
+        content: content
       })
-      .select()
-      .single();
+      .select();
 
     if (error) {
       console.error("Supabase error:", error);
@@ -321,12 +352,12 @@ export const saveContentToDatabase = async (
       }
     }
 
-    if (!data) {
+    if (!data || data.length === 0) {
       throw new Error("No data returned from database");
     }
     
-    console.log("Content saved successfully with ID:", data.id);
-    return data.id;
+    console.log("Content saved successfully with ID:", data[0].id);
+    return data[0].id;
   } catch (error: any) {
     console.error("Error in saveContentToDatabase:", error);
     throw error; // Propagate the error to be handled by the caller

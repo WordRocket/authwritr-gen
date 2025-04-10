@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { InfoIcon, AlertCircle } from "lucide-react";
@@ -67,6 +68,7 @@ export default function ProductRoundupTemplate() {
     console.error("API Error in ProductRoundupTemplate:", error);
     setApiError(error);
     setIsGenerating(false);
+    toast.error(`API Error: ${error}`);
   };
   
   const handleContentGenerated = (content: string) => {
