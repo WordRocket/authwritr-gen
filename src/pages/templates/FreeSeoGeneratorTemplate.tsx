@@ -10,9 +10,9 @@ import { Card } from "@/components/ui/card";
 
 const additionalFreeModels = [
   {
-    id: "deepseek/deepseek-v3-base:free",
-    name: "DeepSeek V3 Base (free)",
-    description: "671B parameter open MoE model with 37B active parameters and 128K context",
+    id: "google/gemini-2.5-pro-exp-03-25:free",
+    name: "Gemini 2.5 Pro Experimental",
+    description: "Latest Gemini model with experimental features (free)",
     recommended: true,
     free: true
   },
@@ -24,8 +24,8 @@ const additionalFreeModels = [
     free: true
   },
   {
-    id: "qwen/qwen2.5-vl-32b-instruct:free",
-    name: "Qwen2.5 VL 32B Instruct (free)",
+    id: "qwen/qwen2.5-vl-3b-instruct:free",
+    name: "Qwen 2.5 VL 3B Instruct (free)",
     description: "Multimodal vision-language model with enhanced reasoning capabilities",
     recommended: true,
     free: true
@@ -132,6 +132,9 @@ export default function FreeSeoGeneratorTemplate() {
         onCustomOutlineChange={handleOutlineChange}
         onGeneratingStateChange={handleGeneratingState}
         showGeminiKeyInput={true}
+        geminiApiKey={geminiApiKey}
+        onGeminiApiKeyChange={handleGeminiApiKeyChange}
+        onlyShowFreeModels={true}
         additionalFreeModels={additionalFreeModels}
       />
     </div>

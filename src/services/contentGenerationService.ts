@@ -578,22 +578,25 @@ export const recommendedModels = [
 
 export const freeModels = [
   { 
-    id: "google/gemini-2.5-pro-preview-03-25:free", 
-    name: "Gemini 2.5 Pro Preview", 
-    description: "Google's state-of-the-art AI model (free)",
-    recommended: true
+    id: "google/gemini-2.5-pro-exp-03-25:free", 
+    name: "Gemini 2.5 Pro Experimental", 
+    description: "Latest Gemini model with experimental features (free)",
+    recommended: true,
+    free: true
   },
   { 
-    id: "google/gemini-2.0-flash:free", 
-    name: "Gemini 2.0 Flash", 
-    description: "Fastest Gemini model for quick content (free)",
-    recommended: true
+    id: "meta-llama/llama-4-maverick:free", 
+    name: "Llama 4 Maverick", 
+    description: "17B multimodal model with 256K context (free)",
+    recommended: true,
+    free: true
   },
   { 
-    id: "google/gemini-2.0-pro:free", 
-    name: "Gemini 2.0 Pro", 
-    description: "More capable content generation model (free)",
-    recommended: true
+    id: "qwen/qwen2.5-vl-3b-instruct:free", 
+    name: "Qwen 2.5 VL 3B Instruct", 
+    description: "Multimodal vision-language model (free)",
+    recommended: true,
+    free: true
   }
 ];
 

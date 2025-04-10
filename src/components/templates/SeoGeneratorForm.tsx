@@ -1,4 +1,3 @@
-
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -119,6 +118,7 @@ interface SeoGeneratorFormProps {
   additionalFreeModels?: AIModel[];
   additionalPromptContext?: string;
   additionalFormData?: Record<string, any>;
+  geminiApiKey?: string;
 }
 
 export function SeoGeneratorForm({ 
@@ -133,7 +133,8 @@ export function SeoGeneratorForm({
   showGeminiKeyInput = false,
   additionalFreeModels = [],
   additionalPromptContext,
-  additionalFormData
+  additionalFormData,
+  geminiApiKey = ""
 }: SeoGeneratorFormProps) {
   const { user, apiKey } = useAuth();
   const [isGenerating, setIsGenerating] = React.useState(false);
@@ -162,15 +163,15 @@ export function SeoGeneratorForm({
   }, [apiKey]);
 
   React.useEffect(() => {
-    if (savedGeminiApiKey && showGeminiKeyInput) {
-      form.setValue('geminiApiKey', savedGeminiApiKey);
+    if ((savedGeminiApiKey || geminiApiKey) && showGeminiKeyInput) {
+      form.setValue('geminiApiKey', savedGeminiApiKey || geminiApiKey);
     }
     
     const currentModel = form.getValues('model');
     if (currentModel && currentModel.includes('gemini') && showGeminiKeyInput) {
       form.setValue('useGeminiDirectly', true);
     }
-  }, [form, savedGeminiApiKey, showGeminiKeyInput]);
+  }, [form, savedGeminiApiKey, showGeminiKeyInput, geminiApiKey]);
 
   React.useEffect(() => {
     const subscription = form.watch((value, { name }) => {
@@ -967,4 +968,3 @@ export function SeoGeneratorForm({
     </Tabs>
   );
 }
-
