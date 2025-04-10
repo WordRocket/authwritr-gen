@@ -215,17 +215,21 @@ export const saveGeneratedContent = async (
       throw new Error("Missing title or content");
     }
     
-    // Ensure title is not used as a UUID
-    const titleForSaving = title.trim().substring(0, 200); // Limit title length
+    // Generate a timestamp for the article and add it to the title to make it unique
+    const timestamp = new Date().toISOString();
+    // Sanitize the title to avoid UUID parsing issues
+    const sanitizedTitle = title.trim().replace(/[^\w\s]/gi, '');
+    // Create a unique title using timestamp to avoid duplicate errors
+    const uniqueTitle = `${sanitizedTitle} (${timestamp.slice(0, 10)})`.substring(0, 200);
     
-    console.log(`Saving content with title: ${titleForSaving}`);
+    console.log(`Saving content with unique title: ${uniqueTitle}`);
     
     // Save the content to the database
     const { data, error } = await supabase
       .from("content")
       .insert({
         user_id: userId,
-        title: titleForSaving,
+        title: uniqueTitle,
         content: content
       })
       .select();
@@ -235,7 +239,7 @@ export const saveGeneratedContent = async (
       
       // More specific error messages based on Supabase error codes
       if (error.code === '23505') {
-        toast.error("Content with this title already exists");
+        toast.error("Content with this title already exists. Please try again with a different title.");
         throw new Error("Content with this title already exists");
       } else if (error.code === '42501') {
         toast.error("Permission denied. Please check your account permissions");
@@ -308,6 +312,7 @@ function constructSeoPrompt(formValues: SeoFormValues, customOutline?: string): 
   return prompt;
 }
 
+// Update the saveContentToDatabase function to fix UUID issues
 export const saveContentToDatabase = async (
   userId: string,
   title: string,
@@ -329,12 +334,19 @@ export const saveContentToDatabase = async (
       throw new Error("Content cannot be empty");
     }
     
+    // Generate a timestamp to create a unique title
+    const timestamp = new Date().toISOString();
+    // Sanitize the title to avoid UUID parsing issues
+    const sanitizedTitle = title.trim().replace(/[^\w\s]/gi, '');
+    // Create a unique title using timestamp
+    const uniqueTitle = `${sanitizedTitle} (${timestamp.slice(0, 10)})`.substring(0, 200);
+    
     // Fix: Ensure we're not using the title as a UUID
     const { data, error } = await supabase
       .from("content")
       .insert({
         user_id: userId,
-        title: title.trim(),
+        title: uniqueTitle,
         content: content
       })
       .select();

@@ -1,6 +1,7 @@
+
 import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 // Define interfaces for our database tables
 interface UserUsage {
@@ -44,7 +45,6 @@ const PremiumContext = createContext<PremiumContextType | undefined>(undefined);
 
 export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) => {
   const { user, supabase } = useAuth();
-  const { toast } = useToast();
   const [isPremium, setIsPremium] = useState<boolean>(false);
   const [contentLimit, setContentLimit] = useState<number>(5);
   const [contentCount, setContentCount] = useState<number>(0);
@@ -119,10 +119,9 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
       if (error) {
         console.error("Error checking premium status:", error);
         if (error.code !== 'PGRST116') { 
-          toast({
-            title: "Error",
-            description: "Failed to check premium status.",
-            variant: "destructive"
+          toast("Failed to check premium status.", {
+            description: "Please try again or contact support.",
+            style: { backgroundColor: "red" }
           });
         }
         setIsPremium(false);
@@ -167,11 +166,7 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
       if (error) {
         console.error("Error loading user usage:", error);
         if (error.code !== 'PGRST116') {
-          toast({
-            title: "Error",
-            description: "Failed to load usage data.",
-            variant: "destructive"
-          });
+          toast.error("Failed to load usage data.");
         }
         setIsLoading(false);
         return;
@@ -205,11 +200,7 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
       }
     } catch (error) {
       console.error("Error loading user usage:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load usage data.",
-        variant: "destructive"
-      });
+      toast.error("Failed to load usage data.");
     } finally {
       setIsLoading(false);
     }
@@ -218,6 +209,7 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
   const trackContentUsage = async (): Promise<boolean> => {
     if (!user) {
       console.log("Cannot track content usage: No user logged in");
+      toast.error("Please log in to generate content.");
       return false;
     }
     
@@ -233,11 +225,7 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
     
     if (newTotal > contentLimit) {
       console.log("Daily limit would be exceeded");
-      toast({
-        title: "Daily Limit Reached",
-        description: `You've reached your free daily limit of ${contentLimit} content generations. Upgrade to Premium for unlimited usage.`,
-        variant: "destructive"
-      });
+      toast.error(`You've reached your free daily limit of ${contentLimit} content generations. Upgrade to Premium for unlimited usage.`);
       return false;
     }
     
@@ -255,6 +243,7 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
       
       if (fetchError && fetchError.code !== 'PGRST116') {
         console.error("Error fetching current content usage:", fetchError);
+        toast.error("Failed to update usage tracker.");
         return false;
       }
       
@@ -266,15 +255,26 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
       
       const updatedTotal = currentUsage + 1;
       
+      // Double-check if we'd exceed the limit with the updated total
+      if (updatedTotal > contentLimit && !isPremium) {
+        console.log("Daily limit would be exceeded based on latest data");
+        toast.error(`You've reached your free daily limit of ${contentLimit} content generations. Upgrade to Premium for unlimited usage.`);
+        return false;
+      }
+      
       if (currentData) {
         const { error: updateError } = await supabase
           .from('user_usage')
-          .update({ content_count: updatedTotal })
+          .update({ 
+            content_count: updatedTotal,
+            last_reset: new Date().toISOString()
+          })
           .eq('user_id', user.id)
           .eq('date', today);
           
         if (updateError) {
           console.error("Error updating content usage:", updateError);
+          toast.error("Failed to update usage tracker.");
           return false;
         }
         
@@ -295,6 +295,7 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
           
         if (insertError) {
           console.error("Error inserting content usage:", insertError);
+          toast.error("Failed to create usage tracker.");
           return false;
         }
         
@@ -304,19 +305,12 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
       // Update local state
       setContentCount(updatedTotal);
       
-      toast({
-        title: "Usage Updated",
-        description: `Content generation added to today's usage.`,
-      });
+      toast.success(`Content generation added (${updatedTotal}/${contentLimit} today).`);
       
       return true;
     } catch (error) {
       console.error("Error tracking content usage:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update usage data.",
-        variant: "destructive"
-      });
+      toast.error("Failed to update usage data.");
       return false;
     }
   };
@@ -383,18 +377,17 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
       
       // Also reload usage to ensure everything is in sync
       await loadUserUsage();
+      
+      toast.success("Daily usage has been reset.");
     } catch (error) {
       console.error("Error resetting usage:", error);
+      toast.error("Failed to reset usage data.");
     }
   };
 
   const startCheckoutSession = async (priceType: 'monthly' | 'lifetime') => {
     if (!user) {
-      toast({
-        title: "Login Required",
-        description: "Please login to subscribe.",
-        variant: "destructive"
-      });
+      toast.error("Please login to subscribe.");
       return;
     }
     
@@ -414,11 +407,7 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
       }
     } catch (error) {
       console.error("Error starting checkout:", error);
-      toast({
-        title: "Checkout Error",
-        description: "Failed to start checkout process.",
-        variant: "destructive"
-      });
+      toast.error("Failed to start checkout process.");
     } finally {
       setIsLoading(false);
     }
