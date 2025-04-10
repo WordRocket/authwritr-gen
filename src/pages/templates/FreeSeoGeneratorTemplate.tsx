@@ -8,7 +8,8 @@ import { InfoIcon } from "lucide-react";
 import { LanguageSelector } from "@/components/templates/LanguageSelector";
 import { Card } from "@/components/ui/card";
 
-const additionalFreeModels = [
+// Define unique free models that won't be duplicated
+const freeSeoModels = [
   {
     id: "google/gemini-2.5-pro-exp-03-25:free",
     name: "Gemini 2.5 Pro Experimental",
@@ -135,7 +136,7 @@ export default function FreeSeoGeneratorTemplate() {
         geminiApiKey={geminiApiKey}
         onGeminiApiKeyChange={handleGeminiApiKeyChange}
         onlyShowFreeModels={true}
-        additionalFreeModels={additionalFreeModels}
+        additionalFreeModels={[]} // We'll now use the unified models from the service instead
       />
     </div>
   );

@@ -1,4 +1,3 @@
-
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -149,7 +148,26 @@ export function SeoGeneratorForm({
   const navigate = useNavigate();
   
   const combinedFreeModels = React.useMemo(() => {
-    return [...freeModels, ...additionalFreeModels];
+    const uniqueModelIds = new Set();
+    const uniqueModels = [];
+    
+    freeModels.forEach(model => {
+      if (!uniqueModelIds.has(model.id)) {
+        uniqueModelIds.add(model.id);
+        uniqueModels.push(model);
+      }
+    });
+    
+    if (additionalFreeModels) {
+      additionalFreeModels.forEach(model => {
+        if (!uniqueModelIds.has(model.id)) {
+          uniqueModelIds.add(model.id);
+          uniqueModels.push(model);
+        }
+      });
+    }
+    
+    return uniqueModels;
   }, [additionalFreeModels]);
 
   const form = useForm<SeoFormValues>({
