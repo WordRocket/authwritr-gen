@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -199,7 +200,33 @@ export const saveGeneratedContent = async (
   title: string,
   content: string
 ): Promise<string> => {
-  return await saveContentToDatabase(userId, title, content);
+  try {
+    console.log("Saving content to database...");
+    
+    if (!userId) {
+      console.error("No user ID provided for saving content");
+      toast.error("Authentication error. Please log in again.");
+      throw new Error("No user ID provided");
+    }
+
+    if (!title || !content) {
+      console.error("Missing title or content");
+      toast.error("Cannot save: Missing title or content");
+      throw new Error("Missing title or content");
+    }
+    
+    // Save the content to the database
+    const result = await saveContentToDatabase(userId, title, content);
+    
+    // Display success message
+    toast.success("Content saved successfully!");
+    
+    return result;
+  } catch (error: any) {
+    console.error("Error in saveGeneratedContent:", error);
+    toast.error(`Failed to save: ${error.message || "Unknown error"}`);
+    throw new Error(`Failed to save content: ${error.message}`);
+  }
 };
 
 // Helper function to construct an SEO prompt based on form values
@@ -255,6 +282,22 @@ export const saveContentToDatabase = async (
   content: string
 ): Promise<string> => {
   try {
+    console.log(`Saving content for user ${userId} with title: ${title.substring(0, 30)}...`);
+    
+    // Additional validation
+    if (!userId.trim()) {
+      throw new Error("Invalid user ID");
+    }
+    
+    if (!title.trim()) {
+      throw new Error("Title cannot be empty");
+    }
+    
+    if (!content.trim()) {
+      throw new Error("Content cannot be empty");
+    }
+    
+    // Insert the content into the database
     const { data, error } = await supabase
       .from("content")
       .insert({
@@ -265,10 +308,27 @@ export const saveContentToDatabase = async (
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error("Supabase error:", error);
+      
+      // More specific error messages based on Supabase error codes
+      if (error.code === '23505') {
+        throw new Error("Content with this title already exists");
+      } else if (error.code === '42501') {
+        throw new Error("Permission denied. Please check your account permissions");
+      } else {
+        throw new Error(`Database error: ${error.message}`);
+      }
+    }
+
+    if (!data) {
+      throw new Error("No data returned from database");
+    }
+    
+    console.log("Content saved successfully with ID:", data.id);
     return data.id;
   } catch (error: any) {
-    console.error("Error saving content:", error);
-    throw new Error(`Failed to save content: ${error.message}`);
+    console.error("Error in saveContentToDatabase:", error);
+    throw error; // Propagate the error to be handled by the caller
   }
 };

@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { InfoIcon, AlertCircle } from "lucide-react";
@@ -9,6 +8,7 @@ import { Link } from "react-router-dom";
 import { HtmlPreviewComponent } from "@/components/templates/HtmlPreviewComponent";
 import { LanguageSelector } from "@/components/templates/LanguageSelector";
 import { Card } from "@/components/ui/card";
+import { toast } from "sonner";
 
 export default function ProductRoundupTemplate() {
   const [includeInternalLinks, setIncludeInternalLinks] = useState(false);
@@ -71,7 +71,12 @@ export default function ProductRoundupTemplate() {
   
   const handleContentGenerated = (content: string) => {
     console.log("Content successfully generated, length:", content.length);
-    setGeneratedHtml(content);
+    if (content) {
+      setGeneratedHtml(content);
+      toast.success("Content generated successfully!");
+    } else {
+      toast.error("Generated content was empty");
+    }
   };
 
   const handleLanguageChange = (newLanguage: string) => {
