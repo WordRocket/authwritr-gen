@@ -7,9 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
-import { ExternalLink, Check } from "lucide-react";
+import { ExternalLink, Check, AlertTriangle, Info } from "lucide-react";
 import { testWordPressConnection } from "@/services/wordpressService";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 export default function WordPressSettings() {
   const { user } = useAuth();
@@ -19,6 +20,8 @@ export default function WordPressSettings() {
   const [testingConnection, setTestingConnection] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [errorDetails, setErrorDetails] = useState<string | null>(null);
+  const [showDetails, setShowDetails] = useState(false);
 
   // Load saved WordPress settings from localStorage
   useEffect(() => {
@@ -72,6 +75,7 @@ export default function WordPressSettings() {
   const testConnection = async () => {
     setTestingConnection(true);
     setConnectionError(null);
+    setErrorDetails(null);
     
     try {
       // Format the URL properly before testing
@@ -94,6 +98,7 @@ export default function WordPressSettings() {
       if (result.success) {
         setIsConnected(true);
         setConnectionError(null);
+        setErrorDetails(null);
         toast.success("Successfully connected to WordPress site");
         
         // Save the updated connection state
@@ -107,6 +112,7 @@ export default function WordPressSettings() {
       } else {
         setIsConnected(false);
         setConnectionError(result.message || "Unknown connection error");
+        setErrorDetails(result.details || null);
         toast.error(`Connection failed: ${result.message}`);
       }
     } catch (error) {
@@ -179,11 +185,35 @@ export default function WordPressSettings() {
 
         {connectionError && (
           <Alert variant="destructive" className="bg-destructive/10 text-destructive border-destructive">
-            <AlertDescription>
-              Connection error: {connectionError}
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription className="flex flex-col">
+              <span>{connectionError}</span>
+              {errorDetails && (
+                <Collapsible open={showDetails} onOpenChange={setShowDetails} className="mt-2">
+                  <CollapsibleTrigger asChild>
+                    <Button variant="outline" size="sm" className="text-xs mt-1">
+                      {showDetails ? "Hide Details" : "Show Technical Details"}
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="mt-2">
+                    <div className="bg-destructive/5 p-3 rounded text-xs font-mono whitespace-pre-wrap">
+                      {errorDetails}
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
             </AlertDescription>
           </Alert>
         )}
+
+        <Alert className="bg-muted/50 border-muted">
+          <Info className="h-4 w-4" />
+          <AlertTitle>WordPress REST API requirement</AlertTitle>
+          <AlertDescription className="text-sm">
+            Make sure your WordPress site has the REST API enabled and that application passwords are supported.
+            Some security plugins might block the REST API.
+          </AlertDescription>
+        </Alert>
 
         {isConnected && (
           <div className="flex items-center gap-2 text-green-600 dark:text-green-400">

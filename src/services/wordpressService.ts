@@ -85,6 +85,8 @@ export const createWordPressPost = async (
 
     const endpoint = `${siteUrl}/wp-json/wp/v2/posts`;
     
+    console.log(`Attempting to create WordPress post at: ${endpoint}`);
+    
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
@@ -94,8 +96,11 @@ export const createWordPressPost = async (
       body: JSON.stringify(postData),
     });
 
+    console.log(`WordPress response status: ${response.status} ${response.statusText}`);
+
     if (!response.ok) {
-      const errorData = await response.json();
+      const errorData = await response.json().catch(e => ({ message: "Failed to parse error response" }));
+      console.error("WordPress API error:", errorData);
       return { 
         success: false, 
         message: errorData.message || `Error ${response.status}: ${response.statusText}` 
@@ -103,6 +108,7 @@ export const createWordPressPost = async (
     }
 
     const responseData = await response.json();
+    console.log("WordPress post created successfully:", responseData);
     
     return {
       success: true,
@@ -126,7 +132,7 @@ export const testWordPressConnection = async (
   url: string, 
   username: string, 
   password: string
-): Promise<{ success: boolean; message: string; user?: any }> => {
+): Promise<{ success: boolean; message: string; user?: any; details?: string }> => {
   // Format the URL properly
   let apiUrl = url;
   if (!apiUrl.startsWith('http://') && !apiUrl.startsWith('https://')) {
@@ -140,6 +146,7 @@ export const testWordPressConnection = async (
   
   try {
     // First check if the site is reachable
+    console.log(`Step 1: Checking if site is reachable at ${apiUrl}/wp-json`);
     const siteCheckResponse = await fetch(`${apiUrl}/wp-json`, {
       method: "GET",
       headers: {
@@ -147,29 +154,46 @@ export const testWordPressConnection = async (
       }
     }).catch(error => {
       console.error("Error checking site availability:", error);
-      throw new Error("Could not connect to WordPress site. Please verify the URL is correct and the site is online.");
+      throw new Error(`Could not connect to WordPress site: ${error.message}`);
     });
     
+    console.log(`Site check response status: ${siteCheckResponse.status} ${siteCheckResponse.statusText}`);
+    
     if (!siteCheckResponse.ok) {
+      console.error("WordPress site not reachable or REST API not enabled:", siteCheckResponse);
+      
+      // Try to get more details
+      const errorText = await siteCheckResponse.text().catch(() => "");
+      console.log("Error response body:", errorText);
+      
       return {
         success: false,
-        message: `Site is reachable but does not appear to be a WordPress site with REST API enabled. Status: ${siteCheckResponse.status}`
+        message: `Site is reachable but does not appear to be a WordPress site with REST API enabled. Status: ${siteCheckResponse.status}`,
+        details: errorText || undefined
       };
     }
     
     // Now try to authenticate
     const endpoint = `${apiUrl}/wp-json/wp/v2/users/me`;
+    console.log(`Step 2: Authenticating at ${endpoint}`);
+    
+    const authHeaders = new Headers({
+      'Authorization': 'Basic ' + btoa(username + ':' + password),
+      'Content-Type': 'application/json'
+    });
+    
+    console.log("Sending authentication request with credentials");
     
     const response = await fetch(endpoint, {
       method: "GET",
-      headers: {
-        'Authorization': 'Basic ' + btoa(username + ':' + password),
-        'Content-Type': 'application/json'
-      }
+      headers: authHeaders
     });
+    
+    console.log(`Authentication response status: ${response.status} ${response.statusText}`);
     
     if (response.ok) {
       const data = await response.json();
+      console.log("Authentication successful:", data);
       return {
         success: true,
         user: data,
@@ -178,17 +202,33 @@ export const testWordPressConnection = async (
     } else {
       // Try to parse the error response
       try {
+        console.log("Authentication failed, parsing error response");
         const errorData = await response.json();
+        console.error("Error data:", errorData);
+        
         return {
           success: false,
-          message: errorData.message || `Authentication failed: ${response.status} ${response.statusText}`
+          message: errorData.message || `Authentication failed: ${response.status} ${response.statusText}`,
+          details: JSON.stringify(errorData)
         };
       } catch (jsonError) {
-        // If we can't parse the JSON, just return the status text
-        return {
-          success: false,
-          message: `Authentication failed: ${response.status} ${response.statusText}`
-        };
+        console.error("Failed to parse error response:", jsonError);
+        // If we can't parse the JSON, try to get the text response
+        try {
+          const errorText = await response.text();
+          console.log("Error response text:", errorText);
+          return {
+            success: false,
+            message: `Authentication failed: ${response.status} ${response.statusText}`,
+            details: errorText || undefined
+          };
+        } catch (textError) {
+          // If we can't even get the text, just return the status
+          return {
+            success: false,
+            message: `Authentication failed: ${response.status} ${response.statusText}`
+          };
+        }
       }
     }
   } catch (error) {
@@ -196,8 +236,9 @@ export const testWordPressConnection = async (
     return {
       success: false,
       message: error instanceof Error 
-        ? error.message 
-        : "Network error occurred. Please check the site URL and try again."
+        ? `Connection error: ${error.message}` 
+        : "Network error occurred. Please check the site URL and try again.",
+      details: error instanceof Error ? error.stack : undefined
     };
   }
 };
