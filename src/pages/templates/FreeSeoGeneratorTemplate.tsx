@@ -30,6 +30,13 @@ const freeSeoModels = [
     description: "Multimodal vision-language model with enhanced reasoning capabilities",
     recommended: true,
     free: true
+  },
+  {
+    id: "deepseek/deepseek-v3-base:free",
+    name: "DeepSeek V3 Base (free)",
+    description: "High-quality foundation model with advanced reasoning capabilities",
+    recommended: true,
+    free: true
   }
 ];
 
