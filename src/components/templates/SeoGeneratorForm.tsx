@@ -1,3 +1,4 @@
+
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -261,8 +262,8 @@ export function SeoGeneratorForm({
       const formDataWithInternalLinks = {
         ...data,
         includeInternalLinks,
-        ...(props.additionalPromptContext ? { additionalPromptContext: props.additionalPromptContext } : {}),
-        ...(props.additionalFormData || {})
+        ...(additionalPromptContext ? { additionalPromptContext } : {}),
+        ...(additionalFormData || {})
       };
       
       const content = await generateSeoContent(formDataWithInternalLinks as SeoServiceFormValues, apiKey);
@@ -966,3 +967,4 @@ export function SeoGeneratorForm({
     </Tabs>
   );
 }
+
