@@ -27,11 +27,12 @@ export interface SeoFormValues {
   useGeminiDirectly?: boolean;
   geminiApiKey?: string;
   language?: string;
+  additionalPromptContext?: string;
+  targetAudience?: string;
 }
 
 export async function generateSeoContent(formData: SeoFormValues, apiKey?: string | null, options?: Record<string, any>): Promise<string> {
   try {
-    // Validate API key first
     if (!apiKey) {
       console.error("API key is missing");
       throw new Error("Authentication error with the AI provider. Please check your API key in settings.");
@@ -39,10 +40,8 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
     
     let modelId = formData.model || "anthropic/claude-3.7-sonnet";
     
-    // Set appropriate temperature based on the model
-    let temperature = 0.7; // default temperature
+    let temperature = 0.7;
     
-    // Set temperature to 0.5 specifically for Gemini 2.5 Pro Preview model
     if (modelId === "google/gemini-2.5-pro-preview-03-25") {
       temperature = 0.5;
       console.log("Using Gemini 2.5 Pro Preview with temperature 0.5");
@@ -73,7 +72,6 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
     
     console.log("Using model ID:", modelId);
     
-    // Get language preference from localStorage if not provided
     let contentLanguage = formData.language || localStorage.getItem('contentLanguage') || 'english';
     console.log("Content language:", contentLanguage);
     
@@ -109,7 +107,9 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
       finalContentModel,
       hasApiKey: !!apiKey,
       language: contentLanguage,
-      temperature: temperature // Log the temperature being used
+      temperature: temperature,
+      hasAdditionalPromptContext: !!formData.additionalPromptContext,
+      hasTargetAudience: !!formData.targetAudience
     });
 
     const customOutline = options?.customOutline;
@@ -121,12 +121,10 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
       useBackgroundGeneration ? "enabled" : "disabled (forced foreground generation)");
     
     try {
-      // Add API key validation before sending the request
       if (!apiKey || apiKey.trim() === '') {
         throw new Error("API key is missing or invalid. Please check your API key in settings.");
       }
       
-      // Log that we're about to make the request
       console.log("Sending request to Supabase Edge Function: generate-seo-content");
       
       const { data, error } = await supabase.functions.invoke("generate-seo-content", {
@@ -140,7 +138,7 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
           backgroundGeneration: useBackgroundGeneration,
           bulkGeneration: formData.bulkGeneration,
           language: contentLanguage,
-          temperature: temperature // Include temperature in the request
+          temperature: temperature
         },
       });
 
@@ -369,7 +367,9 @@ function constructGeminiPrompt(formData: SeoFormValues): string {
     includeAnecdotes,
     includeHook,
     includeHtmlElement,
-    language
+    language,
+    additionalPromptContext,
+    targetAudience
   } = formData;
   
   let internalLinks: string[] = [];
@@ -384,57 +384,90 @@ function constructGeminiPrompt(formData: SeoFormValues): string {
     }
   }
   
-  // Get language preference from localStorage if not provided in formData
   const contentLanguage = language || localStorage.getItem('contentLanguage') || 'english';
   
-  let prompt = `Generate a comprehensive, SEO-optimized blog post about: "${topic}"`;
+  let prompt = "";
   
-  if (contentLanguage && contentLanguage !== "english") {
-    prompt += ` Write the entire content in ${contentLanguage} language.`;
+  if (additionalPromptContext) {
+    prompt = additionalPromptContext;
+    prompt += `\n\nTOPIC\n${topic}`;
+    
+    if (targetAudience) {
+      prompt += `\n\nTARGET AUDIENCE\n${targetAudience}`;
+    } else if (intendedAudience) {
+      prompt += `\n\nTARGET AUDIENCE\n${intendedAudience}`;
+    }
+    
+    prompt += `\n\nCONTENT LENGTH\n${wordCount} words`;
+    
+    if (targetKeyword) {
+      prompt += `\n\nTARGET KEYWORD\n${targetKeyword}`;
+    }
+    
+    if (additionalContext) {
+      prompt += `\n\nADDITIONAL NOTES\n${additionalContext}`;
+    }
+    
+    if (contentLanguage && contentLanguage !== "english") {
+      prompt += `\n\nPlease write the entire content in ${contentLanguage} language.`;
+    }
+    
+    if (internalLinks.length > 0) {
+      prompt += `\n\nINCLUDE THESE INTERNAL LINKS WHERE RELEVANT:\n`;
+      internalLinks.slice(0, 5).forEach(link => {
+        prompt += `- ${link}\n`;
+      });
+    }
+  } else {
+    prompt = `Generate a comprehensive, SEO-optimized blog post about: "${topic}"`;
+    
+    if (contentLanguage && contentLanguage !== "english") {
+      prompt += ` Write the entire content in ${contentLanguage} language.`;
+    }
+    
+    if (targetKeyword) {
+      prompt += `\nTarget keyword: "${targetKeyword}"`;
+    }
+    
+    prompt += `\n\nArticle type: ${articleType}`;
+    prompt += `\nTone: ${toneOfArticle}`;
+    prompt += `\nWord count: at least ${wordCount} words`;
+    
+    if (intendedAudience) {
+      prompt += `\nIntended audience: ${intendedAudience}`;
+    }
+    
+    if (additionalContext) {
+      prompt += `\n\nAdditional context: ${additionalContext}`;
+    }
+    
+    prompt += `\n\nRequirements:`;
+    prompt += `\n- Write at least ${wordCount} words or more`;
+    prompt += `\n- Include a catchy headline`;
+    prompt += `\n- Structure the content with clear headings (use # for main heading, ## for subheadings)`;
+    prompt += `\n- Write in ${includeFirstPerson ? "first person" : "third person"}`;
+    
+    if (includeHook) {
+      prompt += `\n- Start with an engaging hook`;
+    }
+    
+    if (includeAnecdotes) {
+      prompt += `\n- Include relevant stories, examples, or case studies`;
+    }
+    
+    if (includeHtmlElement) {
+      prompt += `\n- Include one interactive HTML element (like a quiz, calculator, or table) that would be helpful for the reader`;
+    }
+    
+    if (internalLinks.length > 0) {
+      prompt += `\n- Include 2-3 of the following internal links where relevant:`;
+      internalLinks.slice(0, 5).forEach(link => {
+        prompt += `\n  * ${link}`;
+      });
+    }
+    
+    prompt += `\n\nFormat your output as Markdown. Start with a main heading (#) followed by an introduction. Use subheadings (##) to organize the content.`;
   }
-  
-  if (targetKeyword) {
-    prompt += `\nTarget keyword: "${targetKeyword}"`;
-  }
-  
-  prompt += `\n\nArticle type: ${articleType}`;
-  prompt += `\nTone: ${toneOfArticle}`;
-  prompt += `\nWord count: at least ${wordCount} words`;
-  
-  if (intendedAudience) {
-    prompt += `\nIntended audience: ${intendedAudience}`;
-  }
-  
-  if (additionalContext) {
-    prompt += `\n\nAdditional context: ${additionalContext}`;
-  }
-  
-  prompt += `\n\nRequirements:`;
-  prompt += `\n- Write at least ${wordCount} words or more`;
-  prompt += `\n- Include a catchy headline`;
-  prompt += `\n- Structure the content with clear headings (use # for main heading, ## for subheadings)`;
-  prompt += `\n- Write in ${includeFirstPerson ? "first person" : "third person"}`;
-  
-  if (includeHook) {
-    prompt += `\n- Start with an engaging hook`;
-  }
-  
-  if (includeAnecdotes) {
-    prompt += `\n- Include relevant stories, examples, or case studies`;
-  }
-  
-  if (includeHtmlElement) {
-    prompt += `\n- Include one interactive HTML element (like a quiz, calculator, or table) that would be helpful for the reader`;
-  }
-  
-  if (internalLinks.length > 0) {
-    prompt += `\n- Include 2-3 of the following internal links where relevant:`;
-    internalLinks.slice(0, 5).forEach(link => {
-      prompt += `\n  * ${link}`;
-    });
-  }
-  
-  prompt += `\n\nFormat your output as Markdown. Start with a main heading (#) followed by an introduction. Use subheadings (##) to organize the content.`;
   
   return prompt;
 }
