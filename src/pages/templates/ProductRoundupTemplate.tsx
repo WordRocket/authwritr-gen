@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { InfoIcon, AlertCircle } from "lucide-react";
@@ -9,6 +8,7 @@ import { Link } from "react-router-dom";
 import { HtmlPreviewComponent } from "@/components/templates/HtmlPreviewComponent";
 import { LanguageSelector } from "@/components/templates/LanguageSelector";
 import { Card } from "@/components/ui/card";
+// No need to import WordPressPublishSection since we're hiding it
 
 export default function ProductRoundupTemplate() {
   const [includeInternalLinks, setIncludeInternalLinks] = useState(false);
@@ -164,6 +164,8 @@ export default function ProductRoundupTemplate() {
       {generatedHtml && (
         <HtmlPreviewComponent htmlCode={generatedHtml} className="mt-8" />
       )}
+      
+      {/* WordPress publishing section removed */}
     </div>
   );
 }

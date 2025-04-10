@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { ExternalLink } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import WordPressSettings from "@/components/settings/WordPressSettings";
+// import WordPressSettings from "@/components/settings/WordPressSettings";
 
 export default function SettingsPage() {
   const { apiKey, login, user } = useAuth();
@@ -130,8 +130,8 @@ export default function SettingsPage() {
         </Card>
       )}
       
-      {/* WordPress Settings */}
-      <WordPressSettings />
+      {/* WordPress Settings - temporarily hidden
+      <WordPressSettings /> */}
 
       <Card className="border hover:border-primary/10 transition-shadow hover:shadow-md">
         <CardHeader>

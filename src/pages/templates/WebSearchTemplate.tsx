@@ -6,7 +6,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { InfoIcon, Globe } from "lucide-react";
 import { LanguageSelector } from "@/components/templates/LanguageSelector";
 import { Card } from "@/components/ui/card";
-import WordPressPublishSection from "@/components/wordpress/WordPressPublishSection";
+// import WordPressPublishSection from "@/components/wordpress/WordPressPublishSection";
 
 export default function WebSearchTemplate() {
   const [includeInternalLinks, setIncludeInternalLinks] = useState(false);
@@ -124,12 +124,13 @@ export default function WebSearchTemplate() {
         onContentGenerated={handleContentGenerated}
       />
       
+      {/* Temporarily hiding WordPress publish section
       {generatedContent && generatedTitle && (
         <WordPressPublishSection
           title={generatedTitle}
           content={generatedContent}
         />
-      )}
+      )} */}
     </div>
   );
 }
