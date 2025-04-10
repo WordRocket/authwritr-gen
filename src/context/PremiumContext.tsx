@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -10,6 +9,7 @@ interface UserUsage {
   date: string;
   content_count: number;
   last_reset: string | null;
+  words_used: number;
 }
 
 interface Subscription {
@@ -159,7 +159,7 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
       
       const { data, error } = await supabase
         .from('user_usage')
-        .select('content_count')
+        .select('content_count, words_used')
         .eq('user_id', user.id)
         .eq('date', today)
         .maybeSingle();
@@ -178,8 +178,9 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
       }
       
       if (data) {
-        console.log("Loaded user usage:", data.content_count, "content generated today");
-        setContentCount(data.content_count);
+        const contentCountValue = data.content_count ?? 0;
+        console.log("Loaded user usage:", contentCountValue, "content generated today");
+        setContentCount(contentCountValue);
       } else {
         console.log("No usage data found for today, creating new entry");
         // Create a new usage entry for today
@@ -187,6 +188,7 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
           user_id: user.id,
           date: today,
           content_count: 0,
+          words_used: 0,
           last_reset: new Date().toISOString()
         };
 
@@ -257,7 +259,7 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
       }
       
       let currentUsage = 0;
-      if (currentData) {
+      if (currentData && currentData.content_count !== null) {
         currentUsage = currentData.content_count;
         console.log(`Found existing usage: ${currentUsage} content generations`);
       }
@@ -283,6 +285,7 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
           user_id: user.id,
           date: today,
           content_count: 1,
+          words_used: 0,
           last_reset: new Date().toISOString()
         };
 
@@ -345,6 +348,7 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
         user_id: user.id,
         date: today,
         content_count: 0,
+        words_used: 0,
         last_reset: new Date().toISOString()
       };
 

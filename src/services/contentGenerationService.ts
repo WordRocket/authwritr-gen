@@ -15,7 +15,7 @@ export interface SeoFormValues {
   manualInput?: string;
   inputMode: "webSearch" | "manualInput";
   targetKeyword?: string;
-  articleType: "informational" | "listicle" | "how-to" | "product-roundup" | "comparison";
+  articleType: "informational" | "listicle" | "how-to" | "product-roundup" | "comparison" | "anecdote" | "story";
   toneOfArticle: "professional" | "conversational" | "friendly" | "authoritative" | "casual";
   intendedAudience?: string;
   additionalContext?: string;
