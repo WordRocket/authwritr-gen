@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,8 @@ import {
   Globe,
   FilesIcon,
   Sparkles,
-  ShoppingBag
+  ShoppingBag,
+  UserRound
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -38,7 +40,7 @@ export default function Dashboard() {
     { value: "product", label: "Product Content" },
   ];
 
-  // Templates data - added Product Round-up Generator
+  // Templates data - added Low AI Humanized Blog Posts template
   const templatesData = [
     {
       id: "all-in-one-seo",
@@ -87,6 +89,14 @@ export default function Dashboard() {
       icon: ShoppingBag,
       category: "product",
       route: "/templates/product-roundup"
+    },
+    {
+      id: "low-ai-humanized",
+      title: "Low AI Humanized Blog Posts",
+      description: "Generate natural-sounding blog posts that don't feel AI-written using Google's Gemini 2.5 Pro model",
+      icon: UserRound,
+      category: "blog",
+      route: "/templates/low-ai-humanized"
     },
     {
       id: "bulk-blog-generator",
