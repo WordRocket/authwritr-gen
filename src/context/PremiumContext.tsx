@@ -69,14 +69,17 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
       
       try {
         const { data, error } = await supabase
-          .from('user_usage' as any)
+          .from('user_usage')
           .select('last_reset')
           .eq('user_id', user.id)
           .single();
           
-        if (error) throw error;
+        if (error) {
+          console.error("Error checking date for reset:", error);
+          return;
+        }
         
-        if (data) {
+        if (data && data.last_reset) {
           const lastResetDate = new Date(data.last_reset);
           const today = new Date();
           
@@ -99,24 +102,25 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
     setIsLoading(true);
     
     try {
-      // Use type assertion to work around TypeScript limitations
       const { data, error } = await supabase
-        .from('subscriptions' as any)
+        .from('subscriptions')
         .select('status, subscription_type, expires_at')
         .eq('user_id', user.id)
         .single();
       
-      if (error && error.code !== 'PGRST116') {
-        throw error;
+      if (error) {
+        console.error("Error checking premium status:", error);
+        setIsPremium(false);
+        setIsLoading(false);
+        return;
       }
       
       if (data) {
-        if (data.subscription_type === 'lifetime' || 
-            (data.status === 'active' && (!data.expires_at || new Date(data.expires_at) > new Date()))) {
-          setIsPremium(true);
-        } else {
-          setIsPremium(false);
-        }
+        const isPremiumActive = 
+          data.subscription_type === 'lifetime' || 
+          (data.status === 'active' && (!data.expires_at || new Date(data.expires_at) > new Date()));
+        
+        setIsPremium(isPremiumActive);
       } else {
         setIsPremium(false);
       }
@@ -135,31 +139,37 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
     try {
       const today = new Date().toISOString().split('T')[0];
       
-      // Use type assertion to work around TypeScript limitations
       const { data, error } = await supabase
-        .from('user_usage' as any)
+        .from('user_usage')
         .select('words_used')
         .eq('user_id', user.id)
         .eq('date', today)
         .single();
       
       if (error && error.code !== 'PGRST116') {
-        throw error;
+        console.error("Error loading user usage:", error);
+        setIsLoading(false);
+        return;
       }
       
       if (data) {
         setUsedWords(data.words_used);
       } else {
+        // Create a new usage entry for today
+        const newUsage = {
+          user_id: user.id,
+          date: today,
+          words_used: 0,
+          last_reset: new Date().toISOString()
+        };
+
         const { error: insertError } = await supabase
-          .from('user_usage' as any)
-          .insert({
-            user_id: user.id,
-            date: today,
-            words_used: 0,
-            last_reset: new Date().toISOString()
-          } as any);
+          .from('user_usage')
+          .insert(newUsage);
           
-        if (insertError) throw insertError;
+        if (insertError) {
+          console.error("Error creating user usage:", insertError);
+        }
         setUsedWords(0);
       }
     } catch (error) {
@@ -191,39 +201,50 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
     try {
       const today = new Date().toISOString().split('T')[0];
       
-      // Use type assertion to work around TypeScript limitations
       const { data, error } = await supabase
-        .from('user_usage' as any)
+        .from('user_usage')
         .select('words_used')
         .eq('user_id', user.id)
         .eq('date', today)
         .single();
       
       if (error && error.code !== 'PGRST116') {
-        throw error;
+        console.error("Error tracking word usage:", error);
+        return false;
       }
       
       if (data) {
         const newTotal = data.words_used + wordCount;
+        
         const { error: updateError } = await supabase
-          .from('user_usage' as any)
-          .update({ words_used: newTotal } as any)
+          .from('user_usage')
+          .update({ words_used: newTotal })
           .eq('user_id', user.id)
           .eq('date', today);
           
-        if (updateError) throw updateError;
+        if (updateError) {
+          console.error("Error updating word usage:", updateError);
+          return false;
+        }
+        
         setUsedWords(newTotal);
       } else {
+        const newUsage = {
+          user_id: user.id,
+          date: today,
+          words_used: wordCount,
+          last_reset: new Date().toISOString()
+        };
+
         const { error: insertError } = await supabase
-          .from('user_usage' as any)
-          .insert({
-            user_id: user.id,
-            date: today,
-            words_used: wordCount,
-            last_reset: new Date().toISOString()
-          } as any);
+          .from('user_usage')
+          .insert(newUsage);
           
-        if (insertError) throw insertError;
+        if (insertError) {
+          console.error("Error inserting word usage:", insertError);
+          return false;
+        }
+        
         setUsedWords(wordCount);
       }
       
@@ -245,17 +266,22 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
     try {
       const today = new Date().toISOString().split('T')[0];
       
-      // Use type assertion to work around TypeScript limitations
+      const newUsage = {
+        user_id: user.id,
+        date: today,
+        words_used: 0,
+        last_reset: new Date().toISOString()
+      };
+
       const { error } = await supabase
-        .from('user_usage' as any)
-        .upsert({
-          user_id: user.id,
-          date: today,
-          words_used: 0,
-          last_reset: new Date().toISOString()
-        } as any);
+        .from('user_usage')
+        .upsert(newUsage);
         
-      if (error) throw error;
+      if (error) {
+        console.error("Error resetting usage:", error);
+        return;
+      }
+      
       setUsedWords(0);
     } catch (error) {
       console.error("Error resetting usage:", error);

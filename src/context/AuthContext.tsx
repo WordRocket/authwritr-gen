@@ -90,19 +90,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     const checkPremium = async () => {
       try {
-        // Use type assertion to work around TypeScript limitations
         const { data, error } = await supabase
-          .from('subscriptions' as any)
+          .from('subscriptions')
           .select('status')
           .eq('user_id', user.id)
           .single();
           
-        if (error && error.code !== 'PGRST116') {
+        if (error) {
           console.error("Error checking premium status:", error);
           return;
         }
         
-        setIsPremium(!!data && data.status === 'active');
+        // Use type assertion only after error check
+        setIsPremium(data ? data.status === 'active' : false);
       } catch (error) {
         console.error("Premium check error:", error);
       }
