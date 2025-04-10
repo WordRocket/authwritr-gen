@@ -109,7 +109,8 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
       language: contentLanguage,
       temperature: temperature,
       hasAdditionalPromptContext: !!formData.additionalPromptContext,
-      hasTargetAudience: !!formData.targetAudience
+      hasTargetAudience: !!formData.targetAudience,
+      requestedWords: formData.wordCount || 0
     });
 
     const customOutline = options?.customOutline;
@@ -176,12 +177,32 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
 
       if (data.content && !formData.bulkGeneration) {
         try {
-          const titleMatch = data.content.match(/^#\s*(.*?)(\n|$)/);
-          const title = titleMatch ? titleMatch[1].trim() : formData.topic;
-          
+          // Track word usage first (if user is logged in)
           const { data: { user } } = await supabase.auth.getUser();
           
           if (user) {
+            // Calculate word count from the generated content
+            const wordCount = data.content.trim().split(/\s+/).length;
+            console.log("Generated content with word count:", wordCount);
+            
+            // Import usePremium context and track word usage
+            try {
+              // Get premium context from the custom hook to track usage
+              const { trackWordUsage } = await import('@/context/PremiumContext').then(
+                module => ({ trackWordUsage: module.usePremium().trackWordUsage })
+              ).catch(() => ({ trackWordUsage: async () => true }));
+              
+              // Track usage and log result
+              const usageTracked = await trackWordUsage(wordCount);
+              console.log("Word usage tracked:", usageTracked ? "Successfully" : "Failed");
+            } catch (trackingError) {
+              console.error("Error tracking word usage:", trackingError);
+            }
+            
+            // Title extraction and save logic
+            const titleMatch = data.content.match(/^#\s*(.*?)(\n|$)/);
+            const title = titleMatch ? titleMatch[1].trim() : formData.topic;
+            
             await saveGeneratedContent(title, data.content, user.id);
             toast({
               title: "Content Saved",

@@ -52,6 +52,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       (_event, session) => {
         setUser(session?.user || null);
         setIsAuthenticated(!!session);
+        
+        // Check premium status when auth state changes
+        if (session?.user) {
+          checkPremium(session.user);
+        } else {
+          setIsPremium(false);
+        }
       }
     );
 
@@ -69,6 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (session) {
           setUser(session.user);
           setIsAuthenticated(true);
+          checkPremium(session.user);
         }
       } catch (error) {
         console.error("Auth error:", error);
@@ -84,32 +92,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  // Check premium status - simplified for now, will be replaced by PremiumContext usage
-  useEffect(() => {
-    if (!user) return;
+  // Check premium status function
+  const checkPremium = async (currentUser: User) => {
+    if (!currentUser) return;
     
-    const checkPremium = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('subscriptions')
-          .select('status')
-          .eq('user_id', user.id)
-          .single();
+    try {
+      console.log(`Checking premium status for user ${currentUser.id}`);
+      const { data, error } = await supabase
+        .from('subscriptions')
+        .select('status')
+        .eq('user_id', currentUser.id)
+        .maybeSingle();
           
-        if (error) {
-          console.error("Error checking premium status:", error);
-          return;
-        }
-        
-        // Use type assertion only after error check
-        setIsPremium(data ? data.status === 'active' : false);
-      } catch (error) {
-        console.error("Premium check error:", error);
+      if (error && error.code !== 'PGRST116') {
+        console.error("Error checking premium status:", error);
+        return;
       }
-    };
-    
-    checkPremium();
-  }, [user]);
+      
+      // Use type assertion only after error check
+      setIsPremium(data ? data.status === 'active' : false);
+      console.log("Premium status:", data ? data.status : "no subscription found");
+    } catch (error) {
+      console.error("Premium check error:", error);
+    }
+  };
 
   // Add placeholder for the startCheckoutSession function
   const startCheckoutSession = async (priceType: 'monthly' | 'lifetime') => {

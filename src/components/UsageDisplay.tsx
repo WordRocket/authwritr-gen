@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,17 @@ export const UsageDisplay = () => {
   const navigate = useNavigate();
   
   const percentUsed = isPremium ? 0 : Math.min(100, (usedWords / usageLimit) * 100);
+
+  // Display the current status in the console for debugging
+  useEffect(() => {
+    console.log("UsageDisplay Status:", {
+      isPremium,
+      usedWords,
+      usageLimit,
+      remainingWords,
+      percentUsed
+    });
+  }, [isPremium, usedWords, usageLimit, remainingWords, percentUsed]);
   
   return (
     <Card className="w-full">
@@ -28,7 +39,7 @@ export const UsageDisplay = () => {
         <CardDescription>
           {isPremium 
             ? "Unlimited words with Premium" 
-            : `${remainingWords.toLocaleString()} of ${usageLimit.toLocaleString()} words remaining`}
+            : `${usedWords.toLocaleString()} of ${usageLimit.toLocaleString()} words used (${remainingWords.toLocaleString()} remaining)`}
         </CardDescription>
       </CardHeader>
       <CardContent>

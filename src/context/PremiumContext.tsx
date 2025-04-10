@@ -72,7 +72,7 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
           .from('user_usage')
           .select('last_reset')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
           
         if (error) {
           console.error("Error checking date for reset:", error);
@@ -106,9 +106,9 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
         .from('subscriptions')
         .select('status, subscription_type, expires_at')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
       
-      if (error) {
+      if (error && error.code !== 'PGRST116') {
         console.error("Error checking premium status:", error);
         setIsPremium(false);
         setIsLoading(false);
@@ -121,8 +121,10 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
           (data.status === 'active' && (!data.expires_at || new Date(data.expires_at) > new Date()));
         
         setIsPremium(isPremiumActive);
+        console.log("Premium status checked:", isPremiumActive ? "Premium" : "Free");
       } else {
         setIsPremium(false);
+        console.log("No subscription found, setting to free tier");
       }
     } catch (error) {
       console.error("Error checking premium status:", error);
@@ -138,13 +140,14 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
     
     try {
       const today = new Date().toISOString().split('T')[0];
+      console.log("Loading usage for date:", today);
       
       const { data, error } = await supabase
         .from('user_usage')
         .select('words_used')
         .eq('user_id', user.id)
         .eq('date', today)
-        .single();
+        .maybeSingle();
       
       if (error && error.code !== 'PGRST116') {
         console.error("Error loading user usage:", error);
@@ -153,8 +156,10 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
       }
       
       if (data) {
+        console.log("Loaded user usage:", data.words_used, "words used today");
         setUsedWords(data.words_used);
       } else {
+        console.log("No usage data found for today, creating new entry");
         // Create a new usage entry for today
         const newUsage = {
           user_id: user.id,
@@ -169,6 +174,8 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
           
         if (insertError) {
           console.error("Error creating user usage:", insertError);
+        } else {
+          console.log("Created new usage entry for today");
         }
         setUsedWords(0);
       }
@@ -187,9 +194,18 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
   const trackWordUsage = async (wordCount: number): Promise<boolean> => {
     if (!user) return false;
     
-    if (isPremium) return true;
+    console.log(`Tracking ${wordCount} words for user ${user.id}`);
     
-    if (usedWords + wordCount > usageLimit) {
+    if (isPremium) {
+      console.log("User is premium, unlimited usage");
+      return true;
+    }
+    
+    const newTotal = usedWords + wordCount;
+    console.log(`Current usage: ${usedWords}, New total would be: ${newTotal}, Limit: ${usageLimit}`);
+    
+    if (newTotal > usageLimit) {
+      console.log("Daily limit would be exceeded");
       toast({
         title: "Daily Limit Reached",
         description: `You've reached your free daily limit of ${usageLimit} words. Upgrade to Premium for unlimited usage.`,
@@ -200,13 +216,14 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
     
     try {
       const today = new Date().toISOString().split('T')[0];
+      console.log(`Updating usage for ${today}`);
       
       const { data, error } = await supabase
         .from('user_usage')
         .select('words_used')
         .eq('user_id', user.id)
         .eq('date', today)
-        .single();
+        .maybeSingle();
       
       if (error && error.code !== 'PGRST116') {
         console.error("Error tracking word usage:", error);
@@ -214,11 +231,12 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
       }
       
       if (data) {
-        const newTotal = data.words_used + wordCount;
+        console.log(`Found existing usage: ${data.words_used} words`);
+        const dbNewTotal = data.words_used + wordCount;
         
         const { error: updateError } = await supabase
           .from('user_usage')
-          .update({ words_used: newTotal })
+          .update({ words_used: dbNewTotal })
           .eq('user_id', user.id)
           .eq('date', today);
           
@@ -227,8 +245,10 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
           return false;
         }
         
-        setUsedWords(newTotal);
+        console.log(`Updated usage to ${dbNewTotal} words`);
+        setUsedWords(dbNewTotal);
       } else {
+        console.log("No usage entry found, creating new one");
         const newUsage = {
           user_id: user.id,
           date: today,
@@ -245,8 +265,14 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
           return false;
         }
         
+        console.log(`Created new usage entry with ${wordCount} words`);
         setUsedWords(wordCount);
       }
+      
+      toast({
+        title: "Usage Updated",
+        description: `${wordCount} words added to today's usage.`,
+      });
       
       return true;
     } catch (error) {
