@@ -143,7 +143,8 @@ export default function FreeSeoGeneratorTemplate() {
         geminiApiKey={geminiApiKey}
         onGeminiApiKeyChange={handleGeminiApiKeyChange}
         onlyShowFreeModels={true}
-        additionalFreeModels={[]} // We'll now use the unified models from the service instead
+        additionalFreeModels={freeSeoModels} // Passing the models here to ensure they show up in dropdown
+        customModels={freeSeoModels} // Adding customModels prop to make sure models appear
       />
     </div>
   );
