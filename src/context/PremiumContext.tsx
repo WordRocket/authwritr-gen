@@ -54,9 +54,11 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
 
   useEffect(() => {
     if (user) {
+      console.log("Premium context user detected, checking premium status and loading usage...");
       checkPremiumStatus();
       loadUserUsage();
     } else {
+      console.log("No user detected in Premium context, resetting to default values");
       setIsPremium(false);
       setUsedWords(0);
       setIsLoading(false);
@@ -68,6 +70,7 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
       if (!user) return;
       
       try {
+        console.log("Checking date for potential usage reset");
         const { data, error } = await supabase
           .from('user_usage')
           .select('last_reset')
@@ -83,10 +86,14 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
           const lastResetDate = new Date(data.last_reset);
           const today = new Date();
           
+          console.log("Last reset date:", lastResetDate);
+          console.log("Today's date:", today);
+          
           if (lastResetDate.getDate() !== today.getDate() || 
               lastResetDate.getMonth() !== today.getMonth() || 
               lastResetDate.getFullYear() !== today.getFullYear()) {
-            resetUsage();
+            console.log("Need to reset usage - date has changed");
+            await resetUsage();
           }
         }
       } catch (error) {
@@ -102,14 +109,22 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
     setIsLoading(true);
     
     try {
+      console.log(`Checking premium status for user ${user.id}`);
       const { data, error } = await supabase
         .from('subscriptions')
         .select('status, subscription_type, expires_at')
         .eq('user_id', user.id)
         .maybeSingle();
       
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         console.error("Error checking premium status:", error);
+        if (error.code !== 'PGRST116') { 
+          toast({
+            title: "Error",
+            description: "Failed to check premium status.",
+            variant: "destructive"
+          });
+        }
         setIsPremium(false);
         setIsLoading(false);
         return;
@@ -149,8 +164,15 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
         .eq('date', today)
         .maybeSingle();
       
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         console.error("Error loading user usage:", error);
+        if (error.code !== 'PGRST116') {
+          toast({
+            title: "Error",
+            description: "Failed to load usage data.",
+            variant: "destructive"
+          });
+        }
         setIsLoading(false);
         return;
       }
@@ -192,7 +214,10 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
   };
 
   const trackWordUsage = async (wordCount: number): Promise<boolean> => {
-    if (!user) return false;
+    if (!user) {
+      console.log("Cannot track word usage: No user logged in");
+      return false;
+    }
     
     console.log(`Tracking ${wordCount} words for user ${user.id}`);
     
@@ -218,25 +243,31 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
       const today = new Date().toISOString().split('T')[0];
       console.log(`Updating usage for ${today}`);
       
-      const { data, error } = await supabase
+      // First, get the current usage to ensure we're working with the latest data
+      const { data: currentData, error: fetchError } = await supabase
         .from('user_usage')
         .select('words_used')
         .eq('user_id', user.id)
         .eq('date', today)
         .maybeSingle();
       
-      if (error && error.code !== 'PGRST116') {
-        console.error("Error tracking word usage:", error);
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        console.error("Error fetching current word usage:", fetchError);
         return false;
       }
       
-      if (data) {
-        console.log(`Found existing usage: ${data.words_used} words`);
-        const dbNewTotal = data.words_used + wordCount;
-        
+      let currentUsage = 0;
+      if (currentData) {
+        currentUsage = currentData.words_used;
+        console.log(`Found existing usage: ${currentUsage} words`);
+      }
+      
+      const updatedTotal = currentUsage + wordCount;
+      
+      if (currentData) {
         const { error: updateError } = await supabase
           .from('user_usage')
-          .update({ words_used: dbNewTotal })
+          .update({ words_used: updatedTotal })
           .eq('user_id', user.id)
           .eq('date', today);
           
@@ -245,8 +276,7 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
           return false;
         }
         
-        console.log(`Updated usage to ${dbNewTotal} words`);
-        setUsedWords(dbNewTotal);
+        console.log(`Updated usage to ${updatedTotal} words`);
       } else {
         console.log("No usage entry found, creating new one");
         const newUsage = {
@@ -266,8 +296,10 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
         }
         
         console.log(`Created new usage entry with ${wordCount} words`);
-        setUsedWords(wordCount);
       }
+      
+      // Update local state
+      setUsedWords(updatedTotal);
       
       toast({
         title: "Usage Updated",
@@ -287,10 +319,27 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
   };
 
   const resetUsage = async () => {
-    if (!user) return;
+    if (!user) {
+      console.log("Cannot reset usage: No user logged in");
+      return;
+    }
     
     try {
+      console.log("Attempting to reset usage for user:", user.id);
       const today = new Date().toISOString().split('T')[0];
+      
+      // First check if there's an existing entry
+      const { data, error: checkError } = await supabase
+        .from('user_usage')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('date', today)
+        .maybeSingle();
+        
+      if (checkError && checkError.code !== 'PGRST116') {
+        console.error("Error checking for existing usage entry:", checkError);
+        return;
+      }
       
       const newUsage = {
         user_id: user.id,
@@ -299,16 +348,37 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
         last_reset: new Date().toISOString()
       };
 
-      const { error } = await supabase
-        .from('user_usage')
-        .upsert(newUsage);
-        
-      if (error) {
-        console.error("Error resetting usage:", error);
-        return;
+      // If entry exists, update it; otherwise insert a new one
+      if (data) {
+        console.log("Updating existing usage entry:", data.id);
+        const { error } = await supabase
+          .from('user_usage')
+          .update(newUsage)
+          .eq('id', data.id);
+          
+        if (error) {
+          console.error("Error updating usage during reset:", error);
+          return;
+        }
+      } else {
+        console.log("Creating new usage entry during reset");
+        const { error } = await supabase
+          .from('user_usage')
+          .insert(newUsage);
+          
+        if (error) {
+          console.error("Error creating new usage during reset:", error);
+          return;
+        }
       }
       
+      console.log("Usage reset successfully");
+      
+      // Update the local state
       setUsedWords(0);
+      
+      // Also reload usage to ensure everything is in sync
+      await loadUserUsage();
     } catch (error) {
       console.error("Error resetting usage:", error);
     }
