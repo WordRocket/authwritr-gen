@@ -1,3 +1,4 @@
+
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -401,7 +402,7 @@ export function SeoGeneratorForm({
                       control={form.control}
                       name="model"
                       render={({ field }) => (
-                        <FormItem>
+                        <FormItem className="relative z-10">
                           <div className="flex items-center justify-between">
                             <FormLabel>AI Model</FormLabel>
                             <TooltipProvider>
@@ -409,7 +410,7 @@ export function SeoGeneratorForm({
                                 <TooltipTrigger asChild>
                                   <InfoIcon className="h-4 w-4 text-muted-foreground" />
                                 </TooltipTrigger>
-                                <TooltipContent>
+                                <TooltipContent className="bg-popover text-popover-foreground">
                                   <p className="max-w-xs">Select the AI model that will generate your content. {onlyShowFreeModels ? "Only free models are shown." : "Different models have different capabilities and costs."}</p>
                                 </TooltipContent>
                               </Tooltip>
@@ -425,7 +426,7 @@ export function SeoGeneratorForm({
                                 <SelectValue placeholder="Select AI model" />
                               </SelectTrigger>
                             </FormControl>
-                            <SelectContent>
+                            <SelectContent className="z-50 bg-popover border border-border shadow-md">
                               <div className="mb-2 px-2 py-1.5 text-sm font-semibold">
                                 {onlyShowFreeModels ? "Free Models" : "Recommended"}
                               </div>
@@ -472,7 +473,7 @@ export function SeoGeneratorForm({
                         control={form.control}
                         name="geminiApiKey"
                         render={({ field }) => (
-                          <FormItem>
+                          <FormItem className="pt-3">
                             <FormLabel>Gemini API Key</FormLabel>
                             <FormControl>
                               <Input 
@@ -506,7 +507,7 @@ export function SeoGeneratorForm({
                       control={form.control}
                       name="articleType"
                       render={({ field }) => (
-                        <FormItem>
+                        <FormItem className="pt-3 relative z-0">
                           <FormLabel>Article Type</FormLabel>
                           <Select 
                             onValueChange={field.onChange} 
@@ -517,7 +518,7 @@ export function SeoGeneratorForm({
                                 <SelectValue placeholder="Select article type" />
                               </SelectTrigger>
                             </FormControl>
-                            <SelectContent>
+                            <SelectContent className="z-40 bg-popover border border-border shadow-md">
                               <SelectItem value="informational">Informational</SelectItem>
                               <SelectItem value="listicle">Listicle</SelectItem>
                               <SelectItem value="how-to">How-to Guide</SelectItem>
@@ -534,7 +535,7 @@ export function SeoGeneratorForm({
                       control={form.control}
                       name="toneOfArticle"
                       render={({ field }) => (
-                        <FormItem>
+                        <FormItem className="relative z-0">
                           <FormLabel>Tone of Article</FormLabel>
                           <Select 
                             onValueChange={field.onChange} 
@@ -545,7 +546,7 @@ export function SeoGeneratorForm({
                                 <SelectValue placeholder="Select tone" />
                               </SelectTrigger>
                             </FormControl>
-                            <SelectContent>
+                            <SelectContent className="z-30 bg-popover border border-border shadow-md">
                               <SelectItem value="professional">Professional</SelectItem>
                               <SelectItem value="conversational">Conversational</SelectItem>
                               <SelectItem value="friendly">Friendly</SelectItem>
