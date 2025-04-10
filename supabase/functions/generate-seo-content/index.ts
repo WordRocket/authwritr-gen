@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -12,6 +13,39 @@ serve(async (req) => {
   }
 
   try {
+    // Check if request body exists and can be parsed
+    if (!req.body) {
+      console.error("Request body is undefined");
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "Request body is missing" 
+        }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    // Safely parse the request body
+    let requestData;
+    try {
+      requestData = await req.json();
+    } catch (parseError) {
+      console.error("Failed to parse request body:", parseError);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "Invalid JSON in request body" 
+        }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
     const { 
       topic, 
       searchTerm,
@@ -39,7 +73,7 @@ serve(async (req) => {
       language,
       additionalPromptContext,
       targetAudience
-    } = await req.json();
+    } = requestData;
 
     // Log for debugging
     console.log("Function received params:", {
@@ -618,7 +652,14 @@ serve(async (req) => {
       
       // Use EdgeRuntime.waitUntil to ensure the function continues running in the background
       // This is a Supabase Edge Function feature that allows background processing
-      EdgeRuntime.waitUntil(generateInBackground());
+      if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
+        EdgeRuntime.waitUntil(generateInBackground());
+      } else {
+        // Fallback if EdgeRuntime is not available
+        generateInBackground().catch(error => {
+          console.error("Error in background task:", error);
+        });
+      }
       
       // Return immediately with job ID
       return new Response(
@@ -848,7 +889,6 @@ serve(async (req) => {
               { role: "user", content: userPrompt }
             ],
             temperature: 0.7,
-            // Set max_tokens to 128000 specifically for Claude 3.7 Sonnet
             max_tokens: 16000,
           }),
         });
@@ -867,66 +907,22 @@ serve(async (req) => {
         generatedContent = data.choices[0].message.content;
       }
       
-      // Save completed content to content table
-      const titleMatch = generatedContent.match(/^#\s*(.*?)(\n|$)/);
-      const title = titleMatch ? titleMatch[1].trim() : topic;
-      
-      // Get user_id from auth header
-      // In a real app, you'd extract the user ID from auth. For now, let's use a placeholder
-      let userId = req.headers.get('x-user-id');
-      
-      // If we don't have a user ID, try to extract it from the request parameters
-      if (!userId && req.headers.get('authorization')) {
-        try {
-          // Extract JWT token
-          const token = req.headers.get('authorization')?.split('Bearer ')[1];
-          if (token) {
-            // This is a simplified example. In a real app, you'd properly decode and verify the JWT
-            const base64Url = token.split('.')[1];
-            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-              return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-            }).join(''));
-            const payload = JSON.parse(jsonPayload);
-            userId = payload.sub;
-          }
-        } catch (error) {
-          console.error("Error extracting user ID from token:", error);
-        }
-      }
-      
-      if (!userId) {
-        console.error("Could not determine user ID for background job");
-        return;
-      }
-      
-      // Save content to database
-      const contentResult = await fetch(`${req.url.split('/functions/')[0]}/rest/v1/content`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': req.headers.get('authorization') || '',
-          'apikey': req.headers.get('apikey') || '',
-        },
-        body: JSON.stringify({
-          title: title,
-          content: generatedContent,
-          user_id: userId,
-          created_at: new Date().toISOString()
+      // Return successful response with the generated content
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          content: generatedContent 
         }),
-      });
-      
-      if (!contentResult.ok) {
-        console.error("Failed to save content:", await contentResult.text());
-      } else {
-        console.log("Content generation complete and saved");
-      }
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
     } catch (error) {
       console.error("Error during content generation:", error);
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: "An error occurred during content generation. Please try again." 
+          error: error instanceof Error ? error.message : "An error occurred during content generation. Please try again." 
         }),
         { 
           status: 200,
@@ -939,7 +935,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: "An error occurred while processing your request. Please try again." 
+        error: error instanceof Error ? error.message : "An error occurred while processing your request. Please try again." 
       }),
       { 
         status: 200,
