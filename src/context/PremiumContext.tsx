@@ -8,7 +8,7 @@ interface UserUsage {
   id: string;
   user_id: string;
   date: string;
-  words_used: number;
+  content_count: number;
   last_reset: string | null;
 }
 
@@ -26,12 +26,12 @@ interface Subscription {
 
 interface PremiumContextType {
   isPremium: boolean;
-  usageLimit: number;
-  usedWords: number;
-  remainingWords: number;
+  contentLimit: number;
+  contentCount: number;
+  remainingContent: number;
   isLoading: boolean;
   startCheckoutSession: (priceType: 'monthly' | 'lifetime') => Promise<void>;
-  trackWordUsage: (wordCount: number) => Promise<boolean>;
+  trackContentUsage: () => Promise<boolean>;
   resetUsage: () => Promise<void>;
 }
 
@@ -46,11 +46,11 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
   const { user, supabase } = useAuth();
   const { toast } = useToast();
   const [isPremium, setIsPremium] = useState<boolean>(false);
-  const [usageLimit, setUsageLimit] = useState<number>(5000);
-  const [usedWords, setUsedWords] = useState<number>(0);
+  const [contentLimit, setContentLimit] = useState<number>(5);
+  const [contentCount, setContentCount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const remainingWords = Math.max(0, usageLimit - usedWords);
+  const remainingContent = Math.max(0, contentLimit - contentCount);
 
   useEffect(() => {
     if (user) {
@@ -60,7 +60,7 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
     } else {
       console.log("No user detected in Premium context, resetting to default values");
       setIsPremium(false);
-      setUsedWords(0);
+      setContentCount(0);
       setIsLoading(false);
     }
   }, [user]);
@@ -159,7 +159,7 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
       
       const { data, error } = await supabase
         .from('user_usage')
-        .select('words_used')
+        .select('content_count')
         .eq('user_id', user.id)
         .eq('date', today)
         .maybeSingle();
@@ -178,15 +178,15 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
       }
       
       if (data) {
-        console.log("Loaded user usage:", data.words_used, "words used today");
-        setUsedWords(data.words_used);
+        console.log("Loaded user usage:", data.content_count, "content generated today");
+        setContentCount(data.content_count);
       } else {
         console.log("No usage data found for today, creating new entry");
         // Create a new usage entry for today
         const newUsage = {
           user_id: user.id,
           date: today,
-          words_used: 0,
+          content_count: 0,
           last_reset: new Date().toISOString()
         };
 
@@ -199,7 +199,7 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
         } else {
           console.log("Created new usage entry for today");
         }
-        setUsedWords(0);
+        setContentCount(0);
       }
     } catch (error) {
       console.error("Error loading user usage:", error);
@@ -213,27 +213,27 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
     }
   };
 
-  const trackWordUsage = async (wordCount: number): Promise<boolean> => {
+  const trackContentUsage = async (): Promise<boolean> => {
     if (!user) {
-      console.log("Cannot track word usage: No user logged in");
+      console.log("Cannot track content usage: No user logged in");
       return false;
     }
     
-    console.log(`Tracking ${wordCount} words for user ${user.id}`);
+    console.log(`Tracking content generation for user ${user.id}`);
     
     if (isPremium) {
       console.log("User is premium, unlimited usage");
       return true;
     }
     
-    const newTotal = usedWords + wordCount;
-    console.log(`Current usage: ${usedWords}, New total would be: ${newTotal}, Limit: ${usageLimit}`);
+    const newTotal = contentCount + 1;
+    console.log(`Current usage: ${contentCount}, New total would be: ${newTotal}, Limit: ${contentLimit}`);
     
-    if (newTotal > usageLimit) {
+    if (newTotal > contentLimit) {
       console.log("Daily limit would be exceeded");
       toast({
         title: "Daily Limit Reached",
-        description: `You've reached your free daily limit of ${usageLimit} words. Upgrade to Premium for unlimited usage.`,
+        description: `You've reached your free daily limit of ${contentLimit} content generations. Upgrade to Premium for unlimited usage.`,
         variant: "destructive"
       });
       return false;
@@ -246,43 +246,43 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
       // First, get the current usage to ensure we're working with the latest data
       const { data: currentData, error: fetchError } = await supabase
         .from('user_usage')
-        .select('words_used')
+        .select('content_count')
         .eq('user_id', user.id)
         .eq('date', today)
         .maybeSingle();
       
       if (fetchError && fetchError.code !== 'PGRST116') {
-        console.error("Error fetching current word usage:", fetchError);
+        console.error("Error fetching current content usage:", fetchError);
         return false;
       }
       
       let currentUsage = 0;
       if (currentData) {
-        currentUsage = currentData.words_used;
-        console.log(`Found existing usage: ${currentUsage} words`);
+        currentUsage = currentData.content_count;
+        console.log(`Found existing usage: ${currentUsage} content generations`);
       }
       
-      const updatedTotal = currentUsage + wordCount;
+      const updatedTotal = currentUsage + 1;
       
       if (currentData) {
         const { error: updateError } = await supabase
           .from('user_usage')
-          .update({ words_used: updatedTotal })
+          .update({ content_count: updatedTotal })
           .eq('user_id', user.id)
           .eq('date', today);
           
         if (updateError) {
-          console.error("Error updating word usage:", updateError);
+          console.error("Error updating content usage:", updateError);
           return false;
         }
         
-        console.log(`Updated usage to ${updatedTotal} words`);
+        console.log(`Updated usage to ${updatedTotal} content generations`);
       } else {
         console.log("No usage entry found, creating new one");
         const newUsage = {
           user_id: user.id,
           date: today,
-          words_used: wordCount,
+          content_count: 1,
           last_reset: new Date().toISOString()
         };
 
@@ -291,24 +291,24 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
           .insert(newUsage);
           
         if (insertError) {
-          console.error("Error inserting word usage:", insertError);
+          console.error("Error inserting content usage:", insertError);
           return false;
         }
         
-        console.log(`Created new usage entry with ${wordCount} words`);
+        console.log(`Created new usage entry with 1 content generation`);
       }
       
       // Update local state
-      setUsedWords(updatedTotal);
+      setContentCount(updatedTotal);
       
       toast({
         title: "Usage Updated",
-        description: `${wordCount} words added to today's usage.`,
+        description: `Content generation added to today's usage.`,
       });
       
       return true;
     } catch (error) {
-      console.error("Error tracking word usage:", error);
+      console.error("Error tracking content usage:", error);
       toast({
         title: "Error",
         description: "Failed to update usage data.",
@@ -344,7 +344,7 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
       const newUsage = {
         user_id: user.id,
         date: today,
-        words_used: 0,
+        content_count: 0,
         last_reset: new Date().toISOString()
       };
 
@@ -375,7 +375,7 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
       console.log("Usage reset successfully");
       
       // Update the local state
-      setUsedWords(0);
+      setContentCount(0);
       
       // Also reload usage to ensure everything is in sync
       await loadUserUsage();
@@ -422,12 +422,12 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
 
   const value = {
     isPremium,
-    usageLimit,
-    usedWords,
-    remainingWords,
+    contentLimit,
+    contentCount,
+    remainingContent,
     isLoading,
     startCheckoutSession,
-    trackWordUsage,
+    trackContentUsage,
     resetUsage
   };
 

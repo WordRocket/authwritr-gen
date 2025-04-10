@@ -6,44 +6,29 @@ import { Button } from "@/components/ui/button";
 import { BadgeDollarSign, Infinity } from "lucide-react";
 import { usePremium } from "@/context/PremiumContext";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
 
 export const UsageDisplay = () => {
-  const { isPremium, usageLimit, usedWords, remainingWords, isLoading } = usePremium();
+  const { isPremium, contentLimit, contentCount, remainingContent, isLoading, resetUsage } = usePremium();
   const navigate = useNavigate();
   
-  const percentUsed = isPremium ? 0 : Math.min(100, (usedWords / usageLimit) * 100);
+  const percentUsed = isPremium ? 0 : Math.min(100, (contentCount / contentLimit) * 100);
 
   // Display the current status in the console for debugging
   useEffect(() => {
     console.log("UsageDisplay Status:", {
       isPremium,
-      usedWords,
-      usageLimit,
-      remainingWords,
+      contentCount,
+      contentLimit,
+      remainingContent,
       percentUsed,
       isLoading
     });
-  }, [isPremium, usedWords, usageLimit, remainingWords, percentUsed, isLoading]);
+  }, [isPremium, contentCount, contentLimit, remainingContent, percentUsed, isLoading]);
 
   // Force refresh of usage data when component mounts
   useEffect(() => {
-    const refreshUsage = async () => {
-      try {
-        // This will trigger a refresh of the usage data in the PremiumContext
-        const { usePremium } = await import("@/context/PremiumContext");
-        const premiumContext = usePremium();
-        
-        if (premiumContext && typeof premiumContext.resetUsage === 'function') {
-          await premiumContext.resetUsage();
-          console.log("Usage data refreshed");
-        }
-      } catch (error) {
-        console.error("Error refreshing usage data:", error);
-      }
-    };
-
-    refreshUsage();
+    console.log("UsageDisplay: Refreshing usage data");
+    resetUsage();
   }, []);
   
   if (isLoading) {
@@ -63,7 +48,7 @@ export const UsageDisplay = () => {
     <Card className="w-full">
       <CardHeader className="pb-2">
         <CardTitle className="text-base flex items-center justify-between">
-          <span>Daily Word Usage</span>
+          <span>Daily Content Limit</span>
           {isPremium && (
             <div className="bg-primary/10 text-primary text-xs px-2 py-1 rounded-full flex items-center">
               <Infinity className="h-3 w-3 mr-1" />
@@ -73,8 +58,8 @@ export const UsageDisplay = () => {
         </CardTitle>
         <CardDescription>
           {isPremium 
-            ? "Unlimited words with Premium" 
-            : `${usedWords.toLocaleString()} of ${usageLimit.toLocaleString()} words used (${remainingWords.toLocaleString()} remaining)`}
+            ? "Unlimited content with Premium" 
+            : `${contentCount} of ${contentLimit} articles used (${remainingContent} remaining)`}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -91,7 +76,7 @@ export const UsageDisplay = () => {
             onClick={() => navigate('/pricing')}
           >
             <BadgeDollarSign className="h-3 w-3 mr-1" />
-            Upgrade for unlimited words
+            Upgrade for unlimited content
           </Button>
         </CardFooter>
       )}
