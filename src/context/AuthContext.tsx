@@ -9,11 +9,14 @@ interface AuthContextType {
   isAuthenticated: boolean;
   apiKey: string | null;
   user: User | null;
+  supabase: typeof supabase;
+  isPremium: boolean;
   login: (apiKey: string) => void;
   logout: () => void;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
   setApiKey: (apiKey: string) => void;
+  startCheckoutSession: (priceType: 'monthly' | 'lifetime') => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -23,6 +26,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isPremium, setIsPremium] = useState(false);
 
   useEffect(() => {
     const storedApiKey = localStorage.getItem("openrouter_api_key");
@@ -66,6 +70,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       subscription.unsubscribe();
     };
   }, []);
+
+  // Check premium status - simplified for now, will be replaced by PremiumContext usage
+  useEffect(() => {
+    if (!user) return;
+    
+    const checkPremium = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('subscriptions')
+          .select('status')
+          .eq('user_id', user.id)
+          .single();
+          
+        if (error && error.code !== 'PGRST116') {
+          console.error("Error checking premium status:", error);
+          return;
+        }
+        
+        setIsPremium(!!data && data.status === 'active');
+      } catch (error) {
+        console.error("Premium check error:", error);
+      }
+    };
+    
+    checkPremium();
+  }, [user]);
+
+  // Add placeholder for the startCheckoutSession function
+  const startCheckoutSession = async (priceType: 'monthly' | 'lifetime') => {
+    try {
+      if (!user) {
+        toast.error("Please login to subscribe");
+        return;
+      }
+      
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { priceType }
+      });
+      
+      if (error) throw error;
+      
+      if (data?.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error("No checkout URL returned");
+      }
+    } catch (error) {
+      console.error("Error starting checkout:", error);
+      toast.error("Failed to start checkout process");
+    }
+  };
 
   const signUp = async (email: string, password: string) => {
     try {
@@ -191,12 +246,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     <AuthContext.Provider value={{ 
       isAuthenticated, 
       apiKey, 
-      user, 
+      user,
+      supabase,
+      isPremium,
       login, 
       logout, 
       signIn, 
       signUp,
-      setApiKey
+      setApiKey,
+      startCheckoutSession
     }}>
       {children}
     </AuthContext.Provider>

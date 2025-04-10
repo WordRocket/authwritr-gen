@@ -27,11 +27,26 @@ export function ThemeProvider({
   storageKey = "ui-theme",
   ...props
 }: ThemeProviderProps) {
+  // This is the line causing the error - let's ensure useState is valid here
   const [theme, setTheme] = useState<Theme>(
-    () => (localStorage.getItem(storageKey) as Theme) || defaultTheme
+    () => {
+      try {
+        // Handle SSR case where localStorage is not available
+        if (typeof window !== "undefined") {
+          const storedTheme = localStorage.getItem(storageKey) as Theme;
+          return storedTheme || defaultTheme;
+        }
+        return defaultTheme;
+      } catch (e) {
+        console.error("Error accessing localStorage:", e);
+        return defaultTheme;
+      }
+    }
   );
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    
     const root = window.document.documentElement;
 
     root.classList.remove("light", "dark");
@@ -52,8 +67,14 @@ export function ThemeProvider({
   const value = {
     theme,
     setTheme: (theme: Theme) => {
-      localStorage.setItem(storageKey, theme);
-      setTheme(theme);
+      try {
+        if (typeof window !== "undefined") {
+          localStorage.setItem(storageKey, theme);
+        }
+        setTheme(theme);
+      } catch (e) {
+        console.error("Error saving theme to localStorage:", e);
+      }
     },
   };
 

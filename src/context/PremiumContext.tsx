@@ -1,8 +1,6 @@
-
 import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { createClient } from "@supabase/supabase-js";
 
 interface PremiumContextType {
   isPremium: boolean;
@@ -26,14 +24,12 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
   const { user, supabase } = useAuth();
   const { toast } = useToast();
   const [isPremium, setIsPremium] = useState<boolean>(false);
-  const [usageLimit, setUsageLimit] = useState<number>(5000); // 5000 words per day for free users
+  const [usageLimit, setUsageLimit] = useState<number>(5000);
   const [usedWords, setUsedWords] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Calculate remaining words
   const remainingWords = Math.max(0, usageLimit - usedWords);
 
-  // Check premium status and load usage data
   useEffect(() => {
     if (user) {
       checkPremiumStatus();
@@ -45,8 +41,6 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
     }
   }, [user]);
 
-  // Check if the current date is different from the stored date
-  // If so, reset the usage counter
   useEffect(() => {
     const checkDateForReset = async () => {
       if (!user) return;
@@ -64,7 +58,6 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
           const lastResetDate = new Date(data.last_reset);
           const today = new Date();
           
-          // If dates are different (day changed), reset usage
           if (lastResetDate.getDate() !== today.getDate() || 
               lastResetDate.getMonth() !== today.getMonth() || 
               lastResetDate.getFullYear() !== today.getFullYear()) {
@@ -79,7 +72,6 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
     checkDateForReset();
   }, [user]);
 
-  // Check premium status
   const checkPremiumStatus = async () => {
     if (!user) return;
     setIsLoading(true);
@@ -91,12 +83,11 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
         .eq('user_id', user.id)
         .single();
       
-      if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
+      if (error && error.code !== 'PGRST116') {
         throw error;
       }
       
       if (data) {
-        // Check if subscription is active or if it's a lifetime subscription
         if (data.subscription_type === 'lifetime' || 
             (data.status === 'active' && (!data.expires_at || new Date(data.expires_at) > new Date()))) {
           setIsPremium(true);
@@ -114,13 +105,11 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
     }
   };
 
-  // Load user usage
   const loadUserUsage = async () => {
     if (!user) return;
     setIsLoading(true);
     
     try {
-      // Get today's date in format YYYY-MM-DD
       const today = new Date().toISOString().split('T')[0];
       
       const { data, error } = await supabase
@@ -137,7 +126,6 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
       if (data) {
         setUsedWords(data.words_used);
       } else {
-        // Create a new usage record for today
         const { error: insertError } = await supabase
           .from('user_usage')
           .insert({
@@ -162,14 +150,11 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
     }
   };
 
-  // Track word usage
   const trackWordUsage = async (wordCount: number): Promise<boolean> => {
     if (!user) return false;
     
-    // Premium users have unlimited usage
     if (isPremium) return true;
     
-    // Check if this would exceed the limit
     if (usedWords + wordCount > usageLimit) {
       toast({
         title: "Daily Limit Reached",
@@ -194,7 +179,6 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
       }
       
       if (data) {
-        // Update existing record
         const newTotal = data.words_used + wordCount;
         const { error: updateError } = await supabase
           .from('user_usage')
@@ -205,7 +189,6 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
         if (updateError) throw updateError;
         setUsedWords(newTotal);
       } else {
-        // Create new record
         const { error: insertError } = await supabase
           .from('user_usage')
           .insert({
@@ -231,7 +214,6 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
     }
   };
 
-  // Reset usage (for daily reset)
   const resetUsage = async () => {
     if (!user) return;
     
@@ -254,7 +236,6 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
     }
   };
 
-  // Start Stripe checkout session
   const startCheckoutSession = async (priceType: 'monthly' | 'lifetime') => {
     if (!user) {
       toast({
@@ -268,7 +249,6 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
     setIsLoading(true);
     
     try {
-      // Call our create-checkout edge function
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { priceType }
       });
@@ -276,7 +256,6 @@ export const PremiumProvider: React.FC<PremiumProviderProps> = ({ children }) =>
       if (error) throw error;
       
       if (data?.url) {
-        // Redirect to Stripe checkout
         window.location.href = data.url;
       } else {
         throw new Error("No checkout URL returned");
