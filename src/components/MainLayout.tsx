@@ -23,6 +23,7 @@ import {
   FileText, 
   Settings, 
   LogOut, 
+  PenTool,
   User,
   AlertCircle,
   History,
@@ -87,6 +88,7 @@ export default function MainLayout() {
       <div className="min-h-screen flex w-full">
         <Sidebar>
           <SidebarHeader className="flex flex-row items-center px-4 py-2">
+            <PenTool className="h-6 w-6 text-primary mr-2" />
             <h1 className="text-xl font-bold">WordRocket 🚀</h1>
           </SidebarHeader>
           <SidebarContent>
