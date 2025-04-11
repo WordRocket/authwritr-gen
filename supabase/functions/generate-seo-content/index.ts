@@ -1,1016 +1,431 @@
 
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
+// Define CORS headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+interface ContentRequest {
+  topic: string;
+  searchTerm?: string;
+  manualInput?: string;
+  inputMode?: string;
+  targetKeyword?: string;
+  articleType?: string;
+  toneOfArticle?: string;
+  intendedAudience?: string;
+  additionalContext?: string;
+  wordCount: number;
+  includeFirstPerson: boolean;
+  includeAnecdotes: boolean;
+  includeHook: boolean;
+  includeStories: boolean;
+  includeHtmlElement: boolean;
+  includeInternalLinks: boolean;
+  includeCitations?: boolean;
+  internalLinks?: string[];
+  model?: string;
+  finalContentModel?: string;
+  apiKey: string;
+  customOutline?: string;
+  backgroundGeneration?: boolean;
+  enableThinking?: boolean;
+  language?: string;
+  temperature?: number;
+}
+
 serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+  // Handle CORS preflight request
+  if (req.method === "OPTIONS") {
+    return new Response(null, {
+      status: 204,
+      headers: corsHeaders,
+    });
   }
 
   try {
-    // Check if request body exists and can be parsed
-    if (!req.body) {
-      console.error("Request body is undefined");
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: "Request body is missing" 
-        }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
+    console.log("Starting generate-seo-content edge function");
+    const startTime = Date.now();
+
+    // Parse request body
+    const requestData: ContentRequest = await req.json();
+    
+    // Validate API key
+    if (!requestData.apiKey) {
+      console.error("API key missing in request");
+      throw new Error("API key is required for authentication");
     }
 
-    // Safely parse the request body
-    let requestData;
-    try {
-      requestData = await req.json();
-    } catch (parseError) {
-      console.error("Failed to parse request body:", parseError);
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: "Invalid JSON in request body" 
-        }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
+    // Log request details (without exposing the API key)
+    const { apiKey, ...logSafeRequest } = requestData;
+    console.log("Request parameters:", JSON.stringify({
+      ...logSafeRequest,
+      apiKeyProvided: !!apiKey,
+      apiKeyLength: apiKey?.length || 0,
+      requestTime: new Date().toISOString(),
+      edgeRuntime: Deno.env.get("EDGE_RUNTIME") || "unknown",
+    }));
+    
+    // Default values
+    const model = requestData.model || "anthropic/claude-3.7-sonnet";
+    console.log(`Using model: ${model}`);
 
-    const { 
-      topic, 
-      searchTerm,
-      manualInput,
-      inputMode,
-      targetKeyword, 
-      articleType, 
-      toneOfArticle, 
-      intendedAudience, 
-      additionalContext, 
-      wordCount, 
-      includeFirstPerson, 
-      includeAnecdotes, 
-      includeHook, 
-      includeStories, 
-      includeHtmlElement,
-      includeInternalLinks,
-      internalLinks,
-      includeCitations,
-      apiKey,
-      model,
-      finalContentModel,
-      backgroundGeneration,
-      enableThinking,
-      language,
-      additionalPromptContext,
-      targetAudience
-    } = requestData;
-
-    // Log for debugging
-    console.log("Function received params:", {
-      topic,
-      inputMode,
-      hasSearchTerm: !!searchTerm,
-      hasManualInput: !!manualInput,
-      includeInternalLinks,
-      internalLinksCount: internalLinks?.length || 0,
-      includeCitations: !!includeCitations,
-      backgroundGeneration: !!backgroundGeneration,
-      hasAdditionalContext: !!additionalContext,
-      hasAdditionalPromptContext: !!additionalPromptContext,
-      hasTargetAudience: !!targetAudience,
-      model,
-      finalContentModel,
-      hasApiKey: !!apiKey,
-      language
-    });
-
-    if (includeInternalLinks && (!internalLinks || internalLinks.length === 0)) {
-      console.warn("includeInternalLinks is true but no URLs were provided");
-    }
-
-    // Validate API key more thoroughly
-    if (!apiKey) {
-      console.error("API key is missing");
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: "API key is required. Please add your OpenRouter API key in Settings." 
-        }),
-        { 
-          status: 200, // Always return 200 but with error in body
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
-
-    // Check if apiKey contains HTML content (which would be invalid)
-    if (apiKey.includes('<') || apiKey.includes('>')) {
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: "Invalid API key format" 
-        }),
-        { 
-          status: 200, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
-
-    // Check if the API key has a valid format (at least has a certain length)
-    if (apiKey.trim().length < 10) {
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: "API key is too short or invalid. Please check your OpenRouter API key in Settings." 
-        }),
-        { 
-          status: 200, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
-
-    const keyword = targetKeyword || topic;
+    // Determine if we need search-augmented generation or direct content generation
+    const useSearch = requestData.inputMode === "webSearch" && requestData.searchTerm;
     
-    // Initialize model variables - using 'let' instead of 'const' since they might change
-    let requestedModel = model || "openai/gpt-4o-mini-search-preview";
-    // For final content model, also use let instead of const
-    let finalContentModelToUse = finalContentModel || "anthropic/claude-3.7-sonnet";
+    // Generate the prompt
+    const prompt = constructPrompt(requestData);
+    console.log("Prompt constructed, length:", prompt.length);
     
-    console.log("Using model for initial phase:", requestedModel);
-    console.log("Final content model:", finalContentModelToUse);
-    console.log("Input mode:", inputMode);
-    if (inputMode === "webSearch") {
-      console.log("Search term:", searchTerm);
-    } else {
-      console.log("Manual input length:", manualInput?.length || 0);
-    }
-    console.log("Internal links:", includeInternalLinks ? "Enabled" : "Disabled");
-    console.log("Citations:", includeCitations ? "Enabled" : "Disabled");
-    console.log("Language:", language || "english");
-    console.log("Using custom prompt context:", !!additionalPromptContext);
-    if (includeInternalLinks && internalLinks) {
-      console.log(`${internalLinks.length} internal links provided`);
-    }
-
-    // Build the prompts for the OpenRouter API with the 3-part approach
+    let finalContent = "";
     
-    // System prompt for web search or custom prompt context
-    let systemPrompt = "";
-    
-    if (additionalPromptContext) {
-      // If we have a custom prompt context (for humanized blog posts), use it as system prompt
-      systemPrompt = additionalPromptContext;
-      
-      if (language && language !== "english") {
-        systemPrompt += `\n\nWrite the entire content in ${language} language.`;
-      }
-    } else if (inputMode === "webSearch" && searchTerm) {
-      // For web search: Focus on deep research and information gathering
-      systemPrompt = `You are an in-depth and extremely detailed researcher with access to web search. 
-      Your task is to research "${searchTerm}" extensively and gather the most relevant information related to the blog post topic "${topic}".
-      
-      Focus on collecting:
-      - Relevant data, statistics, and facts
-      - Relevant expert opinions and insights
-      - Relevant sources (academic studies, industry reports, expert articles)
-      - Recent developments and trends
-      - Different perspectives on the topic
-      - Case studies or examples that illustrate key points
-      - Specific details that would make the blog post more authoritative and comprehensive
-      
-      Always include the sources of your information. Be thorough and comprehensive in your research.
-      The information you gather will be used to write an in-depth blog post on "${topic}" optimized for the keyword "${targetKeyword || topic}".`;
-    } else if (inputMode === "manualInput" && manualInput) {
-      systemPrompt = `You are an expert SEO content writer. Your task is to create a high-quality, SEO-optimized blog post based
-      on the research information provided by the user. The content should have a readability level of grade 8, sound human-written,
-      and follow best SEO practices to optimize for the keyword "${targetKeyword || topic}".
-      
-      You'll be given research content that you should use as the primary source of information for the article.
-      Write a comprehensive article about ${topic} with a readability of grade 8, optimized for the keyword "${targetKeyword || topic}".
-      Write in the ${toneOfArticle || 'professional'} ${articleType || 'informational'} style, 
-      aiming for approximately ${wordCount} words for the intended audience of ${targetAudience || intendedAudience || 'general readers'}.`;
-    } else {
-      systemPrompt = `You are an expert SEO content writer. Write an SEO-optimized in-depth blog post about ${topic} with a readability of grade 8.`;
-    }
-    
-    // Add language instruction if not already included in additionalPromptContext
-    if (!additionalPromptContext && language && language !== "english") {
-      systemPrompt += ` Write the entire content in ${language} language.`;
-    }
-    
-    // Only add these for direct content generation (not for search)
-    if (inputMode !== "webSearch" || !searchTerm) {
-      systemPrompt += ` Include lists, tables, charts, pull quotes, and emojis when it makes sense in the article.`;
-      systemPrompt += ` Aim for approximately ${wordCount} words.`;
-    }
-    
-    // Add additional context instructions if provided
-    if (additionalContext) {
-      systemPrompt += ` I've provided you with additional context information. If it contains business or company information, use it sparingly and only when it makes sense in the flow of the article. If appropriate, include subtle calls-to-action that feel natural within the content. Don't just dump all the information in one place - integrate it naturally throughout the article where relevant to the surrounding content.`;
-    }
-    
-    // Add internal links instruction if requested
-    if (includeInternalLinks && internalLinks && internalLinks.length > 0) {
-      console.log("Adding internal links instructions to system prompt");
-      systemPrompt += ` Include relevant internal links from the provided list of URLs. Select 3-7 of the most relevant URLs based on the content and link to them naturally within the text using anchor text that is relevant to both the linked page and the context of your article. Distribute the links evenly throughout the article.`;
-    }
-    
-    // Only add these for direct content generation (not for search)
-    if (inputMode !== "webSearch" || !searchTerm) {
-      if (includeHtmlElement) {
-        systemPrompt += ` Also create an interactive HTML element that will be useful and relevant to the blog post content.`;
-        systemPrompt += ` The HTML element should be one of the following: interactive table, data visualization, comparison chart, timeline, infographic, calculator, quiz, or selector.`;
-        systemPrompt += ` Start the HTML code with <!DOCTYPE HTML> and ensure it's completely self-contained and compatible with WordPress.`;
-        systemPrompt += ` The HTML should include all necessary CSS within a <style> tag and JavaScript within a <script> tag.`;
-        systemPrompt += ` Make sure all IDs, classes, and selectors in the HTML are unique and prefixed with a specific namespace to avoid conflicts with the WordPress theme.`;
-        systemPrompt += ` The element should be responsive and not break the page layout when embedded in a WordPress post.`;
-      }
-      
-      systemPrompt += ` When writing, follow the best SEO practices and include the target keyword "${targetKeyword || topic}" and variations of the keyword in the title, h1, h2, h3, etc. and the body of the article.`;
-      systemPrompt += ` Always end the article with an SEO title and meta description.`;
-    }
-
-    // User prompt - customize based on whether we have additionalPromptContext
-    let userPrompt = "";
-    
-    if (additionalPromptContext) {
-      // For humanized blog posts with custom prompt
-      userPrompt = `Please create blog content using the following parameters:
-      
-      TOPIC
-      ${topic}
-      
-      TARGET AUDIENCE
-      ${targetAudience || intendedAudience || "General readers"}
-      
-      CONTENT LENGTH
-      ${wordCount} words`;
-      
-      if (targetKeyword) {
-        userPrompt += `
-      
-      TARGET KEYWORD
-      ${targetKeyword}`;
-      }
-      
-      if (additionalContext) {
-        userPrompt += `
-      
-      ADDITIONAL NOTES
-      ${additionalContext}`;
-      }
-      
-      if (internalLinks && internalLinks.length > 0) {
-        userPrompt += `
-      
-      INTERNAL LINKS TO INCLUDE WHERE RELEVANT:
-      ${internalLinks.join('\n')}`;
-      }
-    } else if (inputMode === "webSearch" && searchTerm) {
-      userPrompt = `I need you to do deep, detailed research on "${searchTerm}" and gather the most relevant information related to the blog post topic "${topic}".
-      
-      In your research, please focus on collecting:
-      - Relevant data, statistics, and facts
-      - Relevant expert opinions and insights
-      - Relevant sources (academic studies, industry reports, expert articles)
-      - Recent developments and trends
-      - Different perspectives on the topic
-      - Case studies or examples that illustrate key points
-      - Specific details that would make the blog post more authoritative
-      
-      Be thorough and comprehensive in your research. Include the sources for all information you provide.
-      This research will be used to write an in-depth blog post on "${topic}" optimized for the keyword "${targetKeyword || topic}".`;
-    } else if (inputMode === "manualInput" && manualInput) {
-      userPrompt = `I've conducted research on the topic "${topic}" and I'd like you to use this research to write a comprehensive, ${toneOfArticle || 'professional'} ${articleType || 'informational'} blog post.
-      
-      Here is my research information:
-      
-      ${manualInput}
-      
-      Using this research information, write a ${wordCount}-word SEO-optimized article about "${topic}" that's optimized for the keyword "${targetKeyword || topic}".
-      
-      Make sure the article:
-      - Has a readability level of grade 8
-      - Sounds natural and human-written
-      - Follows best SEO practices
-      - Is written in a ${toneOfArticle || 'professional'} ${articleType || 'informational'} style`;
-    } else {
-      userPrompt = `Write a comprehensive, ${toneOfArticle || 'professional'} ${articleType || 'informational'} blog post about ${topic}`;
-    }
-    
-    if (targetKeyword) {
-      userPrompt += ` optimized for the keyword "${targetKeyword || topic}"`;
-    }
-    
-    if (intendedAudience) {
-      userPrompt += ` for an audience of ${intendedAudience}`;
-    }
-    
-    // Add language instruction to user prompt
-    if (language && language !== "english") {
-      userPrompt += ` Write the entire content in ${language} language.`;
-    }
-    
-    // Add additional context with clear instructions on how to use it
-    if (additionalContext) {
-      userPrompt += `. Here is additional context information for you to incorporate throughout the article where relevant:
-      
-      ${additionalContext}
-      
-      Please weave this information naturally into the article where it makes sense. If it contains business or company information, use it sparingly and only when relevant. If appropriate, include subtle calls-to-action that feel natural within the content. Don't just dump all this information in one place - integrate it thoughtfully throughout the article.`;
-    }
-    
-    if (inputMode !== "webSearch" || !searchTerm) {
-      userPrompt += `. Make it approximately ${wordCount} words.`;
-    }
-    
-    // Add internal links if requested
-    if (includeInternalLinks && internalLinks && internalLinks.length > 0) {
-      console.log("Adding internal links to user prompt");
-      userPrompt += `
-      
-      Include 3-7 relevant internal links from this list of URLs. Choose the most appropriate URLs that relate to the content and incorporate them naturally in the article:
-      
-      ${internalLinks.join('\n')}
-      
-      For each link, use descriptive and contextually relevant anchor text that helps both users and search engines understand what the linked page is about. Distribute the links evenly throughout the article.`;
-    }
-    
-    // Add style preferences
-    const stylePreferences = [];
-    if (includeFirstPerson) stylePreferences.push("first-person perspective");
-    if (includeAnecdotes) stylePreferences.push("include anecdotes");
-    if (includeHook) stylePreferences.push("start with an engaging hook");
-    if (includeStories) stylePreferences.push("incorporate relevant stories");
-    
-    if (stylePreferences.length > 0) {
-      userPrompt += ` Please write in ${stylePreferences.join(", ")} style.`;
-    }
-    
-    if (inputMode !== "webSearch" || !searchTerm) {
-      if (includeHtmlElement) {
-        userPrompt += ` 
-        
-        Additionally, create ONE highly relevant interactive HTML element that would significantly help readers understand or use the information in this article. The HTML element must:
-        
-        1. Start with <!DOCTYPE HTML> and be structured as a complete, self-contained document
-        2. Choose the most appropriate format based on the article content:
-           - Interactive table (for comparing options/data)
-           - Data visualization (for statistics/trends)
-           - Calculator (for financial/numeric concepts)
-           - Quiz (for educational content)
-           - Timeline (for historical/sequential information)
-           - Selector/filtering tool (for decision-making assistance)
-           - Infographic (for visual representation of complex concepts)
-        
-        3. Include all CSS within a <style> tag and all JavaScript within a <script> tag
-        4. Use prefixed class names (like "cg-element-") to avoid conflicts with WordPress themes
-        5. Be responsive and mobile-friendly
-        6. Not rely on external libraries or dependencies
-        7. Not affect the page layout or styling when embedded in a WordPress post
-        8. Be actually useful to the reader, not just decorative
-        
-        Ensure the HTML is valid, clean, and follows best practices for embedding in WordPress without breaking the layout.`;
-      }
-    }
-
-    // If background generation is requested, return immediately with a job ID
-    if (backgroundGeneration) {
-      // Generate a random job ID
-      const jobId = crypto.randomUUID();
-      
-      // Start background job
-      const generateInBackground = async () => {
-        try {
-          let generatedContent = "";
-          
-          // Call the OpenRouter API with the search model if search term is provided
-          console.log("Starting background generation with job ID:", jobId);
-          
-          if (inputMode === "webSearch" && searchTerm) {
-            // STEP 1: Use the selected model to gather research information
-            let searchResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`,
-                'HTTP-Referer': 'https://contentgenius.app', 
-                'X-Title': 'ContentGenius SEO Generator'
-              },
-              body: JSON.stringify({
-                model: requestedModel,
-                messages: [
-                  { role: "system", content: systemPrompt },
-                  { role: "user", content: userPrompt }
-                ],
-                temperature: 0.7,
-                max_tokens: 16000,
-              }),
-            });
-
-            if (!searchResponse.ok) {
-              const errorText = await searchResponse.text();
-              throw new Error(`Search API Error (${searchResponse.status}): ${errorText}`);
-            }
-
-            let searchData = await searchResponse.json();
-            
-            if (!searchData || !searchData.choices || !searchData.choices[0] || !searchData.choices[0].message) {
-              throw new Error("Invalid response structure from search API");
-            }
-            
-            let searchResults = searchData.choices[0].message.content;
-            console.log("Search completed. Now processing with Claude 3.7 Sonnet...");
-            
-            // STEP 2: Use Claude 3.7 Sonnet to create the final content
-            const claudeSystemPrompt = `You are an expert SEO content writer. Your task is to create a high-quality, 
-            SEO-optimized blog post based on the research information provided. The content should have a readability 
-            level of grade 8, sound human-written, and follow best SEO practices to optimize for the keyword "${targetKeyword || topic}".
-            
-            The blog post should be written in a ${toneOfArticle || 'professional'} ${articleType || 'informational'} style, 
-            aiming for approximately ${wordCount} words for ${intendedAudience || 'general readers'}.
-            
-            Include lists, tables, charts, pull quotes, and emojis when it makes sense. Always end with an SEO title and meta description.
-            
-            Your writing should be in-depth, comprehensive, and extremely detailed, using all the relevant information from the research provided.`;
-            
-            // Add internal links instruction if requested
-            if (includeInternalLinks && internalLinks && internalLinks.length > 0) {
-              claudeSystemPrompt += ` Include relevant internal links from the provided list of URLs. Select 3-7 of the most relevant URLs based on the content and link to them naturally within the text using anchor text that is relevant to both the linked page and the context of your article.`;
-            }
-            
-            const claudeUserPrompt = `I have conducted extensive research on the topic "${topic}" optimized for the keyword "${targetKeyword || topic}". 
-            Here is the research data:
-            
-            ${searchResults}
-            
-            Using this research, write a comprehensive ${wordCount}-word SEO-optimized blog post about "${topic}" that's optimized 
-            for the keyword "${targetKeyword || topic}". Make sure to include relevant sources from the research.
-            
-            Ensure the content:
-            - Has a readability level of grade 8
-            - Sounds natural and human-written
-            - Follows best SEO practices
-            - Is written in a ${toneOfArticle || 'professional'} ${articleType || 'informational'} style
-            - Includes all relevant information from the research
-            - Includes lists, tables, charts, and bold text where appropriate
-            - Cites sources from the research where appropriate`;
-            
-            if (stylePreferences.length > 0) {
-              claudeUserPrompt += `\n- Uses ${stylePreferences.join(", ")} style`;
-            }
-            
-            // Add internal links if requested
-            if (includeInternalLinks && internalLinks && internalLinks.length > 0) {
-              claudeUserPrompt += `
-              
-              Include 3-7 relevant internal links from this list of URLs. Choose the most appropriate URLs that relate to the content and incorporate them naturally in the article:
-              
-              ${internalLinks.join('\n')}
-              
-              For each link, use descriptive and contextually relevant anchor text that helps both users and search engines understand what the linked page is about. Distribute the links evenly throughout the article.`;
-            }
-            
-            if (includeHtmlElement) {
-              claudeUserPrompt += `
-              
-              Additionally, create ONE highly relevant interactive HTML element that would significantly help readers understand or use the information in this article. The HTML element must:
-              
-              1. Start with <!DOCTYPE HTML> and be structured as a complete, self-contained document
-              2. Choose the most appropriate format based on the article content:
-                 - Interactive table (for comparing options/data)
-                 - Data visualization (for statistics/trends)
-                 - Calculator (for financial/numeric concepts)
-                 - Quiz (for educational content)
-                 - Timeline (for historical/sequential information)
-                 - Selector/filtering tool (for decision-making assistance)
-                 - Infographic (for visual representation of complex concepts)
-              
-              3. Include all CSS within a <style> tag and all JavaScript within a <script> tag
-              4. Use prefixed class names (like "cg-element-") to avoid conflicts with WordPress themes
-              5. Be responsive and mobile-friendly
-              6. Not rely on external libraries or dependencies
-              7. Not affect the page layout or styling when embedded in a WordPress post
-              8. Be actually useful to the reader, not just decorative
-              
-              Ensure the HTML is valid, clean, and follows best practices for embedding in WordPress without breaking the layout.`;
-            }
-            
-            try {
-              // Call the Claude 3.7 Sonnet model
-              let claudeResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${apiKey}`,
-                  'HTTP-Referer': 'https://contentgenius.app', 
-                  'X-Title': 'ContentGenius SEO Generator'
-                },
-                body: JSON.stringify({
-                  model: "anthropic/claude-3.7-sonnet",
-                  messages: [
-                    { role: "system", content: claudeSystemPrompt },
-                    { role: "user", content: claudeUserPrompt }
-                  ],
-                  temperature: 0.7,
-                  max_tokens: 128000,
-                }),
-              });
-
-              if (!claudeResponse.ok) {
-                const errorText = await claudeResponse.text();
-                console.error("Error from Claude 3.7 Sonnet:", errorText);
-                // Fall back to using the search results if Claude fails
-                generatedContent = searchResults;
-                console.log("Falling back to search results due to Claude 3.7 Sonnet failure");
-              } else {
-                let claudeData = await claudeResponse.json();
+    // If using search, we need to do a two-step process
+    if (useSearch) {
+      console.log("Using search-augmented generation");
+      // Step 1: Use search to gather information
+      const searchResponse = await fetchFromOpenRouter({
+        model: "perplexity/sonar-reasoning-pro",
+        prompt: `You are a helpful assistant that searches the web to find accurate information.
                 
-                if (!claudeData || !claudeData.choices || !claudeData.choices[0] || !claudeData.choices[0].message) {
-                  console.error("Invalid response structure from Claude 3.7 Sonnet:", claudeData);
-                  // Fall back to using the search results
-                  generatedContent = searchResults;
-                  console.log("Falling back to search results due to invalid Claude 3.7 Sonnet response");
-                } else {
-                  generatedContent = claudeData.choices[0].message.content;
-                  console.log("Successfully generated content with Claude 3.7 Sonnet");
-                }
-              }
-            } catch (claudeError) {
-              console.error("Error during Claude 3.7 Sonnet call:", claudeError);
-              // Fall back to using the search results if Claude call fails
-              generatedContent = searchResults;
-              console.log("Falling back to search results due to Claude 3.7 Sonnet call error:", claudeError.message);
-            }
-          } else {
-            // For manual input or non-search requests, use the specified or default model directly
-            const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`,
-                'HTTP-Referer': 'https://contentgenius.app', 
-                'X-Title': 'ContentGenius SEO Generator'
-              },
-              body: JSON.stringify({
-                model: requestedModel,
-                messages: [
-                  { role: "system", content: systemPrompt },
-                  { role: "user", content: userPrompt }
-                ],
-                temperature: 0.7,
-                // Set max_tokens to 128000 specifically for Claude 3.7 Sonnet
-                max_tokens: 16000,
-              }),
-            });
+Search query: ${requestData.searchTerm}
 
-            if (!response.ok) {
-              const errorText = await response.text();
-              throw new Error(`API Error (${response.status}): ${errorText}`);
-            }
+Please search for up-to-date information about this topic and provide a thorough research summary that covers:
+1. Key details about the topic
+2. Important facts and data
+3. Different perspectives or opinions
+4. Any recent developments
 
-            const data = await response.json();
-            
-            if (!data || !data.choices || !data.choices[0] || !data.choices[0].message) {
-              throw new Error("Invalid response structure from API");
-            }
-            
-            generatedContent = data.choices[0].message.content;
-          }
-          
-          // Save completed content to content table
-          const titleMatch = generatedContent.match(/^#\s*(.*?)(\n|$)/);
-          const title = titleMatch ? titleMatch[1].trim() : topic;
-          
-          // Get user_id from auth header
-          // In a real app, you'd extract the user ID from auth. For now, let's use a placeholder
-          let userId = req.headers.get('x-user-id');
-          
-          // If we don't have a user ID, try to extract it from the request parameters
-          if (!userId && req.headers.get('authorization')) {
-            try {
-              // Extract JWT token
-              const token = req.headers.get('authorization')?.split('Bearer ')[1];
-              if (token) {
-                // This is a simplified example. In a real app, you'd properly decode and verify the JWT
-                const base64Url = token.split('.')[1];
-                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-                const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-                  return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-                }).join(''));
-                const payload = JSON.parse(jsonPayload);
-                userId = payload.sub;
-              }
-            } catch (error) {
-              console.error("Error extracting user ID from token:", error);
-            }
-          }
-          
-          if (!userId) {
-            console.error("Could not determine user ID for background job");
-            return;
-          }
-          
-          // Save content to database
-          const contentResult = await fetch(`${req.url.split('/functions/')[0]}/rest/v1/content`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': req.headers.get('authorization') || '',
-              'apikey': req.headers.get('apikey') || '',
-            },
-            body: JSON.stringify({
-              title: title,
-              content: generatedContent,
-              user_id: userId,
-              created_at: new Date().toISOString()
-            }),
-          });
-          
-          if (!contentResult.ok) {
-            console.error("Failed to save content:", await contentResult.text());
-          } else {
-            console.log("Background content generation complete and saved, job ID:", jobId);
-          }
-          
-        } catch (error) {
-          console.error("Error in background generation task:", error);
-        }
-      };
+Return ONLY the factual information you found, formatted as markdown. Do not add any personal comments or text that implies you're providing this information. Just the raw research data.`,
+        apiKey: requestData.apiKey,
+        temperature: 0.2,
+      });
       
-      // Use EdgeRuntime.waitUntil to ensure the function continues running in the background
-      // This is a Supabase Edge Function feature that allows background processing
-      if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
-        EdgeRuntime.waitUntil(generateInBackground());
-      } else {
-        // Fallback if EdgeRuntime is not available
-        generateInBackground().catch(error => {
-          console.error("Error in background task:", error);
-        });
-      }
+      console.log("Search completed successfully, response length:", searchResponse.length);
       
-      // Return immediately with job ID
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          backgroundGeneration: true,
-          jobId: jobId,
-          message: "Content generation started in background"
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
+      // Step 2: Generate content based on search results
+      const searchAugmentedPrompt = `
+${prompt}
+
+RESEARCH DATA TO USE:
+${searchResponse}
+
+Based on this research data, generate the article as requested, following all the instructions above.`;
+      
+      finalContent = await fetchFromOpenRouter({
+        model: requestData.finalContentModel || "anthropic/claude-3.7-sonnet",
+        prompt: searchAugmentedPrompt,
+        apiKey: requestData.apiKey,
+        temperature: requestData.temperature || 0.7,
+      });
+      
+    } else {
+      // Direct content generation
+      console.log("Using direct content generation with model:", model);
+      finalContent = await fetchFromOpenRouter({
+        model,
+        prompt,
+        apiKey: requestData.apiKey,
+        temperature: requestData.temperature || 0.7,
+      });
     }
     
-    // If not background generation, proceed with regular synchronous generation
-    let generatedContent = "";
+    const endTime = Date.now();
+    console.log(`Content generation completed in ${(endTime - startTime)/1000} seconds. Content length: ${finalContent.length} characters`);
     
-    // Call the OpenRouter API with the selected model for search if search term is provided
-    console.log("Calling OpenRouter API with initial model...");
+    // Return the generated content
+    return new Response(JSON.stringify({
+      content: finalContent,
+      success: true,
+      processTime: endTime - startTime
+    }), {
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json",
+      },
+    });
     
-    try {
-      if (inputMode === "webSearch" && searchTerm) {
-        // STEP 1: Use selected model to gather research information
-        let searchResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`,
-            'HTTP-Referer': 'https://contentgenius.app', 
-            'X-Title': 'ContentGenius SEO Generator'
-          },
-          body: JSON.stringify({
-            model: requestedModel,
-            messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: userPrompt }
-            ],
-            temperature: 0.7,
-            max_tokens: requestedModel.includes("gemini-2.5") || requestedModel.includes("deepseek") ? 32000 : 16000,
-          }),
-        });
-
-        // Improved error handling for search request
-        if (!searchResponse.ok) {
-          const errorText = await searchResponse.text();
-          console.error(`Search API Error (${searchResponse.status}): ${errorText}`);
-          
-          return new Response(
-            JSON.stringify({ 
-              success: false, 
-              error: `Error with web search: ${errorText || `Status code ${searchResponse.status}`}` 
-            }),
-            { 
-              status: 200, // Always return 200 but with error in body
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-            }
-          );
-        }
-
-        let searchData = await searchResponse.json();
-        
-        if (!searchData || !searchData.choices || !searchData.choices[0] || !searchData.choices[0].message) {
-          console.error("Invalid response structure from search API:", searchData);
-          
-          return new Response(
-            JSON.stringify({ 
-              success: false, 
-              error: "Invalid response from search API. Please try again or use manual input mode." 
-            }),
-            { 
-              status: 200,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-            }
-          );
-        }
-        
-        let searchResults = searchData.choices[0].message.content;
-        console.log("Search completed. Now processing with final content model...");
-        
-        // STEP 2: Use Claude 3.7 Sonnet or other selected model to create the final content
-        // Important: Making sure we're using 'let' for system prompts here
-        let claudeSystemPrompt = `You are an expert SEO content writer. Your task is to create a high-quality, 
-        SEO-optimized blog post based on the research information provided. The content should have a readability 
-        level of grade 8, sound human-written, and follow best SEO practices to optimize for the keyword "${targetKeyword || topic}".
-        
-        The blog post should be written in a ${toneOfArticle || 'professional'} ${articleType || 'informational'} style, 
-        aiming for approximately ${wordCount} words for ${intendedAudience || 'general readers'}.
-        
-        Include lists, tables, charts, pull quotes, and emojis when it makes sense. Always end with an SEO title and meta description.
-        
-        Your writing should be in-depth, comprehensive, and extremely detailed, using all the relevant information from the research provided.`;
-        
-        // Add additional context instructions if provided
-        if (additionalContext) {
-          claudeSystemPrompt += ` I've provided you with additional context information. If it contains business or company information, use it sparingly and only when it makes sense in the flow of the article. If appropriate, include subtle calls-to-action that feel natural within the content. Don't just dump all the information in one place - integrate it naturally throughout the article where relevant to the surrounding content.`;
-        }
-        
-        // Add internal links instruction if requested
-        if (includeInternalLinks && internalLinks && internalLinks.length > 0) {
-          claudeSystemPrompt += ` Include relevant internal links from the provided list of URLs. Select 3-7 of the most relevant URLs based on the content and link to them naturally within the text using anchor text that is relevant to both the linked page and the context of your article.`;
-        }
-        
-        // Add citations instruction if requested
-        if (includeCitations) {
-          claudeSystemPrompt += ` Make sure to include all sources and citations from the research in the final blog post. List all sources and citations at the end of the article in a "Sources" or "References" section.`;
-        }
-        
-        // Important: Using 'let' instead of 'const' for userPrompt that might be appended to
-        let claudeUserPrompt = `I have conducted extensive research on the topic "${topic}" optimized for the keyword "${targetKeyword || topic}". 
-        Here is the research data:
-        
-        ${searchResults}
-        
-        Using this research, write a comprehensive ${wordCount}-word SEO-optimized blog post about "${topic}" that's optimized 
-        for the keyword "${targetKeyword || topic}". Make sure to include relevant sources from the research.
-        
-        Ensure the content:
-        - Has a readability level of grade 8
-        - Sounds natural and human-written
-        - Follows best SEO practices
-        - Is written in a ${toneOfArticle || 'professional'} ${articleType || 'informational'} style
-        - Includes all relevant information from the research
-        - Includes lists, tables, charts, and bold text where appropriate
-        - Cites sources from the research where appropriate`;
-        
-        if (stylePreferences.length > 0) {
-          claudeUserPrompt += `\n- Uses ${stylePreferences.join(", ")} style`;
-        }
-        
-        // Add internal links if requested
-        if (includeInternalLinks && internalLinks && internalLinks.length > 0) {
-          claudeUserPrompt += `
-          
-          Include 3-7 relevant internal links from this list of URLs. Choose the most appropriate URLs that relate to the content and incorporate them naturally in the article:
-          
-          ${internalLinks.join('\n')}
-          
-          For each link, use descriptive and contextually relevant anchor text that helps both users and search engines understand what the linked page is about. Distribute the links evenly throughout the article.`;
-        }
-        
-        if (includeHtmlElement) {
-          claudeUserPrompt += `
-          
-          Additionally, create ONE highly relevant interactive HTML element that would significantly help readers understand or use the information in this article. The HTML element must:
-          
-          1. Start with <!DOCTYPE HTML> and be structured as a complete, self-contained document
-          2. Choose the most appropriate format based on the article content:
-             - Interactive table (for comparing options/data)
-             - Data visualization (for statistics/trends)
-             - Calculator (for financial/numeric concepts)
-             - Quiz (for educational content)
-             - Timeline (for historical/sequential information)
-             - Selector/filtering tool (for decision-making assistance)
-             - Infographic (for visual representation of complex concepts)
-          
-          3. Include all CSS within a <style> tag and all JavaScript within a <script> tag
-          4. Use prefixed class names (like "cg-element-") to avoid conflicts with WordPress themes
-          5. Be responsive and mobile-friendly
-          6. Not rely on external libraries or dependencies
-          7. Not affect the page layout or styling when embedded in a WordPress post
-          8. Be actually useful to the reader, not just decorative
-          
-          Ensure the HTML is valid, clean, and follows best practices for embedding in WordPress without breaking the layout.`;
-        }
-        
-        try {
-          // Call the Claude 3.7 Sonnet model
-          let claudeResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${apiKey}`,
-              'HTTP-Referer': 'https://contentgenius.app', 
-              'X-Title': 'ContentGenius SEO Generator'
-            },
-            body: JSON.stringify({
-              model: "anthropic/claude-3.7-sonnet",
-              messages: [
-                { role: "system", content: claudeSystemPrompt },
-                { role: "user", content: claudeUserPrompt }
-              ],
-              temperature: 0.7,
-              max_tokens: 128000,
-            }),
-          });
-
-          if (!claudeResponse.ok) {
-            const errorText = await claudeResponse.text();
-            console.error("Error from Claude 3.7 Sonnet:", errorText);
-            // Fall back to using the search results if Claude fails
-            generatedContent = searchResults;
-            console.log("Falling back to search results due to Claude 3.7 Sonnet failure");
-          } else {
-            let claudeData = await claudeResponse.json();
-            
-            if (!claudeData || !claudeData.choices || !claudeData.choices[0] || !claudeData.choices[0].message) {
-              console.error("Invalid response structure from Claude 3.7 Sonnet:", claudeData);
-              // Fall back to using the search results
-              generatedContent = searchResults;
-              console.log("Falling back to search results due to invalid Claude 3.7 Sonnet response");
-            } else {
-              generatedContent = claudeData.choices[0].message.content;
-              console.log("Successfully generated content with Claude 3.7 Sonnet");
-            }
-          }
-        } catch (claudeError) {
-          console.error("Error during Claude 3.7 Sonnet call:", claudeError);
-          // Fall back to using the search results if Claude call fails
-          generatedContent = searchResults;
-          console.log("Falling back to search results due to Claude 3.7 Sonnet call error:", claudeError.message);
-        }
-      } else {
-        // For manual input or non-search requests, use the specified or default model directly
-        console.log(`Making direct API call to OpenRouter with model: ${requestedModel}`);
-        console.log(`API key length: ${apiKey.length} characters, first/last 4 chars: ${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}`);
-        
-        const openRouterUrl = 'https://openrouter.ai/api/v1/chat/completions';
-        console.log(`Calling OpenRouter API at: ${openRouterUrl}`);
-        
-        try {
-          const response = await fetch(openRouterUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${apiKey}`,
-              'HTTP-Referer': 'https://contentgenius.app', 
-              'X-Title': 'ContentGenius SEO Generator'
-            },
-            body: JSON.stringify({
-              model: requestedModel,
-              messages: [
-                { role: "system", content: systemPrompt },
-                { role: "user", content: userPrompt }
-              ],
-              temperature: 0.7,
-              max_tokens: 16000,
-            }),
-          });
-
-          console.log(`OpenRouter API response status: ${response.status}`);
-          
-          // Log full response for debugging
-          const responseText = await response.text();
-          console.log(`OpenRouter API raw response: ${responseText.substring(0, 200)}...`);
-          
-          if (!response.ok) {
-            return new Response(
-              JSON.stringify({ 
-                success: false, 
-                error: `OpenRouter API Error (${response.status}): ${responseText}`,
-                debug: {
-                  model: requestedModel,
-                  responseStatus: response.status,
-                  responseText: responseText.substring(0, 500) // Include first 500 chars for debugging
-                }
-              }),
-              { 
-                status: 200, // Always return 200 but with error in body
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-              }
-            );
-          }
-
-          // Re-parse the response text into JSON
-          const data = JSON.parse(responseText);
-          
-          if (!data || !data.choices || !data.choices[0] || !data.choices[0].message) {
-            console.error("Invalid response structure from API:", data);
-            return new Response(
-              JSON.stringify({ 
-                success: false, 
-                error: "Invalid response structure from OpenRouter API",
-                debug: {
-                  model: requestedModel,
-                  responseData: data
-                }
-              }),
-              { 
-                status: 200,
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-              }
-            );
-          }
-          
-          generatedContent = data.choices[0].message.content;
-          console.log("Content generation successful, length:", generatedContent.length);
-        } catch (fetchError) {
-          console.error("Error during OpenRouter API call:", fetchError);
-          return new Response(
-            JSON.stringify({ 
-              success: false, 
-              error: `OpenRouter API Fetch Error: ${fetchError.message}`,
-              debug: {
-                model: requestedModel,
-                errorType: fetchError.constructor.name,
-                errorMessage: fetchError.message
-              }
-            }),
-            { 
-              status: 200,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-            }
-          );
-        }
-      }
-      
-      // Return successful response with the generated content
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          content: generatedContent 
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    } catch (error) {
-      console.error("Error during content generation:", error);
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: error instanceof Error ? error.message : "An error occurred during content generation. Please try again.",
-          debug: {
-            errorType: error?.constructor?.name,
-            errorMessage: error instanceof Error ? error.message : String(error),
-            errorStack: error instanceof Error ? error.stack : undefined
-          }
-        }),
-        { 
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
   } catch (error) {
-    console.error("Error handling request:", error);
-    return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error instanceof Error ? error.message : "An error occurred while processing your request. Please try again.",
-        debug: {
-          errorType: error?.constructor?.name,
-          errorMessage: error instanceof Error ? error.message : String(error),
-          errorStack: error instanceof Error ? error.stack : undefined
+    // Enhanced error handling
+    console.error("Error in generate-seo-content edge function:", error);
+    
+    // Attempt to extract detailed error information
+    let errorMessage = error.message || "Unknown error occurred";
+    let statusCode = 500;
+    let errorDetails = null;
+    
+    // Try to extract OpenRouter specific error information
+    if (error.response) {
+      try {
+        const errorData = error.response;
+        console.error("OpenRouter API error response:", JSON.stringify(errorData));
+        
+        if (errorData.status === 401) {
+          errorMessage = "Authentication failed with AI provider. Please check your API key.";
+          statusCode = 401;
+        } else if (errorData.status === 429) {
+          errorMessage = "Rate limit exceeded on AI provider. Please try again later.";
+          statusCode = 429;
+        } else if (errorData.body) {
+          errorDetails = errorData.body;
+          if (errorData.body.error) {
+            errorMessage = `AI Provider error: ${errorData.body.error.message || errorData.body.error}`;
+          }
         }
-      }),
-      { 
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      } catch (parseError) {
+        console.error("Failed to parse error response:", parseError);
       }
-    );
+    }
+    
+    // Log detailed error information
+    console.error("Error details:", {
+      message: errorMessage,
+      originalError: error.toString(),
+      stack: error.stack,
+      errorDetails: errorDetails,
+    });
+    
+    // Return error response with detailed information
+    return new Response(JSON.stringify({
+      success: false,
+      error: errorMessage,
+      errorCode: statusCode,
+      debug: {
+        message: error.toString(),
+        time: new Date().toISOString(),
+        details: errorDetails
+      }
+    }), {
+      status: statusCode,
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json",
+      },
+    });
   }
 });
+
+// Function to construct the prompt based on the request data
+function constructPrompt(requestData: ContentRequest): string {
+  const {
+    topic,
+    targetKeyword,
+    articleType = "informational",
+    toneOfArticle = "professional",
+    intendedAudience,
+    additionalContext,
+    wordCount,
+    includeFirstPerson,
+    includeAnecdotes,
+    includeHook,
+    includeStories,
+    includeHtmlElement,
+    includeInternalLinks,
+    internalLinks = [],
+    customOutline,
+    language = "english",
+    inputMode,
+    manualInput,
+  } = requestData;
+  
+  // Base prompt with detailed instructions
+  let prompt = `You are a professional content writer creating a high-quality SEO-optimized article.
+
+TOPIC: ${topic}
+`;
+
+  // Add input from manual product details if provided
+  if (inputMode === "manualInput" && manualInput) {
+    prompt += `\nPRODUCT DETAILS:\n${manualInput}\n`;
+  }
+  
+  // Add language instruction
+  if (language && language !== "english") {
+    prompt += `\nIMPORTANT: Write the entire article in ${language} language.\n`;
+  }
+
+  // Add target keyword if provided
+  if (targetKeyword) {
+    prompt += `\nTARGET KEYWORD: ${targetKeyword}
+Include this keyword naturally throughout the article, especially in H1, meta description, and first paragraph.
+`;
+  }
+
+  prompt += `\nARTICLE TYPE: ${articleType}
+TONE: ${toneOfArticle}
+WORD COUNT: Approximately ${wordCount} words
+`;
+
+  // Add audience information if provided
+  if (intendedAudience) {
+    prompt += `\nINTENDED AUDIENCE: ${intendedAudience}\n`;
+  }
+
+  // Add additional context if provided
+  if (additionalContext) {
+    prompt += `\nADDITIONAL CONTEXT:\n${additionalContext}\n`;
+  }
+
+  // Add custom outline if provided
+  if (customOutline) {
+    prompt += `\nFOLLOW THIS OUTLINE:\n${customOutline}\n`;
+  }
+
+  // Add internal links if required
+  if (includeInternalLinks && internalLinks.length > 0) {
+    prompt += `\nINTERNAL LINKS:
+Include 3-5 of these internal links naturally within the article where relevant:
+${internalLinks.slice(0, 10).join("\n")}
+`;
+  }
+
+  // Add specific writing instructions
+  prompt += `\nWRITING INSTRUCTIONS:
+1. Create a compelling, SEO-optimized title (H1)
+2. Write in ${includeFirstPerson ? "first person" : "third person"} perspective
+${includeHook ? "3. Start with an engaging hook to capture reader attention\n" : ""}
+${includeAnecdotes ? "4. Include relevant anecdotes or examples to illustrate points\n" : ""}
+${includeStories ? "5. Incorporate storytelling elements to engage readers\n" : ""}
+${includeHtmlElement ? "6. Include one interactive HTML element (comparison table, product cards, etc.)\n" : ""}
+7. Structure the content with clear headings (H2, H3) and short paragraphs
+8. Format using proper markdown: # for H1, ## for H2, ### for H3, etc.
+9. Incorporate the target keyword naturally throughout the content
+`;
+
+  // Add product roundup specific instructions if applicable
+  if (articleType === "product-roundup" || articleType === "comparison") {
+    prompt += `\nPRODUCT ROUNDUP SPECIFIC INSTRUCTIONS:
+1. Include a comprehensive comparison table with key features
+2. For each product, include: key features, pros, cons, pricing info, use cases
+3. Add a "verdict" or "recommendation" section at the end
+4. Make clear recommendations for different user needs (best budget option, best premium option, etc.)
+5. Ensure HTML table is properly formatted with <table>, <tr>, <th>, <td> tags
+`;
+  }
+  
+  // Final formatting instruction
+  prompt += `\nOUTPUT FORMAT:
+Return the article as properly formatted HTML, with all headings, paragraphs, lists, and tables properly marked up.
+Use <h1> for main title, <h2> for main sections, <h3> for subsections, etc.
+Include a meta description tag suitable for SEO.
+`;
+
+  return prompt;
+}
+
+// Function to make a request to OpenRouter API
+async function fetchFromOpenRouter({
+  model,
+  prompt,
+  apiKey,
+  temperature = 0.7,
+}: {
+  model: string;
+  prompt: string;
+  apiKey: string;
+  temperature?: number;
+}): Promise<string> {
+  console.log(`Making request to OpenRouter with model: ${model}, temperature: ${temperature}`);
+  
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 180000); // 3 minute timeout
+  
+  try {
+    // Setup headers with API key
+    const headers = {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`,
+      "HTTP-Referer": "https://content-genius.lovable.dev", // Replace with your actual domain
+    };
+    
+    // Prepare request body based on model
+    const requestBody: any = {
+      model: model,
+      temperature: temperature,
+    };
+    
+    // Add messages or prompt depending on the model
+    if (model.includes('claude') || model.includes('gpt') || model.includes('gemini') || model.includes('mistral')) {
+      requestBody.messages = [
+        { role: "user", content: prompt }
+      ];
+      
+      // Add system message for Claude and GPT models
+      if (model.includes('claude') || model.includes('gpt')) {
+        requestBody.messages.unshift({
+          role: "system", 
+          content: "You are an expert content writer specializing in SEO-optimized articles. You write detailed, engaging content that follows all provided instructions precisely."
+        });
+      }
+    } else {
+      // Fallback for other models
+      requestBody.prompt = prompt;
+    }
+
+    // Set max tokens based on word count in prompt
+    const wordCount = prompt.split(/\s+/).length;
+    requestBody.max_tokens = Math.max(4000, Math.min(16000, wordCount * 3));
+    
+    console.log("Sending request to OpenRouter API", { 
+      url: "https://openrouter.ai/api/v1/chat/completions",
+      model: model,
+      temperature: temperature,
+      max_tokens: requestBody.max_tokens,
+      timestamp: new Date().toISOString()
+    });
+    
+    // Make the request with timeout
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: headers,
+      body: JSON.stringify(requestBody),
+      signal: controller.signal
+    });
+    
+    // Clear timeout since request completed
+    clearTimeout(timeoutId);
+    
+    // Check for errors
+    if (!response.ok) {
+      const responseText = await response.text();
+      console.error("OpenRouter API error:", responseText);
+      let errorDetail = "Unknown error";
+      
+      try {
+        const errorJson = JSON.parse(responseText);
+        errorDetail = errorJson.error?.message || errorJson.error || responseText;
+      } catch (e) {
+        errorDetail = responseText || `HTTP error ${response.status}`;
+      }
+      
+      throw new Error(`OpenRouter API error (${response.status}): ${errorDetail}`);
+    }
+    
+    // Parse response
+    const data = await response.json();
+    console.log("OpenRouter API response received");
+    
+    // Extract content from response
+    if (data.choices && data.choices.length > 0) {
+      const content = data.choices[0].message?.content || data.choices[0].text || "";
+      console.log(`Successfully received content from OpenRouter, length: ${content.length}`);
+      return content;
+    } else {
+      console.error("Unexpected response format from OpenRouter:", data);
+      throw new Error("Unexpected response format from OpenRouter");
+    }
+    
+  } catch (error) {
+    // Check if this was a timeout
+    if (error.name === "AbortError") {
+      console.error("Request to OpenRouter timed out after 3 minutes");
+      throw new Error("The request to the AI provider timed out. Please try again with a simpler request or a different model.");
+    }
+    
+    clearTimeout(timeoutId);
+    console.error("Error in fetchFromOpenRouter:", error);
+    throw error;
+  }
+}
