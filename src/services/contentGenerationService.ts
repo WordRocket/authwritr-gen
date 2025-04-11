@@ -127,8 +127,9 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
       
       console.log("Sending request to Supabase Edge Function: generate-seo-content");
       
+      // Create a timeout promise that will reject after 45 seconds
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error("Request timed out. The edge function didn't respond in time.")), 30000);
+        setTimeout(() => reject(new Error("Request timed out. The edge function didn't respond within 45 seconds.")), 45000);
       });
       
       const invocationPromise = supabase.functions.invoke("generate-seo-content", {
@@ -146,6 +147,9 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
         },
       });
       
+      console.log("Waiting for response from edge function...");
+      
+      // Race the invocation against the timeout
       const { data, error } = await Promise.race([invocationPromise, timeoutPromise]) as any;
 
       if (error) {
@@ -165,9 +169,22 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
         throw new Error("No data returned from content generation service");
       }
       
+      console.log("Response received from edge function:", { 
+        success: data.success,
+        hasError: !!data.error,
+        contentLength: data.content?.length || 0,
+        backgroundGeneration: !!data.backgroundGeneration
+      });
+      
       if (!data.success) {
         const errorMessage = data.error || "Failed to generate content";
         console.error("Content generation returned error:", errorMessage, data);
+        
+        // Check if there's debug info from OpenRouter
+        if (data.debug) {
+          console.log("Debug info from edge function:", data.debug);
+        }
+        
         throw new Error(errorMessage);
       }
 
@@ -221,6 +238,10 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
       if (invokeError.message && invokeError.message.includes('timed out')) {
         console.error("Edge function request timed out:", invokeError);
         throw new Error("The request to the Edge Function timed out. Please try again later when the service is more responsive.");
+      }
+      
+      if (invokeError.debug) {
+        console.log("Debug info from error:", invokeError.debug);
       }
       
       if (invokeError.message && typeof invokeError.message === 'string') {

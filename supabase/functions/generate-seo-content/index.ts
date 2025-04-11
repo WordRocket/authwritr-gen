@@ -874,37 +874,97 @@ serve(async (req) => {
         }
       } else {
         // For manual input or non-search requests, use the specified or default model directly
-        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`,
-            'HTTP-Referer': 'https://contentgenius.app', 
-            'X-Title': 'ContentGenius SEO Generator'
-          },
-          body: JSON.stringify({
-            model: requestedModel,
-            messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: userPrompt }
-            ],
-            temperature: 0.7,
-            max_tokens: 16000,
-          }),
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`API Error (${response.status}): ${errorText}`);
-        }
-
-        const data = await response.json();
+        console.log(`Making direct API call to OpenRouter with model: ${requestedModel}`);
+        console.log(`API key length: ${apiKey.length} characters, first/last 4 chars: ${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}`);
         
-        if (!data || !data.choices || !data.choices[0] || !data.choices[0].message) {
-          throw new Error("Invalid response structure from API");
-        }
+        const openRouterUrl = 'https://openrouter.ai/api/v1/chat/completions';
+        console.log(`Calling OpenRouter API at: ${openRouterUrl}`);
         
-        generatedContent = data.choices[0].message.content;
+        try {
+          const response = await fetch(openRouterUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${apiKey}`,
+              'HTTP-Referer': 'https://contentgenius.app', 
+              'X-Title': 'ContentGenius SEO Generator'
+            },
+            body: JSON.stringify({
+              model: requestedModel,
+              messages: [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: userPrompt }
+              ],
+              temperature: 0.7,
+              max_tokens: 16000,
+            }),
+          });
+
+          console.log(`OpenRouter API response status: ${response.status}`);
+          
+          // Log full response for debugging
+          const responseText = await response.text();
+          console.log(`OpenRouter API raw response: ${responseText.substring(0, 200)}...`);
+          
+          if (!response.ok) {
+            return new Response(
+              JSON.stringify({ 
+                success: false, 
+                error: `OpenRouter API Error (${response.status}): ${responseText}`,
+                debug: {
+                  model: requestedModel,
+                  responseStatus: response.status,
+                  responseText: responseText.substring(0, 500) // Include first 500 chars for debugging
+                }
+              }),
+              { 
+                status: 200, // Always return 200 but with error in body
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+              }
+            );
+          }
+
+          // Re-parse the response text into JSON
+          const data = JSON.parse(responseText);
+          
+          if (!data || !data.choices || !data.choices[0] || !data.choices[0].message) {
+            console.error("Invalid response structure from API:", data);
+            return new Response(
+              JSON.stringify({ 
+                success: false, 
+                error: "Invalid response structure from OpenRouter API",
+                debug: {
+                  model: requestedModel,
+                  responseData: data
+                }
+              }),
+              { 
+                status: 200,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+              }
+            );
+          }
+          
+          generatedContent = data.choices[0].message.content;
+          console.log("Content generation successful, length:", generatedContent.length);
+        } catch (fetchError) {
+          console.error("Error during OpenRouter API call:", fetchError);
+          return new Response(
+            JSON.stringify({ 
+              success: false, 
+              error: `OpenRouter API Fetch Error: ${fetchError.message}`,
+              debug: {
+                model: requestedModel,
+                errorType: fetchError.constructor.name,
+                errorMessage: fetchError.message
+              }
+            }),
+            { 
+              status: 200,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+            }
+          );
+        }
       }
       
       // Return successful response with the generated content
@@ -922,7 +982,12 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: error instanceof Error ? error.message : "An error occurred during content generation. Please try again." 
+          error: error instanceof Error ? error.message : "An error occurred during content generation. Please try again.",
+          debug: {
+            errorType: error?.constructor?.name,
+            errorMessage: error instanceof Error ? error.message : String(error),
+            errorStack: error instanceof Error ? error.stack : undefined
+          }
         }),
         { 
           status: 200,
@@ -935,7 +1000,12 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error instanceof Error ? error.message : "An error occurred while processing your request. Please try again." 
+        error: error instanceof Error ? error.message : "An error occurred while processing your request. Please try again.",
+        debug: {
+          errorType: error?.constructor?.name,
+          errorMessage: error instanceof Error ? error.message : String(error),
+          errorStack: error instanceof Error ? error.stack : undefined
+        }
       }),
       { 
         status: 200,

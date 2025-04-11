@@ -9,7 +9,7 @@ import { Link } from "react-router-dom";
 import { HtmlPreviewComponent } from "@/components/templates/HtmlPreviewComponent";
 import { LanguageSelector } from "@/components/templates/LanguageSelector";
 import { Card } from "@/components/ui/card";
-// No need to import WordPressPublishSection since we're hiding it
+import { toast } from "@/hooks/use-toast";
 
 export default function ProductRoundupTemplate() {
   const [includeInternalLinks, setIncludeInternalLinks] = useState(false);
@@ -68,11 +68,24 @@ export default function ProductRoundupTemplate() {
     console.error("API Error in ProductRoundupTemplate:", error);
     setApiError(error);
     setIsGenerating(false);
+    
+    // Show toast notification for API errors
+    toast({
+      title: "API Error",
+      description: "There was an error generating content. Please check the error details below.",
+      variant: "destructive"
+    });
   };
   
   const handleContentGenerated = (content: string) => {
     console.log("Content successfully generated, length:", content.length);
     setGeneratedHtml(content);
+    
+    // Show success toast
+    toast({
+      title: "Content Generated Successfully",
+      description: "Your product roundup article has been created.",
+    });
   };
 
   const handleLanguageChange = (newLanguage: string) => {
@@ -87,6 +100,13 @@ export default function ProductRoundupTemplate() {
       setApiError(null);
     };
   }, []);
+  
+  // Force re-render when apiKey changes
+  useEffect(() => {
+    if (apiKey) {
+      console.log("API key detected, ready for content generation");
+    }
+  }, [apiKey]);
 
   return (
     <div className="mx-auto container py-8 space-y-8">
@@ -130,6 +150,9 @@ export default function ProductRoundupTemplate() {
                 </Link>
               </li>
             </ul>
+            <p className="mt-2 text-xs italic">
+              Check the Edge Function logs for more detailed error information.
+            </p>
           </AlertDescription>
         </Alert>
       )}
@@ -166,7 +189,8 @@ export default function ProductRoundupTemplate() {
         onApiError={handleApiError}
         apiKey={apiKey}
         onContentGenerated={handleContentGenerated}
-        key={`${apiKey || 'no-api-key'}-${new Date().getTime()}`} // Force re-render on errors
+        // Force re-render when apiKey changes or on errors
+        key={`${apiKey || 'no-api-key'}-${apiError ? new Date().getTime() : 'no-error'}`}
       />
       
       {generatedHtml && (
