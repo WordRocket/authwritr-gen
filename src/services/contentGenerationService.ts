@@ -127,12 +127,7 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
       
       console.log("Sending request to Supabase Edge Function: generate-seo-content");
       
-      // Create a timeout promise that will reject after 45 seconds
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error("Request timed out. The edge function didn't respond within 45 seconds.")), 45000);
-      });
-      
-      const invocationPromise = supabase.functions.invoke("generate-seo-content", {
+      const { data, error } = await supabase.functions.invoke("generate-seo-content", {
         body: {
           ...formData,
           apiKey,
@@ -146,11 +141,6 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
           temperature: temperature
         },
       });
-      
-      console.log("Waiting for response from edge function...");
-      
-      // Race the invocation against the timeout
-      const { data, error } = await Promise.race([invocationPromise, timeoutPromise]) as any;
 
       if (error) {
         console.error("Error invoking generate-seo-content function:", error);
@@ -169,22 +159,9 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
         throw new Error("No data returned from content generation service");
       }
       
-      console.log("Response received from edge function:", { 
-        success: data.success,
-        hasError: !!data.error,
-        contentLength: data.content?.length || 0,
-        backgroundGeneration: !!data.backgroundGeneration
-      });
-      
       if (!data.success) {
         const errorMessage = data.error || "Failed to generate content";
         console.error("Content generation returned error:", errorMessage, data);
-        
-        // Check if there's debug info from OpenRouter
-        if (data.debug) {
-          console.log("Debug info from edge function:", data.debug);
-        }
-        
         throw new Error(errorMessage);
       }
 
@@ -230,20 +207,6 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
     } catch (invokeError: any) {
       console.error("Error in supabase.functions.invoke:", invokeError);
       
-      if (invokeError instanceof TypeError && invokeError.message.includes('fetch')) {
-        console.error("Network error during edge function invocation:", invokeError);
-        throw new Error("Failed to connect to the Edge Function due to a network error. Please check your internet connection and try again.");
-      }
-      
-      if (invokeError.message && invokeError.message.includes('timed out')) {
-        console.error("Edge function request timed out:", invokeError);
-        throw new Error("The request to the Edge Function timed out. Please try again later when the service is more responsive.");
-      }
-      
-      if (invokeError.debug) {
-        console.log("Debug info from error:", invokeError.debug);
-      }
-      
       if (invokeError.message && typeof invokeError.message === 'string') {
         const errorMsg = invokeError.message.toLowerCase();
         
@@ -271,7 +234,7 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
         }
 
         if (errorMsg.includes("edge") && (errorMsg.includes("function") || errorMsg.includes("failed"))) {
-          throw new Error(`Failed to communicate with the Edge Function. Please try again later when the service is available.`);
+          throw new Error(`Failed to communicate with the Edge Function. Please check your network connection and try again later.`);
         }
 
         if (errorMsg.includes("network") || errorMsg.includes("timeout") || errorMsg.includes("timed out") || 
@@ -615,25 +578,22 @@ export const recommendedModels = [
 
 export const freeModels = [
   { 
-    id: "google/gemini-2.5-pro-exp-03-25:free", 
-    name: "Gemini 2.5 Pro Experimental", 
-    description: "Latest Gemini model with experimental features (free)",
-    recommended: true,
-    free: true
+    id: "google/gemini-2.5-pro-preview-03-25:free", 
+    name: "Gemini 2.5 Pro Preview", 
+    description: "Google's state-of-the-art AI model (free)",
+    recommended: true
   },
   { 
-    id: "meta-llama/llama-4-maverick:free", 
-    name: "Llama 4 Maverick", 
-    description: "17B multimodal model with 256K context (free)",
-    recommended: true,
-    free: true
+    id: "google/gemini-2.0-flash:free", 
+    name: "Gemini 2.0 Flash", 
+    description: "Fastest Gemini model for quick content (free)",
+    recommended: true
   },
   { 
-    id: "qwen/qwen2.5-vl-3b-instruct:free", 
-    name: "Qwen 2.5 VL 3B Instruct", 
-    description: "Multimodal vision-language model (free)",
-    recommended: true,
-    free: true
+    id: "google/gemini-2.0-pro:free", 
+    name: "Gemini 2.0 Pro", 
+    description: "More capable content generation model (free)",
+    recommended: true
   }
 ];
 

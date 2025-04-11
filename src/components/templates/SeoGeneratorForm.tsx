@@ -1,3 +1,4 @@
+
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -118,8 +119,6 @@ interface SeoGeneratorFormProps {
   additionalFreeModels?: AIModel[];
   additionalPromptContext?: string;
   additionalFormData?: Record<string, any>;
-  geminiApiKey?: string;
-  customModels?: AIModel[];
 }
 
 export function SeoGeneratorForm({ 
@@ -134,9 +133,7 @@ export function SeoGeneratorForm({
   showGeminiKeyInput = false,
   additionalFreeModels = [],
   additionalPromptContext,
-  additionalFormData,
-  geminiApiKey = "",
-  customModels
+  additionalFormData
 }: SeoGeneratorFormProps) {
   const { user, apiKey } = useAuth();
   const [isGenerating, setIsGenerating] = React.useState(false);
@@ -150,55 +147,14 @@ export function SeoGeneratorForm({
   const navigate = useNavigate();
   
   const combinedFreeModels = React.useMemo(() => {
-    const uniqueModelIds = new Set();
-    const uniqueModels = [];
-    
-    freeModels.forEach(model => {
-      if (!uniqueModelIds.has(model.id)) {
-        uniqueModelIds.add(model.id);
-        uniqueModels.push(model);
-      }
-    });
-    
-    if (additionalFreeModels) {
-      additionalFreeModels.forEach(model => {
-        if (!uniqueModelIds.has(model.id)) {
-          uniqueModelIds.add(model.id);
-          uniqueModels.push(model);
-        }
-      });
-    }
-    
-    return uniqueModels;
+    return [...freeModels, ...additionalFreeModels];
   }, [additionalFreeModels]);
-
-  const modelsToDisplay = React.useMemo(() => {
-    if (onlyShowFreeModels) {
-      return combinedFreeModels;
-    } else if (customModels) {
-      return customModels;
-    } else {
-      return recommendedModels;
-    }
-  }, [onlyShowFreeModels, combinedFreeModels, customModels]);
-
-  const defaultModel = React.useMemo(() => {
-    if (onlyShowFreeModels) {
-      return "google/gemini-2.5-pro-exp-03-25:free";
-    } else if (customModels && customModels.length > 0) {
-      return customModels[0].id;
-    } else {
-      return "anthropic/claude-3.7-sonnet";
-    }
-  }, [onlyShowFreeModels, customModels]);
 
   const form = useForm<SeoFormValues>({
     resolver: zodResolver(seoFormSchema),
-    defaultValues: { 
-      ...defaultValues, 
-      model: defaultModel,
-      useGeminiDirectly: onlyShowFreeModels || (defaultModel.includes('gemini') && showGeminiKeyInput)
-    },
+    defaultValues: onlyShowFreeModels 
+      ? {...defaultValues, model: "google/gemini-2.5-pro-exp-03-25:free", useGeminiDirectly: true} 
+      : defaultValues,
   });
 
   React.useEffect(() => {
@@ -206,15 +162,15 @@ export function SeoGeneratorForm({
   }, [apiKey]);
 
   React.useEffect(() => {
-    if ((savedGeminiApiKey || geminiApiKey) && showGeminiKeyInput) {
-      form.setValue('geminiApiKey', savedGeminiApiKey || geminiApiKey);
+    if (savedGeminiApiKey && showGeminiKeyInput) {
+      form.setValue('geminiApiKey', savedGeminiApiKey);
     }
     
     const currentModel = form.getValues('model');
     if (currentModel && currentModel.includes('gemini') && showGeminiKeyInput) {
       form.setValue('useGeminiDirectly', true);
     }
-  }, [form, savedGeminiApiKey, showGeminiKeyInput, geminiApiKey]);
+  }, [form, savedGeminiApiKey, showGeminiKeyInput]);
 
   React.useEffect(() => {
     const subscription = form.watch((value, { name }) => {
@@ -444,7 +400,7 @@ export function SeoGeneratorForm({
                       control={form.control}
                       name="model"
                       render={({ field }) => (
-                        <FormItem className="relative z-10">
+                        <FormItem>
                           <div className="flex items-center justify-between">
                             <FormLabel>AI Model</FormLabel>
                             <TooltipProvider>
@@ -452,7 +408,7 @@ export function SeoGeneratorForm({
                                 <TooltipTrigger asChild>
                                   <InfoIcon className="h-4 w-4 text-muted-foreground" />
                                 </TooltipTrigger>
-                                <TooltipContent className="bg-popover text-popover-foreground">
+                                <TooltipContent>
                                   <p className="max-w-xs">Select the AI model that will generate your content. {onlyShowFreeModels ? "Only free models are shown." : "Different models have different capabilities and costs."}</p>
                                 </TooltipContent>
                               </Tooltip>
@@ -468,66 +424,22 @@ export function SeoGeneratorForm({
                                 <SelectValue placeholder="Select AI model" />
                               </SelectTrigger>
                             </FormControl>
-                            <SelectContent className="z-50 bg-popover border border-border shadow-md">
-                              {customModels ? (
+                            <SelectContent>
+                              <div className="mb-2 px-2 py-1.5 text-sm font-semibold">
+                                {onlyShowFreeModels ? "Free Models" : "Recommended"}
+                              </div>
+                              {(onlyShowFreeModels ? combinedFreeModels : recommendedModels.filter(model => model.recommended))
+                                .map(model => (
+                                  <SelectItem key={model.id} value={model.id}>
+                                    <div className="flex flex-col">
+                                      <span>{model.name}</span>
+                                      <span className="text-xs text-muted-foreground">{model.description}</span>
+                                    </div>
+                                  </SelectItem>
+                                ))
+                              }
+                              {!onlyShowFreeModels && (
                                 <>
-                                  <div className="mb-2 px-2 py-1.5 text-sm font-semibold">
-                                    Recommended Models
-                                  </div>
-                                  {modelsToDisplay
-                                    .filter(model => model.recommended)
-                                    .map(model => (
-                                      <SelectItem key={model.id} value={model.id}>
-                                        <div className="flex flex-col">
-                                          <span>{model.name}</span>
-                                          <span className="text-xs text-muted-foreground">{model.description}</span>
-                                        </div>
-                                      </SelectItem>
-                                    ))
-                                  }
-                                  <div className="mb-2 mt-2 px-2 py-1.5 text-sm font-semibold">Other Models</div>
-                                  {modelsToDisplay
-                                    .filter(model => !model.recommended)
-                                    .map(model => (
-                                      <SelectItem key={model.id} value={model.id}>
-                                        <div className="flex flex-col">
-                                          <span>{model.name}</span>
-                                          <span className="text-xs text-muted-foreground">{model.description}</span>
-                                        </div>
-                                      </SelectItem>
-                                    ))
-                                  }
-                                </>
-                              ) : onlyShowFreeModels ? (
-                                <>
-                                  <div className="mb-2 px-2 py-1.5 text-sm font-semibold">
-                                    Free Models
-                                  </div>
-                                  {combinedFreeModels.map(model => (
-                                    <SelectItem key={model.id} value={model.id}>
-                                      <div className="flex flex-col">
-                                        <span>{model.name}</span>
-                                        <span className="text-xs text-muted-foreground">{model.description}</span>
-                                      </div>
-                                    </SelectItem>
-                                  ))}
-                                </>
-                              ) : (
-                                <>
-                                  <div className="mb-2 px-2 py-1.5 text-sm font-semibold">
-                                    Recommended
-                                  </div>
-                                  {recommendedModels
-                                    .filter(model => model.recommended)
-                                    .map(model => (
-                                      <SelectItem key={model.id} value={model.id}>
-                                        <div className="flex flex-col">
-                                          <span>{model.name}</span>
-                                          <span className="text-xs text-muted-foreground">{model.description}</span>
-                                        </div>
-                                      </SelectItem>
-                                    ))
-                                  }
                                   <div className="mb-2 mt-2 px-2 py-1.5 text-sm font-semibold">Other Models</div>
                                   {recommendedModels
                                     .filter(model => !model.recommended)
@@ -559,7 +471,7 @@ export function SeoGeneratorForm({
                         control={form.control}
                         name="geminiApiKey"
                         render={({ field }) => (
-                          <FormItem className="pt-3">
+                          <FormItem>
                             <FormLabel>Gemini API Key</FormLabel>
                             <FormControl>
                               <Input 
@@ -593,7 +505,7 @@ export function SeoGeneratorForm({
                       control={form.control}
                       name="articleType"
                       render={({ field }) => (
-                        <FormItem className="pt-3 relative z-0">
+                        <FormItem>
                           <FormLabel>Article Type</FormLabel>
                           <Select 
                             onValueChange={field.onChange} 
@@ -604,7 +516,7 @@ export function SeoGeneratorForm({
                                 <SelectValue placeholder="Select article type" />
                               </SelectTrigger>
                             </FormControl>
-                            <SelectContent className="z-40 bg-popover border border-border shadow-md">
+                            <SelectContent>
                               <SelectItem value="informational">Informational</SelectItem>
                               <SelectItem value="listicle">Listicle</SelectItem>
                               <SelectItem value="how-to">How-to Guide</SelectItem>
@@ -621,7 +533,7 @@ export function SeoGeneratorForm({
                       control={form.control}
                       name="toneOfArticle"
                       render={({ field }) => (
-                        <FormItem className="relative z-0">
+                        <FormItem>
                           <FormLabel>Tone of Article</FormLabel>
                           <Select 
                             onValueChange={field.onChange} 
@@ -632,7 +544,7 @@ export function SeoGeneratorForm({
                                 <SelectValue placeholder="Select tone" />
                               </SelectTrigger>
                             </FormControl>
-                            <SelectContent className="z-30 bg-popover border border-border shadow-md">
+                            <SelectContent>
                               <SelectItem value="professional">Professional</SelectItem>
                               <SelectItem value="conversational">Conversational</SelectItem>
                               <SelectItem value="friendly">Friendly</SelectItem>
@@ -1055,3 +967,4 @@ export function SeoGeneratorForm({
     </Tabs>
   );
 }
+

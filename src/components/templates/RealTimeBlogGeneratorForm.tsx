@@ -138,8 +138,6 @@ interface RealTimeBlogGeneratorFormProps {
   customOutline?: string;
   onCustomOutlineChange?: (outline: string) => void;
   forceWebSearch?: boolean;
-  onGeneratingChange?: (generating: boolean) => void;
-  onContentGenerated?: (title: string, content: string) => void;
 }
 
 export function RealTimeBlogGeneratorForm({ 
@@ -148,9 +146,7 @@ export function RealTimeBlogGeneratorForm({
   onCitationsToggle,
   customOutline = "",
   onCustomOutlineChange,
-  forceWebSearch = false,
-  onGeneratingChange,
-  onContentGenerated
+  forceWebSearch = false
 }: RealTimeBlogGeneratorFormProps) {
   const { user, apiKey } = useAuth();
   const [isGenerating, setIsGenerating] = React.useState(false);
@@ -233,12 +229,6 @@ export function RealTimeBlogGeneratorForm({
     }
   }, [inputMode, form]);
 
-  React.useEffect(() => {
-    if (onGeneratingChange) {
-      onGeneratingChange(isGenerating);
-    }
-  }, [isGenerating, onGeneratingChange]);
-
   const onSubmit = async (data: BlogGeneratorFormValues) => {
     if (!apiKey) {
       toast({
@@ -278,14 +268,6 @@ export function RealTimeBlogGeneratorForm({
       
       const content = await generateSeoContent(formDataWithInternalLinks as SeoServiceFormValues, apiKey);
       setGeneratedContent(content);
-      
-      const titleMatch = content.match(/^#\s+(.+)$/m);
-      const title = titleMatch ? titleMatch[1] : data.topic;
-      
-      if (onContentGenerated) {
-        onContentGenerated(title, content);
-      }
-      
       setActiveTab("generated-content");
       toast({
         title: "Content generated successfully!",

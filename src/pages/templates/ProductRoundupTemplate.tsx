@@ -9,8 +9,6 @@ import { Link } from "react-router-dom";
 import { HtmlPreviewComponent } from "@/components/templates/HtmlPreviewComponent";
 import { LanguageSelector } from "@/components/templates/LanguageSelector";
 import { Card } from "@/components/ui/card";
-import { toast } from "@/hooks/use-toast";
-import { Button } from "@/components/ui/button";
 
 export default function ProductRoundupTemplate() {
   const [includeInternalLinks, setIncludeInternalLinks] = useState(false);
@@ -19,7 +17,6 @@ export default function ProductRoundupTemplate() {
   const [apiError, setApiError] = useState<string | null>(null);
   const [generatedHtml, setGeneratedHtml] = useState("");
   const [language, setLanguage] = useState("english");
-  const [lastAttempt, setLastAttempt] = useState(Date.now());
   const { apiKey } = useAuth();
   
   useEffect(() => {
@@ -70,56 +67,17 @@ export default function ProductRoundupTemplate() {
     console.error("API Error in ProductRoundupTemplate:", error);
     setApiError(error);
     setIsGenerating(false);
-    setLastAttempt(Date.now()); // Force re-render when an error occurs
-    
-    // Show toast notification for API errors
-    toast({
-      title: "API Error",
-      description: "There was an error generating content. Please check the error details below.",
-      variant: "destructive"
-    });
   };
   
   const handleContentGenerated = (content: string) => {
     console.log("Content successfully generated, length:", content.length);
     setGeneratedHtml(content);
-    
-    // Show success toast
-    toast({
-      title: "Content Generated Successfully",
-      description: "Your product roundup article has been created.",
-    });
   };
 
   const handleLanguageChange = (newLanguage: string) => {
     setLanguage(newLanguage);
     // Store language preference in localStorage for content generation service to use
     localStorage.setItem('contentLanguage', newLanguage);
-  };
-
-  // Reset any API error when component unmounts or user navigates
-  useEffect(() => {
-    return () => {
-      setApiError(null);
-    };
-  }, []);
-  
-  // Force re-render when apiKey changes
-  useEffect(() => {
-    if (apiKey) {
-      console.log("API key detected, ready for content generation");
-    }
-  }, [apiKey]);
-
-  const handleRetry = () => {
-    setApiError(null);
-    toast({
-      title: "Retrying",
-      description: "Resetting API error state and preparing to retry.",
-    });
-    
-    // Force a re-render of the form component by updating lastAttempt
-    setLastAttempt(Date.now());
   };
 
   return (
@@ -149,49 +107,21 @@ export default function ProductRoundupTemplate() {
       {apiError && (
         <Alert className="mt-4 border-destructive bg-destructive/10 rounded-lg">
           <AlertCircle className="h-4 w-4 text-destructive" />
-          <AlertDescription className="text-destructive space-y-4">
+          <AlertDescription className="text-destructive">
             <p><strong>API Error:</strong> {apiError}</p>
-            
-            {apiError.toLowerCase().includes('api key') || 
-             apiError.toLowerCase().includes('auth') || 
-             apiError.toLowerCase().includes('401') ? (
-              <div>
-                <p className="font-medium">Authentication Error Detected</p>
-                <ul className="list-disc pl-5 mt-1 space-y-1">
-                  <li>Check that you have sufficient credits in your OpenRouter account</li>
-                  <li>Verify your API key is valid and entered correctly</li>
-                  <li>
-                    Try creating a new API key in OpenRouter and updating it in your{" "}
-                    <Link to="/settings" className="font-medium underline hover:text-destructive/80">
-                      Settings
-                    </Link>
-                  </li>
-                </ul>
-              </div>
-            ) : (
-              <div>
-                <p className="font-medium">Troubleshooting Steps:</p>
-                <ul className="list-disc pl-5 mt-1 space-y-1">
-                  <li>Try selecting a different AI model</li>
-                  <li>Reduce the word count or complexity of your request</li>
-                  <li>Check your internet connection and try again</li>
-                  <li>Wait a few minutes and try again (service might be temporarily unavailable)</li>
-                </ul>
-              </div>
-            )}
-            
-            <Button 
-              onClick={handleRetry}
-              variant="outline" 
-              size="sm"
-              className="mt-2"
-            >
-              Reset Error & Try Again
-            </Button>
-            
-            <p className="mt-2 text-xs italic">
-              Check the Edge Function logs in Supabase for more detailed error information.
+            <p className="mt-2">
+              If this is an authentication error (401), please check:
             </p>
+            <ul className="list-disc pl-5 mt-1 space-y-1">
+              <li>That you have sufficient credits in your OpenRouter account</li>
+              <li>Your API key is valid and entered correctly</li>
+              <li>
+                Try creating a new API key in OpenRouter and updating it in your{" "}
+                <Link to="/settings" className="font-medium underline hover:text-destructive/80">
+                  Settings
+                </Link>
+              </li>
+            </ul>
           </AlertDescription>
         </Alert>
       )}
@@ -228,8 +158,7 @@ export default function ProductRoundupTemplate() {
         onApiError={handleApiError}
         apiKey={apiKey}
         onContentGenerated={handleContentGenerated}
-        // Force re-render when apiKey changes, on errors, or when retry is clicked
-        key={`${apiKey || 'no-api-key'}-${lastAttempt}`}
+        key={apiKey || 'no-api-key'}
       />
       
       {generatedHtml && (

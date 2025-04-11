@@ -6,7 +6,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { InfoIcon, Globe } from "lucide-react";
 import { LanguageSelector } from "@/components/templates/LanguageSelector";
 import { Card } from "@/components/ui/card";
-// import WordPressPublishSection from "@/components/wordpress/WordPressPublishSection";
 
 export default function WebSearchTemplate() {
   const [includeInternalLinks, setIncludeInternalLinks] = useState(false);
@@ -14,8 +13,6 @@ export default function WebSearchTemplate() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [customOutline, setCustomOutline] = useState("");
   const [language, setLanguage] = useState("english");
-  const [generatedContent, setGeneratedContent] = useState("");
-  const [generatedTitle, setGeneratedTitle] = useState("");
   
   useEffect(() => {
     document.title = "Real-Time Web Search Article Generator | Content Genius";
@@ -60,7 +57,7 @@ export default function WebSearchTemplate() {
     localStorage.setItem('includeCitations', enabled.toString());
   };
   
-  const handleGeneratingChange = (generating: boolean) => {
+  const handleGeneratingState = (generating: boolean) => {
     setIsGenerating(generating);
   };
   
@@ -73,11 +70,6 @@ export default function WebSearchTemplate() {
     setLanguage(newLanguage);
     // Store language preference in localStorage for content generation service to use
     localStorage.setItem('contentLanguage', newLanguage);
-  };
-  
-  const handleContentGenerated = (title: string, content: string) => {
-    setGeneratedTitle(title);
-    setGeneratedContent(content);
   };
 
   return (
@@ -120,17 +112,7 @@ export default function WebSearchTemplate() {
         customOutline={customOutline}
         onCustomOutlineChange={handleOutlineChange}
         forceWebSearch={true}
-        onGeneratingChange={handleGeneratingChange}
-        onContentGenerated={handleContentGenerated}
       />
-      
-      {/* Temporarily hiding WordPress publish section
-      {generatedContent && generatedTitle && (
-        <WordPressPublishSection
-          title={generatedTitle}
-          content={generatedContent}
-        />
-      )} */}
     </div>
   );
 }

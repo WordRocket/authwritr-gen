@@ -8,12 +8,11 @@ import { InfoIcon } from "lucide-react";
 import { LanguageSelector } from "@/components/templates/LanguageSelector";
 import { Card } from "@/components/ui/card";
 
-// Define unique free models that won't be duplicated
-const freeSeoModels = [
+const additionalFreeModels = [
   {
-    id: "google/gemini-2.5-pro-exp-03-25:free",
-    name: "Gemini 2.5 Pro Experimental",
-    description: "Latest Gemini model with experimental features (free)",
+    id: "deepseek/deepseek-v3-base:free",
+    name: "DeepSeek V3 Base (free)",
+    description: "671B parameter open MoE model with 37B active parameters and 128K context",
     recommended: true,
     free: true
   },
@@ -25,16 +24,9 @@ const freeSeoModels = [
     free: true
   },
   {
-    id: "qwen/qwen2.5-vl-3b-instruct:free",
-    name: "Qwen 2.5 VL 3B Instruct (free)",
+    id: "qwen/qwen2.5-vl-32b-instruct:free",
+    name: "Qwen2.5 VL 32B Instruct (free)",
     description: "Multimodal vision-language model with enhanced reasoning capabilities",
-    recommended: true,
-    free: true
-  },
-  {
-    id: "deepseek/deepseek-v3-base:free",
-    name: "DeepSeek V3 Base (free)",
-    description: "High-quality foundation model with advanced reasoning capabilities",
     recommended: true,
     free: true
   }
@@ -140,11 +132,7 @@ export default function FreeSeoGeneratorTemplate() {
         onCustomOutlineChange={handleOutlineChange}
         onGeneratingStateChange={handleGeneratingState}
         showGeminiKeyInput={true}
-        geminiApiKey={geminiApiKey}
-        onGeminiApiKeyChange={handleGeminiApiKeyChange}
-        onlyShowFreeModels={true}
-        additionalFreeModels={freeSeoModels} // Passing the models here to ensure they show up in dropdown
-        customModels={freeSeoModels} // Adding customModels prop to make sure models appear
+        additionalFreeModels={additionalFreeModels}
       />
     </div>
   );
