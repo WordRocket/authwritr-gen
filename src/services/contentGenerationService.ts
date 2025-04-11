@@ -127,7 +127,11 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
       
       console.log("Sending request to Supabase Edge Function: generate-seo-content");
       
-      const { data, error } = await supabase.functions.invoke("generate-seo-content", {
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("Request timed out. The edge function didn't respond in time.")), 30000);
+      });
+      
+      const invocationPromise = supabase.functions.invoke("generate-seo-content", {
         body: {
           ...formData,
           apiKey,
@@ -141,6 +145,8 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
           temperature: temperature
         },
       });
+      
+      const { data, error } = await Promise.race([invocationPromise, timeoutPromise]) as any;
 
       if (error) {
         console.error("Error invoking generate-seo-content function:", error);
@@ -207,6 +213,16 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
     } catch (invokeError: any) {
       console.error("Error in supabase.functions.invoke:", invokeError);
       
+      if (invokeError instanceof TypeError && invokeError.message.includes('fetch')) {
+        console.error("Network error during edge function invocation:", invokeError);
+        throw new Error("Failed to connect to the Edge Function due to a network error. Please check your internet connection and try again.");
+      }
+      
+      if (invokeError.message && invokeError.message.includes('timed out')) {
+        console.error("Edge function request timed out:", invokeError);
+        throw new Error("The request to the Edge Function timed out. Please try again later when the service is more responsive.");
+      }
+      
       if (invokeError.message && typeof invokeError.message === 'string') {
         const errorMsg = invokeError.message.toLowerCase();
         
@@ -234,7 +250,7 @@ export async function generateSeoContent(formData: SeoFormValues, apiKey?: strin
         }
 
         if (errorMsg.includes("edge") && (errorMsg.includes("function") || errorMsg.includes("failed"))) {
-          throw new Error(`Failed to communicate with the Edge Function. Please check your network connection and try again later.`);
+          throw new Error(`Failed to communicate with the Edge Function. Please try again later when the service is available.`);
         }
 
         if (errorMsg.includes("network") || errorMsg.includes("timeout") || errorMsg.includes("timed out") || 

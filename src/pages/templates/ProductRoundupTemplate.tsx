@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { InfoIcon, AlertCircle } from "lucide-react";
@@ -80,6 +81,13 @@ export default function ProductRoundupTemplate() {
     localStorage.setItem('contentLanguage', newLanguage);
   };
 
+  // Reset any API error when component unmounts or user navigates
+  useEffect(() => {
+    return () => {
+      setApiError(null);
+    };
+  }, []);
+
   return (
     <div className="mx-auto container py-8 space-y-8">
       <div className="max-w-3xl">
@@ -158,14 +166,12 @@ export default function ProductRoundupTemplate() {
         onApiError={handleApiError}
         apiKey={apiKey}
         onContentGenerated={handleContentGenerated}
-        key={apiKey || 'no-api-key'}
+        key={`${apiKey || 'no-api-key'}-${new Date().getTime()}`} // Force re-render on errors
       />
       
       {generatedHtml && (
         <HtmlPreviewComponent htmlCode={generatedHtml} className="mt-8" />
       )}
-      
-      {/* WordPress publishing section removed */}
     </div>
   );
 }
