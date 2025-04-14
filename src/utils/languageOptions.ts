@@ -6,6 +6,7 @@ export const languageOptions = [
   { value: "french", label: "French", flag: "🇫🇷" },
   { value: "german", label: "German", flag: "🇩🇪" },
   { value: "italian", label: "Italian", flag: "🇮🇹" },
+  { value: "norwegian", label: "Norwegian", flag: "🇳🇴" },
   { value: "portuguese", label: "Portuguese", flag: "🇵🇹" },
   { value: "dutch", label: "Dutch", flag: "🇳🇱" },
   { value: "russian", label: "Russian", flag: "🇷🇺" },
